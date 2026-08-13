@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In — S-Chat</title>
+    <link rel="stylesheet" href="css/S-Chat-Style.css">
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+</head>
+<body>
+
+    <div class="welcomeback-paragaph-container">
+        <p class="welcomeback-paragaph">Welcome Back!</p>
+    </div>
+
+    <div class="signupvideopng">
+        <video src="images/s-tech-ai-orb.mp4" width="140" height="140" autoplay loop muted playsinline id="signupvideo"></video>
+    </div>
+
+    <div id="auth-alert" class="auth-alert" role="alert"></div>
+
+    <div class="signup-box">
+        <form id="login-form" novalidate>
+            <fieldset class="custom-size-log-in-page">
+                <legend class="signuptextlabels">Account Info</legend>
+
+                <label for="login-identifier" class="signuptextlabels">Username or Email</label>
+                <input type="text" placeholder="Username or email" id="login-identifier"
+                    name="login-identifier" class="relog-in-textfield" autocomplete="username" autofocus required>
+
+                <label for="login-password" class="signuptextlabels">Password</label>
+                <input type="password" placeholder="Password" id="login-password"
+                    name="login-password" class="relog-in-textfield" autocomplete="current-password" required>
+            </fieldset>
+
+            <div class="relogin-submit-btn-contaner">
+                <button type="submit" class="relogin-submit-btn" id="login-submit-btn">Log In</button>
+            </div>
+        </form>
+
+        <div class="login-link">
+            Don't have an account? <a href="S-chat-signup.html" style="color:var(--s-accent-cyan)">Sign up</a>
+        </div>
+    </div>
+
+    <script src="js/auth.js" defer></script>
+</body>
+</html>

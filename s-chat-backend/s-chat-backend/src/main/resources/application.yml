@@ -1,0 +1,60 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: s-chat-backend
+
+  datasource:
+    # Supabase connection pooler URL, e.g.
+    # jdbc:postgresql://aws-0-region.pooler.supabase.com:6543/postgres
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USER}
+    password: ${SUPABASE_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 10000
+
+  jpa:
+    hibernate:
+      # Use "validate" once schema.sql / migrations are the source of truth in production.
+      # "update" is convenient while the schema is still evolving.
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-ttl-minutes: ${JWT_ACCESS_TTL_MIN:15}
+    refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
+  cors:
+    # Comma-separated, e.g. https://s-chat.vercel.app,https://www.s-chat.vercel.app
+    allowed-origins: ${FRONTEND_ORIGINS}
+  resend:
+    api-key: ${RESEND_API_KEY:}
+    from-address: ${RESEND_FROM_ADDRESS:S-Chat <no-reply@yourdomain.com>}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.stech.schat: INFO
+    org.springframework.security: WARN

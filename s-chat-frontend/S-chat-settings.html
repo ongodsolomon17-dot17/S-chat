@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — S-Chat</title>
+    <link rel="stylesheet" href="css/S-Chat-Style.css">
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+</head>
+<body>
+
+    <div class="titleandprofile">
+        <img src="images/MY S.png" alt="S-Tech logo" width="80" height="75" class="profilepicture">
+        <h1 class="h1-title">Settings</h1>
+    </div>
+
+    <div style="padding: 16px; max-width: 480px; margin: 0 auto 120px;">
+        <details class="expandable" style="background: var(--s-panel); border:1px solid var(--s-panel-border); border-radius: 14px; padding: 12px 16px; margin-bottom: 12px;">
+            <summary style="cursor:pointer; font-weight:600;">Account</summary>
+            <p id="settings-username" style="color: var(--s-text-dim); font-size: 14px;">Loading…</p>
+        </details>
+
+        <details class="expandable" style="background: var(--s-panel); border:1px solid var(--s-panel-border); border-radius: 14px; padding: 12px 16px; margin-bottom: 12px;">
+            <summary style="cursor:pointer; font-weight:600;">Notifications</summary>
+            <p style="color: var(--s-text-dim); font-size: 14px;">Coming soon.</p>
+        </details>
+
+        <details class="expandable" style="background: var(--s-panel); border:1px solid var(--s-panel-border); border-radius: 14px; padding: 12px 16px; margin-bottom: 12px;">
+            <summary style="cursor:pointer; font-weight:600;">Privacy &amp; Security</summary>
+            <p style="color: var(--s-text-dim); font-size: 14px;">Coming soon.</p>
+        </details>
+
+        <button id="logout-btn" class="login-icon-btn" style="width:100%; margin-top: 16px;">Log Out</button>
+    </div>
+
+    <div class="pages-btn-container">
+        <nav><a href="S-chat-home.html"><button class="primary-btn">Chats</button></a></nav>
+        <nav><a href="S-chat-status.html"><button class="primary-btn">Status</button></a></nav>
+        <nav><a href="S-chat-calls.html"><button class="primary-btn">Calls</button></a></nav>
+        <nav><a href="S-chat-settings.html"><button class="primary-btn">Settings</button></a></nav>
+    </div>
+
+    <script src="js/nav.js" defer></script>
+    <script>
+        document.getElementById("logout-btn").addEventListener("click", () => SChat.Auth.logout());
+        const user = SChat.Auth.getUser();
+        document.getElementById("settings-username").textContent = user ? ("Signed in as " + user.username) : "Not signed in";
+    </script>
+</body>
+</html>

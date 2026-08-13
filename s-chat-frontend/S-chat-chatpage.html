@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat — S-Chat</title>
+    <link rel="stylesheet" href="css/S-Chat-Style.css">
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+</head>
+<body>
+
+    <div class="titleandprofile">
+        <img src="images/MY S.png" alt="S-Tech logo" width="80" height="75" class="profilepicture">
+        <h1 class="h1-title">Chat</h1>
+    </div>
+
+    <div id="chat-thread" class="chat-thread">
+        <!-- Messages render here via js/chats.js (WebSocket, phase 2) -->
+    </div>
+
+    <form id="chat-send-form" onsubmit="return false;">
+        <div class="chat-message-box-container">
+            <textarea name="chat-message-box" id="chat-message-box" class="chat-message-box"
+                placeholder="Message..." required rows="1" spellcheck="true"></textarea>
+
+            <button class="send-chat-btn" id="send-chat-btn" type="submit" aria-label="Send message">
+                <img src="my icons/send-icon.png" alt="" height="22" width="22">
+            </button>
+
+            <div class="chat-file-sender-box">
+                <label for="chat-file-sender" class="chat-files-sender-icon" aria-label="Attach file">
+                    <img src="my icons/files-extention-icon.png" alt="" height="20" width="20">
+                </label>
+                <!-- Types re-validated server-side by content, not just extension, before storage -->
+                <input type="file" name="chat-file-sender" id="chat-file-sender" class="chat-file-sender"
+                    accept=".jpg,.jpeg,.png,.gif,.pdf,.docx,.xlsx,.pptx,.txt,.mp3,.mp4,.avi,.mov">
+            </div>
+        </div>
+    </form>
+
+    <script src="js/nav.js" defer></script>
+    <script>
+        // Wired to a real endpoint once /api/chat/messages ships (phase 2).
+        // For now this just guards against the broken raw-form POST that used
+        // to point at a nonexistent .java servlet.
+        document.getElementById("chat-send-form").addEventListener("submit", () => {
+            SChat.showToast("Messaging backend is coming in the next update.", "");
+        });
+    </script>
+</body>
+</html>
