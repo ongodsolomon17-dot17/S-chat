@@ -11,7 +11,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "chat_messages")
+@Table(name = "chat_messages", indexes = {
+        // findConversation() filters/sorts on exactly these columns for every history
+        // load and every WebSocket send — without this the DB does a full table scan
+        // that gets slower as message volume grows.
+        @Index(name = "idx_chat_sender_receiver_sent", columnList = "sender_id, receiver_id, sent_at"),
+        @Index(name = "idx_chat_receiver_sender_sent", columnList = "receiver_id, sender_id, sent_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor

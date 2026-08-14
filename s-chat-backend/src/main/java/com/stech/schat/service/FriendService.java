@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 public class FriendService {
@@ -98,13 +100,11 @@ public class FriendService {
     }
 
     public List<FriendRequestDto> listPendingIncoming(UUID currentUserId) {
-        return friendRequestRepository.findByAddresseeIdAndStatus(currentUserId, FriendRequestStatus.PENDING)
-                .stream().map(fr -> toDto(fr, currentUserId)).toList();
+        return toDtoList(friendRequestRepository.findByAddresseeIdAndStatus(currentUserId, FriendRequestStatus.PENDING), currentUserId);
     }
 
     public List<FriendRequestDto> listFriends(UUID currentUserId) {
-        return friendRequestRepository.findAcceptedFriendships(currentUserId)
-                .stream().map(fr -> toDto(fr, currentUserId)).toList();
+        return toDtoList(friendRequestRepository.findAcceptedFriendships(currentUserId), currentUserId);
     }
 
     public boolean areFriends(UUID userA, UUID userB) {
@@ -137,6 +137,36 @@ public class FriendService {
         boolean incoming = fr.getAddresseeId().equals(viewerId);
         UUID otherId = incoming ? fr.getRequesterId() : fr.getAddresseeId();
         User other = userRepository.findById(otherId).orElse(null);
+        return toDto(fr, viewerId, other);
+    }
+
+    /**
+     * Batch version of toDto(): the single-item version ran one extra findById query
+     * per row, so a friend list or incoming-request list of N items meant N+1 queries.
+     * This loads every "other user" referenced by the whole list in one query instead.
+     */
+    private List<FriendRequestDto> toDtoList(List<FriendRequest> requests, UUID viewerId) {
+        if (requests.isEmpty()) return List.of();
+
+        List<UUID> otherIds = requests.stream()
+                .map(fr -> fr.getAddresseeId().equals(viewerId) ? fr.getRequesterId() : fr.getAddresseeId())
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersById = userRepository.findAllById(otherIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, Function.identity()));
+
+        return requests.stream()
+                .map(fr -> {
+                    UUID otherId = fr.getAddresseeId().equals(viewerId) ? fr.getRequesterId() : fr.getAddresseeId();
+                    return toDto(fr, viewerId, usersById.get(otherId));
+                })
+                .toList();
+    }
+
+    private FriendRequestDto toDto(FriendRequest fr, UUID viewerId, User other) {
+        boolean incoming = fr.getAddresseeId().equals(viewerId);
+        UUID otherId = incoming ? fr.getRequesterId() : fr.getAddresseeId();
 
         UserSummaryDto summary = other == null
                 ? new UserSummaryDto(otherId, "Deleted User", "", null, true)

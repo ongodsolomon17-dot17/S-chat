@@ -1,5 +1,7 @@
 package com.stech.schat.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +17,8 @@ import java.util.UUID;
 
 @Service
 public class SupabaseStorageService implements StorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(SupabaseStorageService.class);
 
     // Only allow types the app actually needs — never trust the client-sent extension alone,
     // this checks the browser-reported MIME type as a first filter (magic-byte checks belong
@@ -83,6 +87,31 @@ public class SupabaseStorageService implements StorageService {
 
         return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + objectPath;
     }
+
+    @Override
+    public void delete(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) return;
+        String marker = "/storage/v1/object/public/" + bucket + "/";
+        int idx = publicUrl.indexOf(marker);
+        if (idx < 0) return; // not one of our object URLs — nothing we can safely delete
+        String objectPath = publicUrl.substring(idx + marker.length());
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath))
+                    .header("Authorization", "Bearer " + serviceKey)
+                    .DELETE()
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 300 && response.statusCode() != 404) {
+                log.warn("Failed to delete storage object {} (status {})", objectPath, response.statusCode());
+            }
+        } catch (Exception ex) {
+            // Advisory only — a failed cleanup delete should never break the caller's workflow.
+            log.warn("Failed to delete storage object {}: {}", objectPath, ex.getMessage());
+        }
+    }
+
     private void validateFileSignature(String contentType, byte[] bytes) {
         try {
             if (contentType.startsWith("image/")) {

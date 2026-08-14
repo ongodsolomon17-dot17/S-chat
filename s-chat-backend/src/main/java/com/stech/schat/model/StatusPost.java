@@ -11,7 +11,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "status_posts")
+@Table(name = "status_posts", indexes = {
+        // Backs both findActiveByUser() and findActiveForUsers(), which filter on
+        // user_id and expires_at on every Status tab / feed load.
+        @Index(name = "idx_status_user_expires", columnList = "user_id, expires_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor

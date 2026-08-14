@@ -42,7 +42,7 @@
     </div>
 
     <div class="pages-btn-container">
-        <nav><a href="S-chat-home.html"><button class="primary-btn"><img src="my icons/chats.png" alt="" width="20" height="20">Chats</button></a></nav>
+        <nav><a href="S-chat-home.html"><button class="primary-btn"><img src="my icons/chats-icon.png" alt="" width="20" height="20">Chats</button></a></nav>
         <nav><a href="S-chat-status.html"><button class="primary-btn">Status</button></a></nav>
         <nav><a href="S-chat-calls.html"><button class="primary-btn">Calls</button></a></nav>
         <nav><a href="S-chat-settings.html"><button class="primary-btn">Settings</button></a></nav>
@@ -104,16 +104,25 @@
             });
 
             // Show the user's own profile picture in the header, matching Settings.
-            (async function loadMyAvatar() {
+            async function loadMyAvatar() {
                 try {
                     const profile = await SChat.apiFetch("/users/me");
                     if (profile.profilePictureUrl) {
                         document.getElementById("my-avatar").src = profile.profilePictureUrl;
                     }
                 } catch { /* header stays on the default logo */ }
-            })();
+            }
 
-            document.addEventListener("DOMContentLoaded", loadFriends);
+            // This whole block runs as an inline <script> with no `defer`, so it executes
+            // immediately during parsing — before js/api.js (loaded with `defer`) has run.
+            // Calling SChat.* here directly (as the old immediately-invoked loadMyAvatar()
+            // did) throws "SChat is not defined" every single page load; it was only
+            // silent because it happened to be inside a try/catch. Deferring both calls to
+            // DOMContentLoaded guarantees js/api.js and js/friends.js have already executed.
+            document.addEventListener("DOMContentLoaded", () => {
+                loadFriends();
+                loadMyAvatar();
+            });
         })();
     </script>
 </body>

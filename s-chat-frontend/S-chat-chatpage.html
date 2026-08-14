@@ -43,7 +43,14 @@
     <script src="js/friends.js" defer></script>
     <script src="js/ws-chat.js" defer></script>
     <script>
-        (function () {
+        // Everything in this IIFE that touches SChat / SChatWS is deferred to
+        // DOMContentLoaded. js/api.js and js/ws-chat.js are loaded with `defer`,
+        // which means they only run once HTML parsing finishes — but this inline
+        // <script> block (no `defer`, since that attribute has no effect on inline
+        // scripts) would otherwise run immediately, before those globals exist,
+        // throwing "SChatWS is not defined" and silently killing the rest of this
+        // block (no history load, no live socket, no working send button).
+        document.addEventListener("DOMContentLoaded", function () {
             const params = new URLSearchParams(window.location.search);
             const friendId = params.get("friend");
             const friendName = params.get("name") || "Chat";
@@ -131,7 +138,7 @@
             });
 
             loadHistory();
-        })();
+        });
     </script>
 </body>
 </html>

@@ -15,6 +15,15 @@ spring:
     hikari:
       maximum-pool-size: 5
       connection-timeout: 10000
+      # Supabase's connection pooler (port 6543) runs PgBouncer in "transaction" mode,
+      # which does not preserve server-side prepared statements across transactions/
+      # connections. The pgjdbc driver defaults to switching a statement to a server-side
+      # prepared statement after 5 executions (prepareThreshold=5), which then intermittently
+      # fails against PgBouncer with "prepared statement ... does not exist" errors under
+      # real traffic. Setting prepareThreshold=0 keeps every statement as a simple query,
+      # which is what PgBouncer transaction mode requires.
+      data-source-properties:
+        prepareThreshold: 0
 
   jpa:
     hibernate:

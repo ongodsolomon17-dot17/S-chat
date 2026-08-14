@@ -14,6 +14,12 @@ import java.util.UUID;
 @Table(name = "friend_requests", uniqueConstraints = {
         // Prevents duplicate pending/accepted request rows between the same pair
         @UniqueConstraint(columnNames = {"requester_id", "addressee_id"})
+}, indexes = {
+        // Backs listPendingIncoming() and the "reverse pending request" lookup in
+        // FriendService.sendRequest() — both filter by addressee_id (+status).
+        @Index(name = "idx_friend_req_addressee_status", columnList = "addressee_id, status"),
+        // Backs the reverse-direction and areFriends() lookups keyed off requester_id.
+        @Index(name = "idx_friend_req_requester", columnList = "requester_id")
 })
 @Getter
 @Setter

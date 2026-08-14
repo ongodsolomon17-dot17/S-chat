@@ -1,5 +1,6 @@
 package com.stech.schat.config;
 
+import com.stech.schat.security.JsonAuthenticationEntryPoint;
 import com.stech.schat.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -27,9 +28,11 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final JsonAuthenticationEntryPoint jsonAuthenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, JsonAuthenticationEntryPoint jsonAuthenticationEntryPoint) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.jsonAuthenticationEntryPoint = jsonAuthenticationEntryPoint;
     }
 
     @Bean
@@ -44,6 +47,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // stateless JWT API, no cookies carrying auth -> no CSRF surface
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(jsonAuthenticationEntryPoint))
             .headers(headers -> headers
                     .contentSecurityPolicy(csp -> csp.policyDirectives(
                             "default-src 'self'; " +

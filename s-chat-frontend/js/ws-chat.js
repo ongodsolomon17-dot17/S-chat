@@ -7,6 +7,21 @@ window.SChatWS = (function () {
   let reconnectTimer = null;
   let connecting = false;
 
+  // Decodes the JWT payload client-side (no network call) so we can tell whether
+  // the access token is actually close to expiring, instead of unconditionally
+  // hitting /api/auth/refresh on every single connect/reconnect attempt. That
+  // unconditional refresh added a full extra request — and its round-trip latency
+  // — before the socket could even open, on every page load and every reconnect.
+  function isTokenExpiringSoon(token, leewaySeconds) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+      if (!payload.exp) return true; // can't tell — be safe and refresh
+      return Date.now() >= (payload.exp * 1000) - leewaySeconds * 1000;
+    } catch {
+      return true; // malformed/unreadable token — let the normal refresh flow handle it
+    }
+  }
+
   async function connect() {
     if (intentionalClose || connecting) return;
     const token = SChat.Auth.getAccessToken();
@@ -15,10 +30,10 @@ window.SChatWS = (function () {
 
     connecting = true;
     try {
-      const fresh = await SChat.refreshAccessToken();
-      if (fresh) {
-        // Refreshing is harmless when the current access token is still valid and
-        // prevents reconnect loops with an expired token after a long idle period.
+      // Only proactively refresh when the current token is expired or about to
+      // expire (60s leeway). A still-valid token connects straight away.
+      if (isTokenExpiringSoon(token, 60)) {
+        await SChat.refreshAccessToken();
       }
       const currentToken = SChat.Auth.getAccessToken();
       if (!currentToken || intentionalClose) return;
