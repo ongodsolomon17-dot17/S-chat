@@ -47,11 +47,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     var auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
-            } catch (JwtException | IllegalArgumentException ex) {
-                // Invalid/expired token: leave the context unauthenticated,
-                // downstream endpoint security will reject with 401/403.
-                SecurityContextHolder.clearContext();
-            }
+                    }   catch (JwtException | IllegalArgumentException ex) {
+                            SecurityContextHolder.clearContext();
+
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("""
+                            {"message":"Invalid or expired access token"}
+                             """);
+                             return;
+                    }
         }
 
         filterChain.doFilter(request, response);
