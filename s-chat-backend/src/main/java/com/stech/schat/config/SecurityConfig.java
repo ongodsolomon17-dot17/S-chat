@@ -45,14 +45,28 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .headers(headers -> headers
-                    .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'"))
+                    .contentSecurityPolicy(csp -> csp.policyDirectives(
+                            "default-src 'self'; " +
+                            "base-uri 'self'; " +
+                            "frame-ancestors 'none'; " +
+                            "form-action 'self'; " +
+                            "script-src 'self' 'unsafe-inline'; " +
+                            "style-src 'self' 'unsafe-inline'; " +
+                            "img-src 'self' data: blob: https:; " +
+                            "media-src 'self' data: blob: https:; " +
+                            "connect-src 'self' https://s-chat-u8fs.onrender.com wss://s-chat-u8fs.onrender.com https://*.supabase.co wss://*.supabase.co"))
                     .frameOptions(frame -> frame.deny())
+                    .httpStrictTransportSecurity(hsts -> hsts
+                            .includeSubDomains(true)
+                            .maxAgeInSeconds(31536000))
             )
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
-                    .requestMatchers("/ws/**").authenticated()
+                    // The WS handshake can't carry an Authorization header from a browser —
+                    // JwtHandshakeInterceptor validates the token (passed as a query param) itself.
+                    .requestMatchers("/ws/**").permitAll()
                     .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
                     .requestMatchers("/api/superadmin/**").hasRole("SUPERADMIN")
                     .anyRequest().authenticated()
@@ -64,7 +78,10 @@ public class SecurityConfig {
 
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")).stream()
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);

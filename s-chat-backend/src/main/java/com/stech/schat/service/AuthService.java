@@ -10,6 +10,8 @@ import com.stech.schat.model.Role;
 import com.stech.schat.model.User;
 import com.stech.schat.repository.UserRepository;
 import com.stech.schat.security.JwtService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +28,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserService userService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                        JwtService jwtService, UserService userService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.userService = userService;
     }
 
     @Transactional
@@ -45,6 +50,8 @@ public class AuthService {
         User user = User.builder()
                 .username(request.username())
                 .email(request.email().toLowerCase())
+                .phoneNumber(request.phoneNumber())
+                .publicId(userService.generateUniquePublicId())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role(Role.USER)
                 .build();
@@ -58,6 +65,10 @@ public class AuthService {
         User user = userRepository
                 .findByUsernameIgnoreCaseOrEmailIgnoreCase(request.usernameOrEmail(), request.usernameOrEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Incorrect username/email or password"));
+
+        if (user.isDeleted()) {
+            throw new InvalidCredentialsException("Incorrect username/email or password");
+        }
 
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
             throw new AccountLockedException(user.getLockedUntil());
@@ -93,6 +104,32 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    @Transactional(readOnly = true)
+    public AuthResponse refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new InvalidCredentialsException("Invalid refresh token");
+        }
+
+        try {
+            Claims claims = jwtService.parseAndValidate(refreshToken);
+            if (!"refresh".equals(claims.get("type", String.class))) {
+                throw new InvalidCredentialsException("Invalid refresh token");
+            }
+
+            java.util.UUID userId = java.util.UUID.fromString(claims.getSubject());
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new InvalidCredentialsException("Invalid refresh token"));
+
+            if (user.isDeleted() || !user.isAccountEnabled()) {
+                throw new InvalidCredentialsException("Invalid refresh token");
+            }
+
+            return issueTokens(user);
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new InvalidCredentialsException("Invalid refresh token");
+        }
+    }
+
     private AuthResponse issueTokens(User user) {
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole().name());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
@@ -102,6 +139,7 @@ public class AuthService {
                 refreshToken,
                 user.getUsername(),
                 user.getRole().name(),
+                user.getPublicId(),
                 jwtService.getAccessTokenTtlSeconds()
         );
     }

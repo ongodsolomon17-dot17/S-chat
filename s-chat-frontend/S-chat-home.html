@@ -7,26 +7,38 @@
     <link rel="stylesheet" href="css/S-Chat-Style.css">
     <script src="js/config.js" defer></script>
     <script src="js/api.js" defer></script>
+    <style>
+        .friend-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; cursor: pointer; border-radius: 12px;
+            transition: background 0.15s ease;
+        }
+        .friend-row:hover, .friend-row:focus-visible { background: rgba(255,255,255,0.06); }
+        .friend-row img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: var(--s-panel); flex-shrink:0; }
+        .friend-row .name { font-weight: 600; font-size: 14px; }
+        .friend-row .sub { font-size: 12px; color: var(--s-text-dim); }
+        .empty-state { text-align: center; color: var(--s-text-dim); padding: 40px 20px; font-size: 14px; }
+    </style>
 </head>
 <body>
 
-    <div class="titleandprofile">
-        <img src="images/MY S.png" alt="S-Tech logo" width="80" height="75" class="profilepicture">
-        <div class="online-indicator"></div>
-        <h1 class="h1-title">Chats</h1>
-    </div>
+    <div class="app-shell">
+        <div class="titleandprofile" id="my-profile-header">
+            <img src="images/MY S.png" alt="S-Tech logo" width="80" height="75" class="profilepicture" id="my-avatar">
+            <div class="online-indicator"></div>
+            <h1 class="h1-title">Chats</h1>
+        </div>
 
-    <div class="chat-home-searchbar">
-        <form onsubmit="return false;">
-            <input type="text" placeholder="Search chats..." class="chat-home-searchinput" name="home-chat-searchinput">
-            <button type="submit" name="home-chat-search-icon" class="home-chat-search-icon" aria-label="Search">
-                <img src="my icons/search-magnifire-icon.png" alt="" width="20" height="20">
-            </button>
-        </form>
-    </div>
+        <div class="chat-home-searchbar">
+            <form onsubmit="return false;">
+                <input type="text" placeholder="Search chats..." class="chat-home-searchinput" id="chat-search-input" name="home-chat-searchinput">
+                <button type="submit" name="home-chat-search-icon" class="home-chat-search-icon" aria-label="Search">
+                    <img src="my icons/search-magnifire-icon.png" alt="" width="20" height="20">
+                </button>
+            </form>
+        </div>
 
-    <div id="chat-list" class="chat-thread">
-        <!-- Populated by js/chats.js once the messaging API is live -->
+        <div id="friend-list" style="padding: 8px 8px 140px; max-width: 640px; margin: 0 auto;"></div>
     </div>
 
     <div class="pages-btn-container">
@@ -37,5 +49,72 @@
     </div>
 
     <script src="js/nav.js" defer></script>
+    <script src="js/friends.js" defer></script>
+    <script>
+        (function () {
+            let allFriends = [];
+
+            function renderFriends(friends) {
+                const list = document.getElementById("friend-list");
+                list.innerHTML = "";
+
+                if (!friends.length) {
+                    list.innerHTML = '<div class="empty-state">No chats yet. Add a friend from Settings to get started.</div>';
+                    return;
+                }
+
+                friends.forEach((f) => {
+                    const row = document.createElement("div");
+                    row.className = "friend-row";
+                    row.tabIndex = 0;
+                    row.innerHTML = `
+                        <img src="${f.otherUser.profilePictureUrl || 'images/MY S.png'}" alt="">
+                        <div>
+                            <div class="name">${escapeHtml(f.otherUser.username)}</div>
+                            <div class="sub">${f.otherUser.deleted ? "This user deleted their account" : "Tap to chat"}</div>
+                        </div>
+                    `;
+                    const open = () => {
+                        window.location.href = `S-chat-chatpage.html?friend=${encodeURIComponent(f.otherUser.id)}&name=${encodeURIComponent(f.otherUser.username)}`;
+                    };
+                    row.addEventListener("click", open);
+                    row.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+                    list.appendChild(row);
+                });
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement("div");
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            async function loadFriends() {
+                try {
+                    allFriends = await SChatFriends.myFriends();
+                    renderFriends(allFriends);
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            }
+
+            document.getElementById("chat-search-input").addEventListener("input", (e) => {
+                const q = e.target.value.trim().toLowerCase();
+                renderFriends(allFriends.filter((f) => f.otherUser.username.toLowerCase().includes(q)));
+            });
+
+            // Show the user's own profile picture in the header, matching Settings.
+            (async function loadMyAvatar() {
+                try {
+                    const profile = await SChat.apiFetch("/users/me");
+                    if (profile.profilePictureUrl) {
+                        document.getElementById("my-avatar").src = profile.profilePictureUrl;
+                    }
+                } catch { /* header stays on the default logo */ }
+            })();
+
+            document.addEventListener("DOMContentLoaded", loadFriends);
+        })();
+    </script>
 </body>
 </html>

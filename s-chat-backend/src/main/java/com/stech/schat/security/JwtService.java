@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
@@ -28,7 +29,7 @@ public class JwtService {
                     "app.jwt.secret must be set and at least 32 characters. " +
                     "Set the JWT_SECRET environment variable on Render.");
         }
-        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenTtlMs = accessTtlMinutes * 60_000;
         this.refreshTokenTtlMs = refreshTtlDays * 24 * 60 * 60_000;
     }

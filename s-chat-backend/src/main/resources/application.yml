@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8080}
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -39,10 +40,14 @@ app:
     refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
   cors:
     # Comma-separated, e.g. https://s-chat.vercel.app,https://www.s-chat.vercel.app
-    allowed-origins: ${FRONTEND_ORIGINS}
+    allowed-origins: ${FRONTEND_ORIGINS:https://s-chat-zeta.vercel.app}
   resend:
     api-key: ${RESEND_API_KEY:}
     from-address: ${RESEND_FROM_ADDRESS:S-Chat <no-reply@yourdomain.com>}
+  supabase:
+    url: ${SUPABASE_URL}
+    service-key: ${SUPABASE_SERVICE_KEY}
+    storage-bucket: ${SUPABASE_STORAGE_BUCKET:s-chat-media}
 
 management:
   endpoints:

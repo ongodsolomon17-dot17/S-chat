@@ -2,6 +2,7 @@ package com.stech.schat.controller;
 
 import com.stech.schat.dto.AuthResponse;
 import com.stech.schat.dto.LoginRequest;
+import com.stech.schat.dto.RefreshTokenRequest;
 import com.stech.schat.dto.SignupRequest;
 import com.stech.schat.exception.RateLimitExceededException;
 import com.stech.schat.security.AuthRateLimiter;
@@ -27,6 +28,11 @@ public class AuthController {
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request, HttpServletRequest http) {
         enforceRateLimit(http);
         return ResponseEntity.ok(authService.signup(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 
     @PostMapping("/login")

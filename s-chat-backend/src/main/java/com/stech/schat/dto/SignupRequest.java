@@ -24,5 +24,9 @@ public record SignupRequest(
                 regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
                 message = "Password must include an uppercase letter, a lowercase letter, and a number"
         )
-        String password
+        String password,
+
+        // Optional at signup — needed later for "add by contact"; users can add it in Settings.
+        @Size(max = 32)
+        String phoneNumber
 ) {}

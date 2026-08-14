@@ -6,25 +6,26 @@
     <title>S-Chat — Super Admin</title>
     <link rel="stylesheet" href="css/S-Chat-Style.css">
     <style>
-        .admin-shell { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+        .admin-shell { max-width: 1100px; margin: 0 auto; padding: clamp(16px, 4vw, 24px) 16px 100px; box-sizing: border-box; }
         .admin-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
         .admin-badge { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--s-accent-cyan);
-            border: 1px solid var(--s-accent-cyan-dim); border-radius: 999px; padding: 4px 12px; text-transform: uppercase; }
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
-        .stat-card { background: var(--s-panel); border: 1px solid var(--s-panel-border); border-radius: 16px; padding: 20px; }
+            border: 1px solid var(--s-accent-cyan-dim); border-radius: 999px; padding: 4px 12px; text-transform: uppercase; white-space: nowrap; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: clamp(10px, 3vw, 16px); margin-bottom: 28px; }
+        .stat-card { background: var(--s-panel); border: 1px solid var(--s-panel-border); border-radius: 16px; padding: clamp(14px, 4vw, 20px); min-width: 0; }
         .stat-card .label { font-size: 12px; color: var(--s-text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-card .value { font-size: 28px; font-weight: 700; font-family: var(--font-display); margin-top: 6px; }
-        .panel { background: var(--s-panel); border: 1px solid var(--s-panel-border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+        .stat-card .value { font-size: clamp(20px, 5vw, 28px); font-weight: 700; font-family: var(--font-display); margin-top: 6px; }
+        .panel { background: var(--s-panel); border: 1px solid var(--s-panel-border); border-radius: 16px; padding: clamp(14px, 4vw, 20px); margin-bottom: 20px; box-sizing: border-box; }
         .panel h2 { margin: 0 0 14px; font-size: 16px; font-family: var(--font-body); }
-        table.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        table.admin-table th { text-align: left; color: var(--s-text-dim); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--s-panel-border); }
-        table.admin-table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table.admin-table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px; }
+        table.admin-table th { text-align: left; color: var(--s-text-dim); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--s-panel-border); white-space: nowrap; }
+        table.admin-table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
         .role-pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
         .role-pill.SUPERADMIN { background: rgba(255,92,108,0.18); color: #ffb3bb; }
         .role-pill.ADMIN { background: rgba(7,255,243,0.15); color: var(--s-accent-cyan); }
         .role-pill.USER { background: rgba(255,255,255,0.08); color: var(--s-text-dim); }
         .empty-note { color: var(--s-text-dim); font-size: 13px; padding: 12px 0; }
-        #admin-gate { max-width: 380px; margin: 80px auto; }
+        #admin-gate { width: 100%; max-width: 380px; margin: clamp(40px, 15vw, 80px) auto; padding: 0 16px; box-sizing: border-box; }
     </style>
     <script src="js/config.js" defer></script>
     <script src="js/api.js" defer></script>
@@ -62,12 +63,14 @@
 
         <div class="panel">
             <h2>User Management</h2>
-            <table class="admin-table" id="user-table">
-                <thead>
-                    <tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr>
-                </thead>
-                <tbody id="user-table-body"></tbody>
-            </table>
+            <div class="table-scroll">
+                <table class="admin-table" id="user-table">
+                    <thead>
+                        <tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr>
+                    </thead>
+                    <tbody id="user-table-body"></tbody>
+                </table>
+            </div>
             <p class="empty-note" id="user-table-empty">
                 Connecting the live user list requires the <code>/api/superadmin/users</code> endpoint (next backend phase).
             </p>

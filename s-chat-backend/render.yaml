@@ -20,5 +20,11 @@ services:
         sync: false
       - key: RESEND_FROM_ADDRESS
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: s-chat-media
       - key: JPA_DDL_AUTO
         value: update

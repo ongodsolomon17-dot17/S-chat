@@ -11,24 +11,26 @@
 </head>
 <body>
 
-    <span class="title-container">
-        <h1 class="h1-title">Welcome to S-Chat</h1>
-    </span>
+    <div class="app-shell">
+        <span class="title-container">
+            <h1 class="h1-title">Welcome to S-Chat</h1>
+        </span>
 
-    <div class="first-page-png">
-        <img src="images/S-chat-first-page-img.png" width="400" height="380" alt="S-Chat logo" class="logimage-png">
+        <div class="first-page-png">
+            <img src="images/image_e287090d.png" width="400" height="380" alt="S-Chat logo" class="logimage-png">
+        </div>
+
+        <div class="loghome-btn">
+            <nav class="login-and-signup-btn">
+                <button class="login-btn" onclick="location.href='S-chat-log-in.html'">Log In</button>
+                <button class="signup-btn" onclick="location.href='S-chat-signup.html'">Sign Up</button>
+            </nav>
+        </div>
     </div>
 
-    <div class="loghome-btn">
-        <nav class="login-and-signup-btn">
-            <button class="login-btn" onclick="location.href='S-chat-log-in.html'">Log In</button>
-            <button class="signup-btn" onclick="location.href='S-chat-signup.html'">Sign Up</button>
-        </nav>
-    </div>
-
-    <div class="Stech-ai">
+    <div class="Stech-ai" id="stech-ai-orb">
         <nav>
-            <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" class="gemini-link" aria-label="Open Gemini AI">
+            <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" class="gemini-link" id="gemini-orb-link" aria-label="Open Gemini AI">
                 <video src="images/s-tech-ai-orb.mp4"
                     id="s-tech-ai-floating"
                     height="90" width="90"
@@ -39,5 +41,6 @@
         </nav>
     </div>
 
+    <script src="js/orb-drag.js" defer></script>
 </body>
 </html>
