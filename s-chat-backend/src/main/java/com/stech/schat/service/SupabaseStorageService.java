@@ -18,14 +18,18 @@ import java.util.UUID;
 @Service
 public class SupabaseStorageService implements StorageService {
 
-    private static final Logger log = LoggerFactory.getLogger(SupabaseStorageService.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(SupabaseStorageService.class);
 
-    // Only allow types the app actually needs — never trust the client-sent extension alone,
-    // this checks the browser-reported MIME type as a first filter (magic-byte checks belong
-    // in front of this once attachment support broadens beyond images/video).
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "video/mp4", "video/quicktime"
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "video/mp4",
+            "video/quicktime"
     );
+
     private static final long MAX_FILE_BYTES = 25L * 1024 * 1024;
 
     private final String supabaseUrl;
@@ -41,101 +45,227 @@ public class SupabaseStorageService implements StorageService {
         this.supabaseUrl = supabaseUrl;
         this.serviceKey = serviceKey;
         this.bucket = bucket;
+
+        log.info("Supabase Storage initialized. URL={}, bucket={}",
+                supabaseUrl, bucket);
     }
 
     @Override
     public String upload(String folder, MultipartFile file) throws Exception {
+
+        log.info("Storage upload started. folder={}, filename={}, size={}, contentType={}",
+                folder,
+                file.getOriginalFilename(),
+                file.getSize(),
+                file.getContentType());
+
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
+
         if (file.getSize() > MAX_FILE_BYTES) {
-            throw new IllegalArgumentException("File exceeds the 25MB limit");
+            throw new IllegalArgumentException(
+                    "File exceeds the 25MB limit"
+            );
         }
+
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException("Unsupported file type: " + contentType);
+
+        if (contentType == null ||
+                !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+
+            log.warn("Rejected upload because of unsupported MIME type: {}",
+                    contentType);
+
+            throw new IllegalArgumentException(
+                    "Unsupported file type: " + contentType
+            );
         }
 
         byte[] bytes = file.getBytes();
-        validateFileSignature(contentType, bytes);
 
-        String safeExtension = switch (contentType) {
+        /*
+         * JPEG, PNG and GIF can be validated by Java ImageIO.
+         *
+         * WebP is intentionally not passed through ImageIO because
+         * standard Java ImageIO does not reliably provide a WebP decoder.
+         */
+        if (contentType.startsWith("image/")
+                && !"image/webp".equalsIgnoreCase(contentType)) {
+
+            validateImageSignature(contentType, bytes);
+        }
+
+        String safeExtension = switch (contentType.toLowerCase()) {
             case "image/jpeg" -> ".jpg";
             case "image/png" -> ".png";
             case "image/gif" -> ".gif";
+            case "image/webp" -> ".webp";
             case "video/mp4" -> ".mp4";
             case "video/quicktime" -> ".mov";
             default -> "";
         };
-        String safeFolder = folder == null ? "files" : folder.replaceAll("[^a-zA-Z0-9_-]", "");
-        if (safeFolder.isBlank()) safeFolder = "files";
-        String objectPath = safeFolder + "/" + UUID.randomUUID() + safeExtension;
+
+        String safeFolder = folder == null
+                ? "files"
+                : folder.replaceAll("[^a-zA-Z0-9_-]", "");
+
+        if (safeFolder.isBlank()) {
+            safeFolder = "files";
+        }
+
+        String objectPath =
+                safeFolder + "/" + UUID.randomUUID() + safeExtension;
+
+        String uploadUrl =
+                supabaseUrl
+                        + "/storage/v1/object/"
+                        + bucket
+                        + "/"
+                        + objectPath;
+
+        log.info("Uploading to Supabase. bucket={}, objectPath={}, contentType={}",
+                bucket,
+                objectPath,
+                contentType);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath))
+                .uri(URI.create(uploadUrl))
                 .header("Authorization", "Bearer " + serviceKey)
                 .header("Content-Type", contentType)
                 .header("x-upsert", "false")
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response =
+                httpClient.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofString()
+                );
+
+        log.info("Supabase upload response. status={}, body={}",
+                response.statusCode(),
+                response.body());
 
         if (response.statusCode() >= 300) {
-            throw new IllegalStateException("Upload to storage failed (status " + response.statusCode() + ")");
+
+            log.error(
+                    "Supabase Storage upload FAILED. status={}, bucket={}, objectPath={}, responseBody={}",
+                    response.statusCode(),
+                    bucket,
+                    objectPath,
+                    response.body()
+            );
+
+            throw new IllegalStateException(
+                    "Upload to storage failed (status "
+                            + response.statusCode()
+                            + "): "
+                            + response.body()
+            );
         }
 
-        return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + objectPath;
+        String publicUrl =
+                supabaseUrl
+                        + "/storage/v1/object/public/"
+                        + bucket
+                        + "/"
+                        + objectPath;
+
+        log.info("Supabase upload successful. publicUrl={}",
+                publicUrl);
+
+        return publicUrl;
     }
 
     @Override
     public void delete(String publicUrl) {
-        if (publicUrl == null || publicUrl.isBlank()) return;
-        String marker = "/storage/v1/object/public/" + bucket + "/";
+
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return;
+        }
+
+        String marker =
+                "/storage/v1/object/public/" + bucket + "/";
+
         int idx = publicUrl.indexOf(marker);
-        if (idx < 0) return; // not one of our object URLs — nothing we can safely delete
-        String objectPath = publicUrl.substring(idx + marker.length());
+
+        if (idx < 0) {
+            return;
+        }
+
+        String objectPath =
+                publicUrl.substring(idx + marker.length());
 
         try {
+
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath))
+                    .uri(URI.create(
+                            supabaseUrl
+                                    + "/storage/v1/object/"
+                                    + bucket
+                                    + "/"
+                                    + objectPath
+                    ))
                     .header("Authorization", "Bearer " + serviceKey)
                     .DELETE()
                     .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 300 && response.statusCode() != 404) {
-                log.warn("Failed to delete storage object {} (status {})", objectPath, response.statusCode());
+
+            HttpResponse<String> response =
+                    httpClient.send(
+                            request,
+                            HttpResponse.BodyHandlers.ofString()
+                    );
+
+            if (response.statusCode() >= 300
+                    && response.statusCode() != 404) {
+
+                log.warn(
+                        "Failed to delete storage object. objectPath={}, status={}, response={}",
+                        objectPath,
+                        response.statusCode(),
+                        response.body()
+                );
             }
+
         } catch (Exception ex) {
-            // Advisory only — a failed cleanup delete should never break the caller's workflow.
-            log.warn("Failed to delete storage object {}: {}", objectPath, ex.getMessage());
+
+            log.warn(
+                    "Failed to delete storage object {}: {}",
+                    objectPath,
+                    ex.getMessage(),
+                    ex
+            );
         }
     }
 
-    private void validateFileSignature(String contentType, byte[] bytes) {
+    private void validateImageSignature(
+            String contentType,
+            byte[] bytes
+    ) {
+
         try {
+
             if (contentType.startsWith("image/")) {
-                if (ImageIO.read(new ByteArrayInputStream(bytes)) == null) {
-                    throw new IllegalArgumentException("The uploaded image is invalid or corrupted");
+
+                if (ImageIO.read(
+                        new ByteArrayInputStream(bytes)
+                ) == null) {
+
+                    throw new IllegalArgumentException(
+                            "The uploaded image is invalid or corrupted"
+                    );
                 }
+
                 return;
             }
 
-            if ("video/mp4".equals(contentType) || "video/quicktime".equals(contentType)) {
-                // ISO Base Media files contain an ftyp box near the beginning.
-                int limit = Math.min(bytes.length - 4, 64);
-                boolean hasFtyp = false;
-                for (int i = 4; i <= limit; i++) {
-                    if (bytes[i] == 'f' && bytes[i + 1] == 't' && bytes[i + 2] == 'y' && bytes[i + 3] == 'p') {
-                        hasFtyp = true;
-                        break;
-                    }
-                }
-                if (!hasFtyp) throw new IllegalArgumentException("The uploaded video is invalid or corrupted");
-            }
         } catch (java.io.IOException ex) {
-            throw new IllegalArgumentException("The uploaded file could not be validated");
+
+            throw new IllegalArgumentException(
+                    "The uploaded file could not be validated",
+                    ex
+            );
         }
     }
-
 }
