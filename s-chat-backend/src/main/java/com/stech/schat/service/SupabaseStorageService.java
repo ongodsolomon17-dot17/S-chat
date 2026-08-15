@@ -131,7 +131,7 @@ public class SupabaseStorageService implements StorageService {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uploadUrl))
-                .header("Authorization", "Bearer " + serviceKey)
+                .header("apikey", serviceKey)
                 .header("Content-Type", contentType)
                 .header("x-upsert", "false")
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes))
@@ -207,7 +207,7 @@ public class SupabaseStorageService implements StorageService {
                                     + "/"
                                     + objectPath
                     ))
-                    .header("Authorization", "Bearer " + serviceKey)
+                    .header("apikey", serviceKey)
                     .DELETE()
                     .build();
 
