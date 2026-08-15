@@ -1,6 +1,8 @@
 package com.stech.schat.exception;
 
 import com.stech.schat.dto.ApiError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,12 +14,16 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
         List<String> messages = ex.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .toList();
-        return ResponseEntity.badRequest().body(ApiError.of(400, "VALIDATION_FAILED", messages));
+
+        return ResponseEntity.badRequest()
+                .body(ApiError.of(400, "VALIDATION_FAILED", messages));
     }
 
     @ExceptionHandler(DuplicateUserException.class)
@@ -28,9 +34,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
-        // Deliberately generic message — never confirm whether it was the username or password that was wrong
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiError.of(401, "INVALID_CREDENTIALS", "Incorrect username/email or password"));
+                .body(ApiError.of(
+                        401,
+                        "INVALID_CREDENTIALS",
+                        "Incorrect username/email or password"
+                ));
     }
 
     @ExceptionHandler(AccountLockedException.class)
@@ -48,7 +57,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
-                .body(ApiError.of(400, "BAD_REQUEST", ex.getMessage() == null ? "Invalid request" : ex.getMessage()));
+                .body(ApiError.of(
+                        400,
+                        "BAD_REQUEST",
+                        ex.getMessage() == null ? "Invalid request" : ex.getMessage()
+                ));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -65,8 +78,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
-        // Never leak stack traces or internal exception messages to the client
+
+        // Log the complete exception and stack trace in Render logs
+        log.error("Unhandled exception occurred:", ex);
+
+        // Keep internal details hidden from the frontend
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiError.of(500, "INTERNAL_ERROR", "Something went wrong. Please try again."));
+                .body(ApiError.of(
+                        500,
+                        "INTERNAL_ERROR",
+                        "Something went wrong. Please try again."
+                ));
     }
 }
