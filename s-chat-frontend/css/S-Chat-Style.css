@@ -548,26 +548,18 @@ fieldset.custom-size-log-in-page {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-.login-link,
-.login-link-container-main-holder {
+ 
+.signup-link,
+.login-link{
   display: flex;
-  justify-content: center;
+  justify-content:flex-end;
   align-items: center;
-
-  gap: 10px;
-
-  padding: 16px;
-
-  flex-wrap: wrap;
 }
 
-.alreadyHaveAnAccount-paragraph {
-  color: var(--s-text-dim);
-  font-weight: 600;
-  font-size: 14px;
-  margin: 0;
-}
+
+
+
+
 
 .login-icon-img {
   height: 40px;
