@@ -561,6 +561,7 @@ fieldset.custom-size-log-in-page {
   .login-link{
   justify-content: center;
   align-items: flex-end;
+  bottom: -40px;
 }
 }
 
