@@ -45,14 +45,36 @@ public class GeminiService {
     public GeminiService(
             ObjectMapper objectMapper,
             @Value("${app.gemini.api-key:}") String apiKey,
-            @Value("${app.gemini.model:gemini-2.5-flash}") String model
+            @Value("${app.gemini.model:gemini-3.5-flash}") String model
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.model = model == null || model.isBlank() ? "gemini-2.5-flash" : model.trim();
+        this.model = normalizeModel(model);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
+    }
+
+    private String normalizeModel(String configuredModel) {
+        if (configuredModel == null || configuredModel.isBlank()) {
+            return "gemini-3.5-flash";
+        }
+
+        String normalized = configuredModel.trim();
+
+        // Prevent an old Render environment variable from selecting the
+        // Gemini 2.5 Flash model that is unavailable to new users.
+        if ("gemini-2.5-flash".equals(normalized)
+                || "models/gemini-2.5-flash".equals(normalized)) {
+            log.warn("Configured Gemini model {} is unavailable for new users. Falling back to gemini-3.5-flash.", normalized);
+            return "gemini-3.5-flash";
+        }
+
+        if (normalized.startsWith("models/")) {
+            normalized = normalized.substring("models/".length());
+        }
+
+        return normalized;
     }
 
     public AiChatResponse generate(AiChatRequest request) {
@@ -77,7 +99,6 @@ public class GeminiService {
             }
 
             ObjectNode generationConfig = root.putObject("generationConfig");
-            generationConfig.put("temperature", 0.7);
             generationConfig.put("maxOutputTokens", 2048);
 
             String requestBody = objectMapper.writeValueAsString(root);
