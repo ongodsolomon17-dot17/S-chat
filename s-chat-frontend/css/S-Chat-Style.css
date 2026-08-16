@@ -470,7 +470,7 @@ fieldset.custom-size-log-in-page {
 
   position: relative;
 }
-@media( max-width: 400px){
+@media( max-width: 405px){
   fieldset.custom-size,
   fieldset.custom-size2,
   fieldset.custom-size-log-in-page{
@@ -559,6 +559,15 @@ fieldset.custom-size-log-in-page {
 
   transition: box-shadow 0.2s ease;
 }
+
+@media( max-width: 330px){
+  .relogin-submit-btn,
+  .signup-submit-btn {
+    
+    position: relative;
+    top: 35px;
+    }
+  }
 
 .relogin-submit-btn:hover,
 .signup-submit-btn:hover {
