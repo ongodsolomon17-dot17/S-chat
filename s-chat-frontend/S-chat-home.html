@@ -18,6 +18,21 @@
         .friend-row .name { font-weight: 600; font-size: 14px; }
         .friend-row .sub { font-size: 12px; color: var(--s-text-dim); }
         .empty-state { text-align: center; color: var(--s-text-dim); padding: 40px 20px; font-size: 14px; }
+
+        /* Pinned AI Assistant row — always sits above real friends, unaffected by search/reload */
+        .ai-friend-row {
+            border: 1px solid var(--s-accent-cyan-dim);
+            background: rgba(7, 255, 243, 0.05);
+            margin: 0 8px 4px;
+        }
+        .ai-friend-row:hover, .ai-friend-row:focus-visible {
+            background: rgba(7, 255, 243, 0.1);
+        }
+        .ai-friend-row img {
+            border: 2px solid var(--s-accent-cyan-dim);
+            box-shadow: 0 0 12px var(--s-accent-cyan-dim);
+        }
+        .ai-friend-row .name { color: var(--s-accent-cyan); }
     </style>
 </head>
 <body>
@@ -36,6 +51,17 @@
                     <img src="my icons/search-magnifire-icon.png" alt="" width="20" height="20">
                 </button>
             </form>
+        </div>
+
+        <!-- Pinned above the dynamic friend list so it survives renderFriends() clearing
+             #friend-list's innerHTML on every reload/search filter. -->
+        <div class="friend-row ai-friend-row" id="ai-assistant-row" tabindex="0"
+             style="max-width: 640px; margin-left: auto; margin-right: auto;">
+            <img src="images/MY S.png" alt="">
+            <div>
+                <div class="name">Gemini · S-Tech AI</div>
+                <div class="sub">Ask me anything</div>
+            </div>
         </div>
 
         <div id="friend-list" style="padding: 8px 8px 140px; max-width: 640px; margin: 0 auto;"></div>
@@ -113,12 +139,19 @@
                 } catch { /* header stays on the default logo */ }
             }
 
+            function openAIAssistant() {
+                window.location.href = "S-chat-chatpage.html?ai=1&name=" + encodeURIComponent("Gemini");
+            }
+            document.getElementById("ai-assistant-row").addEventListener("click", openAIAssistant);
+            document.getElementById("ai-assistant-row").addEventListener("keydown", (e) => {
+                if (e.key === "Enter") openAIAssistant();
+            });
+
             // This whole block runs as an inline <script> with no `defer`, so it executes
             // immediately during parsing — before js/api.js (loaded with `defer`) has run.
-            // Calling SChat.* here directly (as the old immediately-invoked loadMyAvatar()
-            // did) throws "SChat is not defined" every single page load; it was only
-            // silent because it happened to be inside a try/catch. Deferring both calls to
-            // DOMContentLoaded guarantees js/api.js and js/friends.js have already executed.
+            // Calling SChat.* here directly throws "SChat is not defined" every page load
+            // if not deferred. Deferring both calls to DOMContentLoaded guarantees
+            // js/api.js and js/friends.js have already executed.
             document.addEventListener("DOMContentLoaded", () => {
                 loadFriends();
                 loadMyAvatar();

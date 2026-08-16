@@ -1,893 +1,196 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Chat — S-Chat</title>
-
     <link rel="stylesheet" href="css/S-Chat-Style.css">
-
     <script src="js/config.js" defer></script>
     <script src="js/api.js" defer></script>
 </head>
-
 <body>
 
-    <!-- =========================================================
-         NORMAL S-CHAT
-         ========================================================= -->
-
     <div class="app-shell">
-
         <div class="titleandprofile">
-
-            <img
-                src="images/MY S.png"
-                alt=""
-                width="80"
-                height="75"
-                class="profilepicture"
-                id="peer-avatar"
-            >
-
+            <img src="images/MY S.png" alt="" width="80" height="75" class="profilepicture" id="peer-avatar">
             <h1 class="h1-title" id="peer-name">Chat</h1>
-
         </div>
 
         <div id="chat-thread" class="chat-thread"></div>
-
     </div>
-
-
-    <!-- =========================================================
-         NORMAL CHAT MESSAGE INPUT
-         ========================================================= -->
 
     <form id="chat-send-form" onsubmit="return false;">
-
         <div class="chat-message-box-container">
+            <textarea name="chat-message-box" id="chat-message-box" class="chat-message-box"
+                placeholder="Message..." required rows="1" spellcheck="true"></textarea>
 
-            <textarea
-                name="chat-message-box"
-                id="chat-message-box"
-                class="chat-message-box"
-                placeholder="Message..."
-                required
-                rows="1"
-                spellcheck="true"
-            ></textarea>
-
-
-            <button
-                class="send-chat-btn"
-                id="send-chat-btn"
-                type="submit"
-                aria-label="Send message"
-            >
-                <img
-                    src="my icons/send-icon.png"
-                    alt=""
-                    height="22"
-                    width="22"
-                >
+            <button class="send-chat-btn" id="send-chat-btn" type="submit" aria-label="Send message">
+                <img src="my icons/send-icon.png" alt="" height="22" width="22">
             </button>
-
 
             <div class="chat-file-sender-box">
-
-                <label
-                    for="chat-file-sender"
-                    class="chat-files-sender-icon"
-                    aria-label="Attach file"
-                >
-                    <img
-                        src="my icons/files-extention-icon.png"
-                        alt=""
-                        height="20"
-                        width="20"
-                    >
+                <label for="chat-file-sender" class="chat-files-sender-icon" aria-label="Attach file">
+                    <img src="my icons/files-extention-icon.png" alt="" height="20" width="20">
                 </label>
-
-
-                <input
-                    type="file"
-                    name="chat-file-sender"
-                    id="chat-file-sender"
-                    class="chat-file-sender"
-                    accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov"
-                >
-
+                <input type="file" name="chat-file-sender" id="chat-file-sender" class="chat-file-sender"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov">
             </div>
-
         </div>
-
     </form>
-
-
-    <!-- =========================================================
-         S-TECH AI FLOATING ORB
-         ========================================================= -->
-
-    <div
-        class="Stech-ai"
-        id="stech-ai-orb"
-    >
-
-        <button
-            type="button"
-            class="gemini-link"
-            id="gemini-orb-link"
-            aria-label="Open Gemini AI"
-        >
-
-            <video
-                src="images/s-tech-ai-orb.mp4"
-                id="s-tech-ai-floating"
-                height="90"
-                width="90"
-                autoplay
-                loop
-                muted
-                playsinline
-                aria-hidden="true"
-            ></video>
-
-        </button>
-
-    </div>
-
-
-    <!-- =========================================================
-         AI CHAT INTERFACE
-         ========================================================= -->
-
-    <div
-        class="ai-chat-overlay"
-        id="ai-chat-overlay"
-        aria-hidden="true"
-    >
-
-        <div class="ai-chat-header">
-
-            <button
-                type="button"
-                class="ai-chat-back"
-                id="ai-chat-back"
-                aria-label="Close AI chat"
-            >
-                ←
-            </button>
-
-
-            <video
-                src="images/s-tech-ai-orb.mp4"
-                class="ai-chat-avatar"
-                autoplay
-                loop
-                muted
-                playsinline
-                aria-hidden="true"
-            ></video>
-
-
-            <div class="ai-chat-user-info">
-
-                <span class="ai-chat-name">
-                    Gemini
-                </span>
-
-                <span class="ai-chat-status">
-                    AI Assistant
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- AI messages -->
-
-        <div
-            class="ai-chat-messages"
-            id="ai-chat-messages"
-        >
-
-            <div class="ai-message bot">
-                Hey! 👋 I'm Gemini, your S-Chat AI assistant.
-                How can I help you today?
-            </div>
-
-        </div>
-
-
-        <!-- AI input -->
-
-        <form
-            class="ai-chat-input-area"
-            id="ai-chat-form"
-        >
-
-            <textarea
-                id="ai-chat-input"
-                class="ai-chat-input"
-                placeholder="Message Gemini..."
-                rows="1"
-                autocomplete="off"
-                spellcheck="true"
-            ></textarea>
-
-
-            <button
-                type="submit"
-                class="ai-chat-send"
-                aria-label="Send message"
-            >
-                ➤
-            </button>
-
-        </form>
-
-    </div>
-
-
-    <!-- =========================================================
-         EXISTING S-CHAT JAVASCRIPT
-         ========================================================= -->
 
     <script src="js/nav.js" defer></script>
     <script src="js/friends.js" defer></script>
     <script src="js/ws-chat.js" defer></script>
-
-
-    <!-- =========================================================
-         AI CHAT + NORMAL CHAT LOGIC
-         ========================================================= -->
-
     <script>
-
         document.addEventListener("DOMContentLoaded", function () {
+            const params = new URLSearchParams(window.location.search);
+            const isAI = params.get("ai") === "1";
+            const friendId = params.get("friend");
+            const friendName = params.get("name") || (isAI ? "Gemini" : "Chat");
 
-            /* =====================================================
-               AI CHAT
-               ===================================================== */
+            const peerName = document.getElementById("peer-name");
+            if (peerName) peerName.textContent = friendName;
 
-            const orb =
-                document.getElementById("gemini-orb-link");
+            const thread = document.getElementById("chat-thread");
 
-            const aiOverlay =
-                document.getElementById("ai-chat-overlay");
-
-            const aiBackButton =
-                document.getElementById("ai-chat-back");
-
-            const aiForm =
-                document.getElementById("ai-chat-form");
-
-            const aiInput =
-                document.getElementById("ai-chat-input");
-
-            const aiMessages =
-                document.getElementById("ai-chat-messages");
-
-
-            /*
-             * Open AI chat
-             */
-
-            if (orb && aiOverlay) {
-
-                orb.addEventListener("click", function () {
-
-                    aiOverlay.classList.add("active");
-
-                    aiOverlay.setAttribute(
-                        "aria-hidden",
-                        "false"
-                    );
-
-                    if (aiInput) {
-                        setTimeout(() => {
-                            aiInput.focus();
-                        }, 100);
-                    }
-
-                });
-
-            }
-
-
-            /*
-             * Close AI chat
-             */
-
-            if (aiBackButton && aiOverlay) {
-
-                aiBackButton.addEventListener(
-                    "click",
-                    function () {
-
-                        aiOverlay.classList.remove("active");
-
-                        aiOverlay.setAttribute(
-                            "aria-hidden",
-                            "true"
-                        );
-
-                    }
-                );
-
-            }
-
-
-            /*
-             * Add AI message
-             */
-
-            function addAIMessage(text, type) {
-
-                if (!aiMessages) return;
-
-                const message =
-                    document.createElement("div");
-
-                message.className =
-                    "ai-message " + type;
-
-                message.textContent = text;
-
-                aiMessages.appendChild(message);
-
-                aiMessages.scrollTop =
-                    aiMessages.scrollHeight;
-
-            }
-
-
-            /*
-             * Temporary local AI responses.
-             *
-             * This is NOT connected to Gemini yet.
-             * It allows you to test the interface safely.
-             */
-
-            function getDemoResponse(message) {
-
-                const text =
-                    message.toLowerCase().trim();
-
-
-                if (
-                    text.includes("hello") ||
-                    text.includes("hi") ||
-                    text.includes("hey")
-                ) {
-
-                    return "Hey! 👋 Nice to hear from you. How can I help you?";
-
-                }
-
-
-                if (text.includes("who are you")) {
-
-                    return "I'm Gemini, the AI assistant inside S-Chat. 🤖";
-
-                }
-
-
-                if (
-                    text.includes("what is your name") ||
-                    text.includes("your name")
-                ) {
-
-                    return "My name is Gemini. I'm your AI assistant inside S-Chat.";
-
-                }
-
-
-                if (text.includes("java")) {
-
-                    return "Java is an object-oriented programming language. I can help you learn Java step by step.";
-
-                }
-
-
-                if (text.includes("html")) {
-
-                    return "HTML is used to structure web pages. CSS controls their appearance, while JavaScript adds behavior.";
-
-                }
-
-
-                if (text.includes("css")) {
-
-                    return "CSS is used to style HTML elements. You can control colors, spacing, layouts, fonts, animations and much more.";
-
-                }
-
-
-                if (text.includes("javascript")) {
-
-                    return "JavaScript adds behavior and interactivity to web pages. It can also communicate with your backend APIs.";
-
-                }
-
-
-                return "I'm here with you inside S-Chat 🤖. I'm currently running in local demo mode. We'll connect the real AI model later.";
-
-            }
-
-
-            /*
-             * AI send message
-             */
-
-            if (aiForm && aiInput) {
-
-                aiForm.addEventListener(
-                    "submit",
-                    function (event) {
-
-                        event.preventDefault();
-
-                        const text =
-                            aiInput.value.trim();
-
-                        if (!text) return;
-
-
-                        // Show user's message
-
-                        addAIMessage(
-                            text,
-                            "user"
-                        );
-
-
-                        // Clear input
-
-                        aiInput.value = "";
-
-
-                        // Typing indicator
-
-                        const typing =
-                            document.createElement("div");
-
-                        typing.className =
-                            "ai-typing";
-
-                        typing.textContent =
-                            "Gemini is typing...";
-
-                        aiMessages.appendChild(
-                            typing
-                        );
-
-                        aiMessages.scrollTop =
-                            aiMessages.scrollHeight;
-
-
-                        // Temporary response
-
-                        setTimeout(
-                            function () {
-
-                                typing.remove();
-
-                                addAIMessage(
-                                    getDemoResponse(text),
-                                    "bot"
-                                );
-
-                            },
-                            700
-                        );
-
-                    }
-                );
-
-            }
-
-
-            /* =====================================================
-               NORMAL S-CHAT
-               ===================================================== */
-
-            const params =
-                new URLSearchParams(
-                    window.location.search
-                );
-
-            const friendId =
-                params.get("friend");
-
-            const friendName =
-                params.get("name") || "Chat";
-
-
-            const peerName =
-                document.getElementById("peer-name");
-
-
-            if (peerName) {
-
-                peerName.textContent =
-                    friendName;
-
-            }
-
-
-            const thread =
-                document.getElementById(
-                    "chat-thread"
-                );
-
-
-            /*
-             * If this page was opened without a friend,
-             * don't attempt to connect to a chat.
-             */
-
-            if (!friendId) {
-
+            if (!isAI && !friendId) {
                 if (thread) {
-
-                    thread.innerHTML =
-                        '<p style="text-align:center;color:var(--s-text-dim);padding:24px;">Open a chat from your Chats list.</p>';
-
+                    thread.innerHTML = '<p style="text-align:center;color:var(--s-text-dim);padding:24px;">Open a chat from your Chats list.</p>';
                 }
-
                 return;
-
             }
-
-
-            /*
-             * Render normal chat message
-             */
 
             function renderMessage(msg, mine) {
-
                 if (!thread) return;
+                const bubble = document.createElement("div");
+                bubble.className = "chat-bubble " + (mine ? "mine" : "theirs");
 
-
-                const bubble =
-                    document.createElement("div");
-
-                bubble.className =
-                    "chat-bubble " +
-                    (mine ? "mine" : "theirs");
-
-
-                const text =
-                    document.createElement("span");
-
-                text.textContent =
-                    msg.content || "";
-
+                const text = document.createElement("span");
+                text.textContent = msg.content || "";
                 bubble.appendChild(text);
 
-
-                /*
-                 * Attachment
-                 */
-
                 if (msg.attachmentUrl) {
-
-                    const isVideo =
-                        /\.(mp4|mov)$/i.test(
-                            msg.attachmentUrl
-                        );
-
-
-                    const media =
-                        document.createElement(
-                            isVideo
-                                ? "video"
-                                : "img"
-                        );
-
-
-                    media.src =
-                        msg.attachmentUrl;
-
-
-                    if (isVideo) {
-
-                        media.controls = true;
-
-                    }
-
-
-                    media.style.maxWidth =
-                        "100%";
-
-                    media.style.borderRadius =
-                        "10px";
-
-                    media.style.marginTop =
-                        "6px";
-
-
+                    const isVideo = /\.(mp4|mov)$/i.test(msg.attachmentUrl);
+                    const media = document.createElement(isVideo ? "video" : "img");
+                    media.src = msg.attachmentUrl;
+                    if (isVideo) media.controls = true;
+                    media.style.maxWidth = "100%";
+                    media.style.borderRadius = "10px";
+                    media.style.marginTop = "6px";
                     bubble.appendChild(media);
-
                 }
 
-
-                /*
-                 * Message time
-                 */
-
-                const meta =
-                    document.createElement("span");
-
-                meta.className =
-                    "meta";
-
-                meta.textContent =
-                    new Date(
-                        msg.sentAt ||
-                        Date.now()
-                    ).toLocaleTimeString(
-                        [],
-                        {
-                            hour: "2-digit",
-                            minute: "2-digit"
-                        }
-                    );
-
-
+                const meta = document.createElement("span");
+                meta.className = "meta";
+                meta.textContent = new Date(msg.sentAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
                 bubble.appendChild(meta);
 
                 thread.appendChild(bubble);
-
-                thread.scrollTop =
-                    thread.scrollHeight;
-
+                thread.scrollTop = thread.scrollHeight;
+                return bubble;
             }
 
+            /* =====================================================
+               AI ASSISTANT MODE — same chat UI, no backend/WebSocket.
+               Reachable only via the pinned "AI Assistant" row on
+               S-chat-home.html (S-chat-home.html?ai=1 -> here).
+               Swap getDemoResponse() for a real Gemini API call later.
+               ===================================================== */
+            if (isAI) {
+                renderMessage({ content: "Hey! 👋 I'm Gemini, your S-Chat AI assistant. How can I help you today?" }, false);
 
-            /*
-             * Load chat history
-             */
+                const fileBox = document.querySelector(".chat-file-sender-box");
+                if (fileBox) fileBox.style.display = "none"; // no AI attachment support yet
 
-            async function loadHistory() {
-
-                try {
-
-                    const messages =
-                        await SChat.apiFetch(
-                            `/chat/history/${friendId}?page=0&size=50`
-                        );
-
-
-                    messages
-                        .slice()
-                        .reverse()
-                        .forEach(
-                            function (message) {
-
-                                renderMessage(
-                                    message,
-                                    message.senderId !== friendId
-                                );
-
-                            }
-                        );
-
-                } catch (err) {
-
-                    SChat.showToast(
-                        err.message,
-                        "error"
-                    );
-
+                function getDemoResponse(message) {
+                    const text = message.toLowerCase().trim();
+                    if (text.includes("hello") || text.includes("hi") || text.includes("hey")) {
+                        return "Hey! 👋 Nice to hear from you. How can I help?";
+                    }
+                    if (text.includes("who are you")) {
+                        return "I'm Gemini, the AI assistant inside S-Chat. 🤖";
+                    }
+                    return "I'm here with you inside S-Chat 🤖. Running in local demo mode for now — the real model connects next.";
                 }
 
+                document.getElementById("chat-send-form").addEventListener("submit", () => {
+                    const textarea = document.getElementById("chat-message-box");
+                    const content = textarea.value.trim();
+                    if (!content) return;
+
+                    renderMessage({ content }, true);
+                    textarea.value = "";
+
+                    const typing = renderMessage({ content: "Gemini is typing..." }, false);
+                    typing.style.opacity = "0.6";
+                    typing.style.fontStyle = "italic";
+
+                    setTimeout(() => {
+                        typing.remove();
+                        renderMessage({ content: getDemoResponse(content) }, false);
+                    }, 700);
+                });
+
+                return; // skip all the friend-chat wiring below
             }
 
+            /* =====================================================
+               FRIEND CHAT MODE — real history + WebSocket
+               ===================================================== */
+            async function loadHistory() {
+                try {
+                    const messages = await SChat.apiFetch(`/chat/history/${friendId}?page=0&size=50`);
+                    messages.slice().reverse().forEach((m) => renderMessage(m, m.senderId !== friendId));
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            }
 
-            /*
-             * WebSocket connection
-             */
-
-            if (
-                typeof SChatWS !== "undefined"
-            ) {
-
+            if (typeof SChatWS !== "undefined") {
                 SChatWS.connect();
-
-
-                SChatWS.onMessage(
-                    function (data) {
-
-                        if (
-                            data.type === "chat" &&
-                            data.senderId === friendId
-                        ) {
-
-                            renderMessage(
-                                data,
-                                false
-                            );
-
-                        }
-
-                        else if (
-                            data.type === "error"
-                        ) {
-
-                            SChat.showToast(
-                                data.message,
-                                "error"
-                            );
-
-                        }
-
+                SChatWS.onMessage((data) => {
+                    if (data.type === "chat" && data.senderId === friendId) {
+                        renderMessage(data, false);
+                    } else if (data.type === "error") {
+                        SChat.showToast(data.message, "error");
                     }
-                );
-
+                });
             }
 
+            const chatForm = document.getElementById("chat-send-form");
+            const textarea = document.getElementById("chat-message-box");
+            const fileInput = document.getElementById("chat-file-sender");
 
-            /*
-             * Normal chat send
-             */
+            if (chatForm && textarea && fileInput && typeof SChatWS !== "undefined") {
+                chatForm.addEventListener("submit", async () => {
+                    const content = textarea.value.trim();
+                    let attachmentUrl = null;
 
-            const chatForm =
-                document.getElementById(
-                    "chat-send-form"
-                );
-
-            const textarea =
-                document.getElementById(
-                    "chat-message-box"
-                );
-
-            const fileInput =
-                document.getElementById(
-                    "chat-file-sender"
-                );
-
-
-            if (
-                chatForm &&
-                textarea &&
-                fileInput &&
-                typeof SChatWS !== "undefined"
-            ) {
-
-                chatForm.addEventListener(
-                    "submit",
-                    async function (event) {
-
-                        event.preventDefault();
-
-
-                        const content =
-                            textarea.value.trim();
-
-                        let attachmentUrl =
-                            null;
-
-
-                        /*
-                         * Upload attachment first
-                         */
-
-                        if (
-                            fileInput.files.length
-                        ) {
-
-                            const fd =
-                                new FormData();
-
-                            fd.append(
-                                "file",
-                                fileInput.files[0]
-                            );
-
-
-                            try {
-
-                                const result =
-                                    await SChat.apiUpload(
-                                        "/chat/attachment",
-                                        fd
-                                    );
-
-
-                                attachmentUrl =
-                                    result.url;
-
-
-                            } catch (err) {
-
-                                SChat.showToast(
-                                    err.message,
-                                    "error"
-                                );
-
-                                return;
-
-                            }
-
-                        }
-
-
-                        /*
-                         * Don't send empty message
-                         */
-
-                        if (
-                            !content &&
-                            !attachmentUrl
-                        ) {
-
+                    if (fileInput.files.length) {
+                        const fd = new FormData();
+                        fd.append("file", fileInput.files[0]);
+                        try {
+                            const result = await SChat.apiUpload("/chat/attachment", fd);
+                            attachmentUrl = result.url;
+                        } catch (err) {
+                            SChat.showToast(err.message, "error");
                             return;
-
                         }
-
-
-                        /*
-                         * Send through WebSocket
-                         */
-
-                        const sent =
-                            SChatWS.send(
-                                friendId,
-                                content,
-                                attachmentUrl
-                            );
-
-
-                        if (sent) {
-
-                            renderMessage(
-                                {
-                                    content,
-                                    attachmentUrl,
-                                    sentAt:
-                                        new Date()
-                                            .toISOString()
-                                },
-                                true
-                            );
-
-
-                            textarea.value =
-                                "";
-
-                            fileInput.value =
-                                "";
-
-                        }
-
                     }
-                );
 
+                    if (!content && !attachmentUrl) return;
+
+                    const sent = SChatWS.send(friendId, content, attachmentUrl);
+                    if (sent) {
+                        renderMessage({ content, attachmentUrl, sentAt: new Date().toISOString() }, true);
+                        textarea.value = "";
+                        fileInput.value = "";
+                    }
+                });
             }
-
-
-            /*
-             * Load existing messages
-             */
 
             loadHistory();
-
         });
-
     </script>
-
-
-    <!-- =========================================================
-         ORB DRAG SCRIPT
-         ========================================================= -->
-
-    <script src="js/orb-drag.js" defer></script>
-
 </body>
 </html>
-```
