@@ -130,7 +130,7 @@ textarea:focus-visible {
    ========================================================================== */
 
 .title-container {
-  top: -20px;
+  top: 10px;
   width: 100%;
   height: 300px;
   position: relative;
@@ -139,30 +139,33 @@ textarea:focus-visible {
 .welcomeback-paragaph-container {
   display: flex;
   justify-content: center;
+  position: relative;
 }
 
 .welcomeback-paragaph {
-  color: var(--s-accent-cyan);
-  font-size: 30px;
-  font-weight: bold;
-  position: absolute;
-  top: 10px;
-  font-family: var(--font-display);
+    position: absolute;
+    top:130px;
+    font-size: 30px;
+    font-weight: bolder;
+    color: #07fff3;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-family: var(--font-display);
+    z-index: 10;
 }
 
 /* Mobile welcome text */
 
-@media (max-width: 600px) {
+@media (max-width: 560px) {
   .welcomeback-paragaph {
-    font-size: clamp(18px, 6vw, 22px);
-    position: absolute;
-    top: 65px;
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    text-align: center;
-    padding: 0 15px;
+      color: rgb(16, 254, 235);
+      font-size: clamp(18px, 6vw, 22px);
+      font-weight: bolder;
+      position: absolute;
+      top: 120px;
+      font-family: var(--font-display);
   }
 }
 
@@ -418,6 +421,7 @@ textarea:focus-visible {
   justify-content: center;
   align-items: center;
   padding-top: clamp(16px, 6vw, 32px);
+  position: relative;
 }
 
 #signupvideo {
@@ -428,6 +432,9 @@ textarea:focus-visible {
   height: clamp(90px, 25vw, 140px);
 
   object-fit: cover;
+
+  position: relative;
+  top: -10px;
 }
 
 .signup-box {
@@ -460,6 +467,16 @@ fieldset.custom-size-log-in-page {
   -webkit-backdrop-filter: blur(14px);
 
   border-radius: 20px;
+
+  position: relative;
+}
+@media( max-width: 400px){
+  fieldset.custom-size,
+  fieldset.custom-size2,
+  fieldset.custom-size-log-in-page{
+    top: 100px;
+    height:min(94vw, 380px);;
+}
 }
 
 .signuptextlabels {
@@ -514,10 +531,20 @@ fieldset.custom-size-log-in-page {
   justify-content: flex-end;
 }
 
+@media( max-width: 400px){
+  .relogin-submit-btn-contaner,
+  .signup-submit-btn-container {
+  display: flex;
+  justify-content: center;
+  }
+}
+
 .relogin-submit-btn,
 .signup-submit-btn {
   background: linear-gradient(to right, #0aa89a, #067a8f);
   color: white;
+
+  z-index: 4;
 
   font-weight: 700;
 
@@ -556,12 +583,14 @@ fieldset.custom-size-log-in-page {
   align-items: center;
 }
 
-@media(max-width: 672px){
+@media(max-width: 674px){
   .signup-link,
   .login-link{
   justify-content: center;
   align-items: flex-end;
-  bottom: -40px;
+  bottom: 45px;
+  right: 30px;
+  position: absolute;
 }
 }
 
