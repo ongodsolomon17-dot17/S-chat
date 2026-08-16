@@ -64,11 +64,16 @@
     orb.addEventListener("pointerup", endDrag);
     orb.addEventListener("pointercancel", endDrag);
 
-    // Suppress the navigation click only when the pointerdown/up sequence was actually a drag.
+    // Only treat it as a tap (and fire the callback) if the pointerdown/up
+    // sequence never crossed the drag threshold.
     if (link) {
         link.addEventListener("click", (e) => {
             if (moved) {
                 e.preventDefault();
+                return;
+            }
+            if (typeof window.STECH_ORB_ON_TAP === "function") {
+                window.STECH_ORB_ON_TAP();
             }
         });
     }
