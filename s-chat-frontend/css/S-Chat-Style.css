@@ -556,7 +556,13 @@ fieldset.custom-size-log-in-page {
   align-items: center;
 }
 
-
+@media(max-width: 672px){
+  .signup-link,
+  .login-link{
+  justify-content: center;
+  align-items: flex-end;
+}
+}
 
 
 
