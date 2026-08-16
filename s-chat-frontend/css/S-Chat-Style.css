@@ -1,1312 +1,893 @@
-/* ==========================================================================
-   S-CHAT — S-TECH Design System
-   Responsive: Mobile + Tablet + Desktop + Wide PC
-   ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;600;700&family=Bebas+Neue&display=swap');
-
-:root {
-  --s-bg-deep: #01192d;
-  --s-bg-mid: #096166;
-  --s-bg-dark: #020c2c;
-  --s-accent-cyan: #07fff3;
-  --s-accent-cyan-dim: rgba(7, 255, 243, 0.35);
-  --s-panel: rgba(255, 255, 255, 0.06);
-  --s-panel-border: rgba(255, 255, 255, 0.14);
-  --s-danger: #ff5c6c;
-  --s-success: #2be08a;
-  --s-text: #f3f6f6;
-  --s-text-dim: #9db1b3;
-
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Montserrat', 'Gill Sans', 'Trebuchet MS', sans-serif;
-}
-
-/* ==========================================================================
-   GLOBAL
-   ========================================================================== */
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-  min-height: 100%;
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
-  background:
-    linear-gradient(
-      135deg,
-      var(--s-bg-deep),
-      var(--s-bg-mid),
-      var(--s-bg-dark)
-    );
-  font-family: var(--font-body);
-  color: var(--s-text);
-  overflow-x: hidden;
-}
-
-img,
-video {
-  max-width: 100%;
-}
-
-button,
-input,
-textarea {
-  font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--s-accent-cyan);
-  outline-offset: 2px;
-}
-
-/* ==========================================================================
-   MAIN APP CONTAINER
-   ========================================================================== */
-
-.app-shell {
-  width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
-  box-sizing: border-box;
-}
-
-/* Desktop / PC */
-
-@media (min-width: 900px) {
-  .app-shell {
-    width: 100%;
-    max-width: 640px;
-    min-height: 100vh;
-    min-height: 100dvh;
-    margin: 0 auto;
-
-    border-left: 1px solid var(--s-panel-border);
-    border-right: 1px solid var(--s-panel-border);
-
-    background: rgba(255, 255, 255, 0.015);
-  }
-
-  .pages-btn-container {
-    max-width: 640px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    border-radius: 20px 20px 0 0;
-  }
-}
-
-/* Large desktop monitors */
-
-@media (min-width: 1400px) {
-  .app-shell {
-    max-width: 680px;
-  }
-
-  .pages-btn-container {
-    max-width: 680px;
-  }
-}
-
-/* ==========================================================================
-   LANDING / WELCOME
-   ========================================================================== */
-
-.title-container {
-  top: -20px;
-  width: 100%;
-  height: 300px;
-  position: relative;
-}
-
-.welcomeback-paragaph-container {
-  display: flex;
-  justify-content: center;
-}
-
-.welcomeback-paragaph {
-  color: var(--s-accent-cyan);
-  font-size: 30px;
-  font-weight: bold;
-  position: absolute;
-  top: 10px;
-  font-family: var(--font-display);
-}
-
-/* Mobile welcome text */
-
-@media (max-width: 600px) {
-  .welcomeback-paragaph {
-    font-size: clamp(18px, 6vw, 22px);
-    position: absolute;
-    top: 65px;
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    text-align: center;
-    padding: 0 15px;
-  }
-}
-
-.h1-title {
-  color: #d7e6e6;
-  font-size: clamp(20px, 5vw, 35px);
-  font-family: var(--font-display);
-  letter-spacing: 0.5px;
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.profilepicture {
-  border-radius: 40%;
-  border: 3px solid #08355c;
-  display: inline;
-  width: clamp(48px, 12vw, 80px);
-  height: auto;
-  flex-shrink: 0;
-}
-
-.titleandprofile {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: clamp(8px, 2vw, 12px);
-  position: relative;
-  padding: clamp(10px, 3vw, 16px);
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.online-indicator {
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  background-color: var(--s-accent-cyan);
-  box-shadow: 0 0 8px var(--s-accent-cyan);
-  position: absolute;
-  top: 0.7rem;
-  left: clamp(2.6rem, 9vw, 4rem);
-  border: 2px solid var(--s-bg-deep);
-}
-
-/* ==========================================================================
-   SEARCH
-   ========================================================================== */
-
-.chat-home-searchbar {
-  display: flex;
-  justify-content: center;
-  position: relative;
-  margin: 0.5rem 16px 1rem;
-}
-
-.chat-home-searchbar form {
-  position: relative;
-  width: min(92vw, 420px);
-}
-
-.chat-home-searchinput {
-  border-radius: 999px;
-  background-color: rgba(127, 195, 209, 0.85);
-  color: #000;
-  font-size: 15px;
-  height: 40px;
-  width: 100%;
-  padding: 0 48px 0 16px;
-  border: none;
-  box-sizing: border-box;
-}
-
-.home-chat-search-icon {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ==========================================================================
-   ANIMATIONS
-   ========================================================================== */
-
-@keyframes bounce {
-  0% {
-    transform: scale(0.9);
-  }
-
-  50% {
-    transform: scale(1.1);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 0 0 6px rgb(1, 69, 55);
-  }
-
-  to {
-    box-shadow: 0 0 24px rgb(3, 3, 100);
-  }
-}
-
-@keyframes btn-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-3px);
-  }
-
-  75% {
-    transform: translateX(3px);
-  }
-}
-
-/* ==========================================================================
-   LANDING IMAGE
-   ========================================================================== */
-
-.first-page-png {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  top: clamp(20px, 8vw, 60px);
-  padding: 0 16px;
-}
-
-.logimage-png {
-  border-radius: 45px;
-  border-width: 5px;
-  width: min(490px, 92vw);
-  height: auto;
-  border-style: groove;
-  border-color: rgba(3, 0, 14, 0.2);
-  animation: glow 1.8s infinite alternate;
-}
-
-.loghome-btn {
-  justify-content: center;
-  display: flex;
-  align-items: center;
-  position: relative;
-  margin-top: 40px;
-}
-
-.login-and-signup-btn {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  position: relative;
-}
-
-.signup-btn,
-.login-btn {
-  background: linear-gradient(to bottom, #06630d, #08001e);
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  border: 2px solid rgba(0, 0, 0, 0.6);
-  width: 200px;
-  height: 64px;
-  border-radius: 15px;
-  cursor: pointer;
-  transition:
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
-
-.signup-btn:active,
-.login-btn:active {
-  animation: bounce 0.3s;
-}
-
-.signup-btn:hover,
-.login-btn:hover {
-  box-shadow: 0 0 25px var(--s-accent-cyan-dim);
-}
-
-/* ==========================================================================
-   FLOATING AI ORB
-   ========================================================================== */
-
-.Stech-ai {
-  position: fixed;
-
-  bottom: calc(20px + env(safe-area-inset-bottom));
-  left: 20px;
-
-  width: 100px;
-  height: 100px;
-
-  z-index: 1000;
-
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-
-.Stech-ai:active {
-  cursor: grabbing;
-}
-
-#s-tech-ai-floating {
-  position: absolute;
-
-  height: 90px;
-  width: 90px;
-
-  border-radius: 50%;
-  object-fit: cover;
-
-  border: 2px solid var(--s-accent-cyan-dim);
-
-  box-shadow: 0 0 18px var(--s-accent-cyan-dim);
-
-  transition:
-    box-shadow 0.25s ease,
-    transform 0.25s ease;
-}
-
-.gemini-link:hover #s-tech-ai-floating,
-.gemini-link:focus-visible #s-tech-ai-floating {
-  box-shadow: 0 0 28px var(--s-accent-cyan);
-  transform: scale(1.05);
-}
-
-/* ==========================================================================
-   AUTH FORMS
-   ========================================================================== */
-
-.signupvideopng {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: clamp(16px, 6vw, 32px);
-}
-
-#signupvideo {
-  border-radius: 50%;
-  border: 4px solid rgb(39, 70, 97);
-
-  width: clamp(90px, 25vw, 140px);
-  height: clamp(90px, 25vw, 140px);
-
-  object-fit: cover;
-}
-
-.signup-box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  padding: 16px 16px 64px;
-
-  width: 100%;
-}
-
-fieldset.custom-size,
-fieldset.custom-size2,
-fieldset.custom-size-log-in-page {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 14px;
-
-  width: min(94vw, 380px);
-
-  padding: clamp(18px, 5vw, 28px);
-
-  border: 1px solid var(--s-panel-border);
-
-  background: var(--s-panel);
-
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-
-  border-radius: 20px;
-}
-
-.signuptextlabels {
-  color: var(--s-accent-cyan);
-  font-family: var(--font-body);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.relog-in-textfield,
-.signupinputs {
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.55);
-
-  font-weight: 500;
-
-  border: 1px solid var(--s-panel-border);
-  border-radius: 12px;
-
-  height: 46px;
-  width: 100%;
-
-  padding: 0 14px;
-
-  min-width: 0;
-}
-
-.relog-in-textfield::placeholder,
-.signupinputs::placeholder {
-  color: var(--s-text-dim);
-}
-
-.relog-in-textfield:focus,
-.signupinputs:focus {
-  border-color: var(--s-accent-cyan);
-  outline: none;
-}
-
-.field-invalid {
-  border-color: var(--s-danger) !important;
-}
-
-.field-error-text {
-  color: var(--s-danger);
-  font-size: 12px;
-  margin: -8px 0 0;
-}
-
-.relogin-submit-btn-contaner,
-.signup-submit-btn-container {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.relogin-submit-btn,
-.signup-submit-btn {
-  background: linear-gradient(to right, #0aa89a, #067a8f);
-  color: white;
-
-  font-weight: 700;
-
-  border: none;
-  border-radius: 999px;
-
-  height: 44px;
-
-  padding: 0 28px;
-
-  cursor: pointer;
-
-  transition: box-shadow 0.2s ease;
-}
-
-.relogin-submit-btn:hover,
-.signup-submit-btn:hover {
-  box-shadow: 0 0 20px var(--s-accent-cyan-dim);
-}
-
-.relogin-submit-btn:active,
-.signup-submit-btn:active {
-  animation: bounce 0.3s;
-}
-
-.relogin-submit-btn:disabled,
-.signup-submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.login-link,
-.login-link-container-main-holder {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  gap: 10px;
-
-  padding: 16px;
-
-  flex-wrap: wrap;
-}
-
-.alreadyHaveAnAccount-paragraph {
-  color: var(--s-text-dim);
-  font-weight: 600;
-  font-size: 14px;
-  margin: 0;
-}
-
-.login-icon-img {
-  height: 40px;
-  width: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.login-icon-btn {
-  color: white;
-  font-weight: 700;
-
-  background: rgba(6, 99, 14, 0.55);
-
-  height: 38px;
-
-  padding: 0 16px;
-
-  border: none;
-  border-radius: 15px;
-
-  cursor: pointer;
-}
-
-.login-icon-btn:hover {
-  box-shadow: 0 0 20px var(--s-accent-cyan-dim);
-}
-
-/* ==========================================================================
-   AUTH ALERT
-   ========================================================================== */
-
-.auth-alert {
-  width: min(92vw, 380px);
-
-  margin: 0 auto 12px;
-
-  padding: 10px 14px;
-
-  border-radius: 10px;
-
-  font-size: 13px;
-  font-weight: 600;
-
-  display: none;
-}
-
-.auth-alert.show {
-  display: block;
-}
-
-.auth-alert.error {
-  background: rgba(255, 92, 108, 0.15);
-
-  border: 1px solid var(--s-danger);
-
-  color: #ffd3d7;
-}
-
-.auth-alert.success {
-  background: rgba(43, 224, 138, 0.15);
-
-  border: 1px solid var(--s-success);
-
-  color: #d5ffe9;
-}
-
-/* ==========================================================================
-   BOTTOM NAVIGATION
-   ========================================================================== */
-
-.pages-btn-container {
-  background: rgba(255, 255, 255, 0.08);
-
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-
-  display: flex;
-
-  justify-content: space-evenly;
-  align-items: center;
-
-  position: fixed;
-
-  bottom: 0;
-  left: 0;
-
-  width: 100%;
-
-  padding:
-    8px
-    4px
-    calc(8px + env(safe-area-inset-bottom));
-
-  border-top: 1px solid var(--s-panel-border);
-
-  z-index: 900;
-}
-
-.pages-btn-container nav {
-  display: flex;
-
-  flex: 1;
-
-  min-width: 0;
-
-  justify-content: center;
-}
-
-.pages-btn-container a {
-  text-decoration: none;
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  width: 100%;
+    <title>Chat — S-Chat</title>
 
-  display: flex;
+    <link rel="stylesheet" href="css/S-Chat-Style.css">
 
-  justify-content: center;
-}
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+</head>
 
-.primary-btn {
-  padding: 8px 4px;
+<body>
 
-  margin: 0;
+    <!-- =========================================================
+         NORMAL S-CHAT
+         ========================================================= -->
 
-  width: 100%;
+    <div class="app-shell">
 
-  max-width: 90px;
+        <div class="titleandprofile">
 
-  color: var(--s-text-dim);
+            <img
+                src="images/MY S.png"
+                alt=""
+                width="80"
+                height="75"
+                class="profilepicture"
+                id="peer-avatar"
+            >
+
+            <h1 class="h1-title" id="peer-name">Chat</h1>
+
+        </div>
+
+        <div id="chat-thread" class="chat-thread"></div>
+
+    </div>
 
-  font-family: var(--font-body);
 
-  font-weight: 600;
+    <!-- =========================================================
+         NORMAL CHAT MESSAGE INPUT
+         ========================================================= -->
 
-  font-size: clamp(10px, 2.6vw, 13px);
+    <form id="chat-send-form" onsubmit="return false;">
 
-  border: none;
+        <div class="chat-message-box-container">
+
+            <textarea
+                name="chat-message-box"
+                id="chat-message-box"
+                class="chat-message-box"
+                placeholder="Message..."
+                required
+                rows="1"
+                spellcheck="true"
+            ></textarea>
+
+
+            <button
+                class="send-chat-btn"
+                id="send-chat-btn"
+                type="submit"
+                aria-label="Send message"
+            >
+                <img
+                    src="my icons/send-icon.png"
+                    alt=""
+                    height="22"
+                    width="22"
+                >
+            </button>
+
 
-  border-radius: 14px;
+            <div class="chat-file-sender-box">
+
+                <label
+                    for="chat-file-sender"
+                    class="chat-files-sender-icon"
+                    aria-label="Attach file"
+                >
+                    <img
+                        src="my icons/files-extention-icon.png"
+                        alt=""
+                        height="20"
+                        width="20"
+                    >
+                </label>
 
-  background: transparent;
 
-  cursor: pointer;
+                <input
+                    type="file"
+                    name="chat-file-sender"
+                    id="chat-file-sender"
+                    class="chat-file-sender"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov"
+                >
 
-  display: flex;
+            </div>
 
-  flex-direction: column;
+        </div>
 
-  align-items: center;
+    </form>
 
-  gap: 4px;
 
-  transition:
-    color 0.2s ease,
-    background 0.2s ease;
+    <!-- =========================================================
+         S-TECH AI FLOATING ORB
+         ========================================================= -->
 
-  white-space: nowrap;
+    <div
+        class="Stech-ai"
+        id="stech-ai-orb"
+    >
 
-  overflow: hidden;
+        <button
+            type="button"
+            class="gemini-link"
+            id="gemini-orb-link"
+            aria-label="Open Gemini AI"
+        >
 
-  text-overflow: ellipsis;
-}
+            <video
+                src="images/s-tech-ai-orb.mp4"
+                id="s-tech-ai-floating"
+                height="90"
+                width="90"
+                autoplay
+                loop
+                muted
+                playsinline
+                aria-hidden="true"
+            ></video>
 
-.primary-btn img {
-  opacity: 0.75;
+        </button>
 
-  max-width: 28px;
+    </div>
 
-  height: auto;
-}
 
-.primary-btn:hover,
-.primary-btn:focus-visible {
-  color: var(--s-accent-cyan);
+    <!-- =========================================================
+         AI CHAT INTERFACE
+         ========================================================= -->
 
-  box-shadow: none;
-}
+    <div
+        class="ai-chat-overlay"
+        id="ai-chat-overlay"
+        aria-hidden="true"
+    >
 
-.primary-btn.nav-active {
-  color: var(--s-accent-cyan);
+        <div class="ai-chat-header">
 
-  background: rgba(7, 255, 243, 0.1);
-}
+            <button
+                type="button"
+                class="ai-chat-back"
+                id="ai-chat-back"
+                aria-label="Close AI chat"
+            >
+                ←
+            </button>
 
-.primary-btn.nav-active img {
-  opacity: 1;
-}
 
-.primary-btn:active {
-  animation: bounce 0.3s;
-}
+            <video
+                src="images/s-tech-ai-orb.mp4"
+                class="ai-chat-avatar"
+                autoplay
+                loop
+                muted
+                playsinline
+                aria-hidden="true"
+            ></video>
 
-.primary-btns-texts-container {
-  display: none;
-}
 
-/* ==========================================================================
-   CHAT THREAD
-   ========================================================================== */
+            <div class="ai-chat-user-info">
 
-.chat-thread {
-  display: flex;
+                <span class="ai-chat-name">
+                    Gemini
+                </span>
 
-  flex-direction: column;
+                <span class="ai-chat-status">
+                    AI Assistant
+                </span>
 
-  gap: 8px;
+            </div>
 
-  width: 100%;
+        </div>
 
-  max-width: 720px;
 
-  margin: 0 auto;
+        <!-- AI messages -->
 
-  padding:
-    16px
-    16px
-    150px;
+        <div
+            class="ai-chat-messages"
+            id="ai-chat-messages"
+        >
 
-  overflow-x: hidden;
-}
+            <div class="ai-message bot">
+                Hey! 👋 I'm Gemini, your S-Chat AI assistant.
+                How can I help you today?
+            </div>
 
-.chat-bubble {
-  max-width: 75%;
+        </div>
 
-  padding: 10px 14px;
 
-  border-radius: 16px;
+        <!-- AI input -->
 
-  font-size: 14px;
+        <form
+            class="ai-chat-input-area"
+            id="ai-chat-form"
+        >
 
-  line-height: 1.4;
+            <textarea
+                id="ai-chat-input"
+                class="ai-chat-input"
+                placeholder="Message Gemini..."
+                rows="1"
+                autocomplete="off"
+                spellcheck="true"
+            ></textarea>
 
-  overflow-wrap: anywhere;
 
-  word-break: break-word;
-}
+            <button
+                type="submit"
+                class="ai-chat-send"
+                aria-label="Send message"
+            >
+                ➤
+            </button>
 
-.chat-bubble.mine {
-  align-self: flex-end;
+        </form>
 
-  background:
-    linear-gradient(
-      135deg,
-      #0aa89a,
-      #067a8f
-    );
+    </div>
 
-  color: #fff;
 
-  border-bottom-right-radius: 4px;
-}
+    <!-- =========================================================
+         EXISTING S-CHAT JAVASCRIPT
+         ========================================================= -->
 
-.chat-bubble.theirs {
-  align-self: flex-start;
+    <script src="js/nav.js" defer></script>
+    <script src="js/friends.js" defer></script>
+    <script src="js/ws-chat.js" defer></script>
 
-  background: var(--s-panel);
 
-  border: 1px solid var(--s-panel-border);
+    <!-- =========================================================
+         AI CHAT + NORMAL CHAT LOGIC
+         ========================================================= -->
 
-  border-bottom-left-radius: 4px;
-}
+    <script>
 
-.chat-bubble .meta {
-  display: block;
+        document.addEventListener("DOMContentLoaded", function () {
 
-  margin-top: 4px;
+            /* =====================================================
+               AI CHAT
+               ===================================================== */
 
-  font-size: 10px;
+            const orb =
+                document.getElementById("gemini-orb-link");
 
-  opacity: 0.7;
-}
+            const aiOverlay =
+                document.getElementById("ai-chat-overlay");
 
-/* ==========================================================================
-   CHAT COMPOSER
-   ========================================================================== */
+            const aiBackButton =
+                document.getElementById("ai-chat-back");
 
-.chat-message-box-container {
-  display: flex;
+            const aiForm =
+                document.getElementById("ai-chat-form");
 
-  align-items: center;
+            const aiInput =
+                document.getElementById("ai-chat-input");
 
-  gap: clamp(5px, 2vw, 10px);
+            const aiMessages =
+                document.getElementById("ai-chat-messages");
 
-  position: fixed;
 
-  bottom:
-    calc(
-      70px +
-      env(safe-area-inset-bottom) +
-      8px
-    );
+            /*
+             * Open AI chat
+             */
 
-  left: 50%;
+            if (orb && aiOverlay) {
 
-  transform: translateX(-50%);
+                orb.addEventListener("click", function () {
 
-  width: min(94vw, 680px);
+                    aiOverlay.classList.add("active");
 
-  z-index: 950;
+                    aiOverlay.setAttribute(
+                        "aria-hidden",
+                        "false"
+                    );
 
-  box-sizing: border-box;
-}
+                    if (aiInput) {
+                        setTimeout(() => {
+                            aiInput.focus();
+                        }, 100);
+                    }
 
-.chat-message-box {
-  flex: 1;
+                });
 
-  min-width: 0;
+            }
 
-  min-height: 44px;
 
-  max-height: 110px;
+            /*
+             * Close AI chat
+             */
 
-  padding: 12px 16px;
+            if (aiBackButton && aiOverlay) {
 
-  border-radius: 20px;
+                aiBackButton.addEventListener(
+                    "click",
+                    function () {
 
-  color: white;
+                        aiOverlay.classList.remove("active");
 
-  border: 1px solid var(--s-panel-border);
+                        aiOverlay.setAttribute(
+                            "aria-hidden",
+                            "true"
+                        );
 
-  background-color: rgba(7, 68, 85, 0.85);
+                    }
+                );
 
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+            }
 
-  resize: none;
 
-  font-family: var(--font-body);
+            /*
+             * Add AI message
+             */
 
-  box-sizing: border-box;
-}
+            function addAIMessage(text, type) {
 
-.chat-message-box::placeholder {
-  color: var(--s-text-dim);
-}
+                if (!aiMessages) return;
 
-.chat-message-box:focus {
-  border-color: var(--s-accent-cyan);
+                const message =
+                    document.createElement("div");
 
-  outline: none;
-}
+                message.className =
+                    "ai-message " + type;
 
-.send-chat-btn {
-  background:
-    linear-gradient(
-      135deg,
-      #0aa89a,
-      #067a8f
-    );
+                message.textContent = text;
 
-  border: none;
+                aiMessages.appendChild(message);
 
-  height: 44px;
-  width: 50px;
+                aiMessages.scrollTop =
+                    aiMessages.scrollHeight;
 
-  border-radius: 50%;
+            }
 
-  cursor: pointer;
 
-  display: flex;
+            /*
+             * Temporary local AI responses.
+             *
+             * This is NOT connected to Gemini yet.
+             * It allows you to test the interface safely.
+             */
 
-  align-items: center;
-  justify-content: center;
+            function getDemoResponse(message) {
 
-  flex-shrink: 0;
-}
+                const text =
+                    message.toLowerCase().trim();
 
-.send-chat-btn img {
-  max-width: 60%;
 
-  height: auto;
-}
+                if (
+                    text.includes("hello") ||
+                    text.includes("hi") ||
+                    text.includes("hey")
+                ) {
 
-.send-chat-btn:hover {
-  animation: btn-shake 0.4s;
-}
+                    return "Hey! 👋 Nice to hear from you. How can I help you?";
 
-.chat-file-sender-box {
-  position: relative;
+                }
 
-  flex-shrink: 0;
-}
 
-.chat-files-sender-icon {
-  color: var(--s-text-dim);
+                if (text.includes("who are you")) {
 
-  border-radius: 50%;
+                    return "I'm Gemini, the AI assistant inside S-Chat. 🤖";
 
-  cursor: pointer;
+                }
 
-  font-size: 12px;
 
-  display: flex;
+                if (
+                    text.includes("what is your name") ||
+                    text.includes("your name")
+                ) {
 
-  align-items: center;
+                    return "My name is Gemini. I'm your AI assistant inside S-Chat.";
 
-  justify-content: center;
+                }
 
-  width: 44px;
-  height: 44px;
 
-  background: rgba(255, 255, 255, 0.06);
+                if (text.includes("java")) {
 
-  flex-shrink: 0;
-}
+                    return "Java is an object-oriented programming language. I can help you learn Java step by step.";
 
-.chat-files-sender-icon:hover {
-  color: var(--s-accent-cyan);
-}
+                }
 
-.chat-file-sender {
-  display: none;
-}
 
-.chatbox-file-icon-text {
-  display: none;
-}
+                if (text.includes("html")) {
 
-/* ==========================================================================
-   TOASTS
-   ========================================================================== */
+                    return "HTML is used to structure web pages. CSS controls their appearance, while JavaScript adds behavior.";
 
-.toast-stack {
-  position: fixed;
+                }
 
-  top: calc(16px + env(safe-area-inset-top));
 
-  right: 16px;
+                if (text.includes("css")) {
 
-  display: flex;
+                    return "CSS is used to style HTML elements. You can control colors, spacing, layouts, fonts, animations and much more.";
 
-  flex-direction: column;
+                }
 
-  gap: 8px;
 
-  z-index: 2000;
-}
+                if (text.includes("javascript")) {
 
-.toast {
-  min-width: 220px;
+                    return "JavaScript adds behavior and interactivity to web pages. It can also communicate with your backend APIs.";
 
-  max-width: 320px;
+                }
 
-  padding: 12px 16px;
 
-  border-radius: 12px;
+                return "I'm here with you inside S-Chat 🤖. I'm currently running in local demo mode. We'll connect the real AI model later.";
 
-  font-size: 13px;
+            }
 
-  font-weight: 600;
 
-  background: rgba(2, 12, 44, 0.95);
+            /*
+             * AI send message
+             */
 
-  border: 1px solid var(--s-panel-border);
+            if (aiForm && aiInput) {
 
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.4);
+                aiForm.addEventListener(
+                    "submit",
+                    function (event) {
 
-  animation: toast-in 0.2s ease;
-}
+                        event.preventDefault();
 
-.toast.error {
-  border-color: var(--s-danger);
+                        const text =
+                            aiInput.value.trim();
 
-  color: #ffd3d7;
-}
+                        if (!text) return;
 
-.toast.success {
-  border-color: var(--s-success);
 
-  color: #d5ffe9;
-}
+                        // Show user's message
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
+                        addAIMessage(
+                            text,
+                            "user"
+                        );
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-/* ==========================================================================
-   SMALL MOBILE DEVICES
-   ========================================================================== */
+                        // Clear input
 
-@media (max-width: 600px) {
+                        aiInput.value = "";
 
-  .signup-btn,
-  .login-btn {
-    font-size: 15px;
 
-    width: min(140px, 42vw);
+                        // Typing indicator
 
-    height: 48px;
-  }
+                        const typing =
+                            document.createElement("div");
 
-  .login-and-signup-btn {
-    gap: 12px;
+                        typing.className =
+                            "ai-typing";
 
-    padding: 0 10px;
-  }
+                        typing.textContent =
+                            "Gemini is typing...";
 
-  .toast-stack {
-    left: 10px;
-    right: 10px;
+                        aiMessages.appendChild(
+                            typing
+                        );
 
-    top: calc(10px + env(safe-area-inset-top));
-  }
+                        aiMessages.scrollTop =
+                            aiMessages.scrollHeight;
 
-  .toast {
-    min-width: 0;
 
-    width: 100%;
+                        // Temporary response
 
-    max-width: none;
-  }
+                        setTimeout(
+                            function () {
 
-  .chat-thread {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
+                                typing.remove();
 
-  .chat-bubble {
-    max-width: 82%;
-  }
+                                addAIMessage(
+                                    getDemoResponse(text),
+                                    "bot"
+                                );
 
-  .chat-message-box-container {
-    width: calc(100% - 12px);
+                            },
+                            700
+                        );
 
-    gap: 5px;
-  }
+                    }
+                );
 
-  .chat-message-box {
-    font-size: 14px;
+            }
 
-    padding:
-      10px
-      12px;
-  }
 
-  .Stech-ai {
-    left: 10px;
+            /* =====================================================
+               NORMAL S-CHAT
+               ===================================================== */
 
-    bottom:
-      calc(
-        80px +
-        env(safe-area-inset-bottom)
-      );
-  }
-}
+            const params =
+                new URLSearchParams(
+                    window.location.search
+                );
 
-/* ==========================================================================
-   VERY SMALL PHONES
-   320px - 380px
-   ========================================================================== */
+            const friendId =
+                params.get("friend");
 
-@media (max-width: 380px) {
+            const friendName =
+                params.get("name") || "Chat";
 
-  .titleandprofile {
-    padding: 10px;
 
-    gap: 8px;
-  }
+            const peerName =
+                document.getElementById("peer-name");
 
-  .h1-title {
-    font-size: 20px;
-  }
 
-  .profilepicture {
-    width: 48px;
-  }
+            if (peerName) {
 
-  .chat-message-box-container {
-    width: calc(100% - 8px);
+                peerName.textContent =
+                    friendName;
 
-    gap: 4px;
-  }
+            }
 
-  .chat-message-box {
-    padding: 9px 10px;
 
-    font-size: 13px;
-  }
+            const thread =
+                document.getElementById(
+                    "chat-thread"
+                );
 
-  .chat-files-sender-icon {
-    width: 40px;
-    height: 40px;
-  }
 
-  .send-chat-btn {
-    width: 42px;
-    height: 42px;
-  }
+            /*
+             * If this page was opened without a friend,
+             * don't attempt to connect to a chat.
+             */
 
-  .Stech-ai {
-    width: 80px;
-    height: 80px;
+            if (!friendId) {
 
-    left: 8px;
-  }
+                if (thread) {
 
-  #s-tech-ai-floating {
-    width: 75px;
-    height: 75px;
-  }
+                    thread.innerHTML =
+                        '<p style="text-align:center;color:var(--s-text-dim);padding:24px;">Open a chat from your Chats list.</p>';
 
-  .primary-btn {
-    font-size: 10px;
+                }
 
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-}
+                return;
 
-/* ==========================================================================
-   TABLETS
-   ========================================================================== */
+            }
 
-@media (min-width: 601px) and (max-width: 899px) {
 
-  .chat-thread {
-    max-width: 720px;
+            /*
+             * Render normal chat message
+             */
 
-    padding-left: 24px;
-    padding-right: 24px;
-  }
+            function renderMessage(msg, mine) {
 
-  .chat-message-box-container {
-    width: min(94vw, 680px);
-  }
+                if (!thread) return;
 
-  .Stech-ai {
-    left: 20px;
-  }
-}
 
-/* ==========================================================================
-   LANDSCAPE PHONES
-   ========================================================================== */
+                const bubble =
+                    document.createElement("div");
 
-@media (max-width: 900px) and (orientation: landscape) {
+                bubble.className =
+                    "chat-bubble " +
+                    (mine ? "mine" : "theirs");
 
-  .pages-btn-container {
-    padding-top: 5px;
 
-    padding-bottom:
-      calc(
-        5px +
-        env(safe-area-inset-bottom)
-      );
-  }
+                const text =
+                    document.createElement("span");
 
-  .chat-thread {
-    padding-bottom: 115px;
-  }
+                text.textContent =
+                    msg.content || "";
 
-  .Stech-ai {
-    transform: scale(0.8);
+                bubble.appendChild(text);
 
-    transform-origin: bottom left;
 
-    bottom:
-      calc(
-        65px +
-        env(safe-area-inset-bottom)
-      );
-  }
+                /*
+                 * Attachment
+                 */
 
-  #s-tech-ai-floating {
-    width: 80px;
-    height: 80px;
-  }
-}
+                if (msg.attachmentUrl) {
 
-/* ==========================================================================
-   DESKTOP / PC CHAT
-   ========================================================================== */
+                    const isVideo =
+                        /\.(mp4|mov)$/i.test(
+                            msg.attachmentUrl
+                        );
 
-@media (min-width: 900px) {
 
-  .chat-thread {
-    width: 100%;
+                    const media =
+                        document.createElement(
+                            isVideo
+                                ? "video"
+                                : "img"
+                        );
 
-    max-width: 640px;
 
-    padding-left: 20px;
-    padding-right: 20px;
-  }
+                    media.src =
+                        msg.attachmentUrl;
 
-  .chat-message-box-container {
-    width: min(620px, calc(100vw - 40px));
-  }
 
-  .chat-bubble {
-    max-width: 75%;
-  }
+                    if (isVideo) {
 
-  .Stech-ai {
-    left: 24px;
-    bottom: 24px;
-  }
-}
+                        media.controls = true;
 
-/* ==========================================================================
-   VERY LARGE PC SCREENS
-   ========================================================================== */
+                    }
 
-@media (min-width: 1600px) {
 
-  .Stech-ai {
-    left: 35px;
-  }
+                    media.style.maxWidth =
+                        "100%";
 
-  .chat-message-box-container {
-    width: 620px;
-  }
-}
+                    media.style.borderRadius =
+                        "10px";
 
-/* ==========================================================================
-   REDUCED MOTION
-   ========================================================================== */
+                    media.style.marginTop =
+                        "6px";
 
-@media (prefers-reduced-motion: reduce) {
 
-  html {
-    scroll-behavior: auto;
-  }
+                    bubble.appendChild(media);
 
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
+                }
 
-    animation-iteration-count: 1 !important;
 
-    transition-duration: 0.001ms !important;
-  }
-}
+                /*
+                 * Message time
+                 */
+
+                const meta =
+                    document.createElement("span");
+
+                meta.className =
+                    "meta";
+
+                meta.textContent =
+                    new Date(
+                        msg.sentAt ||
+                        Date.now()
+                    ).toLocaleTimeString(
+                        [],
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    );
+
+
+                bubble.appendChild(meta);
+
+                thread.appendChild(bubble);
+
+                thread.scrollTop =
+                    thread.scrollHeight;
+
+            }
+
+
+            /*
+             * Load chat history
+             */
+
+            async function loadHistory() {
+
+                try {
+
+                    const messages =
+                        await SChat.apiFetch(
+                            `/chat/history/${friendId}?page=0&size=50`
+                        );
+
+
+                    messages
+                        .slice()
+                        .reverse()
+                        .forEach(
+                            function (message) {
+
+                                renderMessage(
+                                    message,
+                                    message.senderId !== friendId
+                                );
+
+                            }
+                        );
+
+                } catch (err) {
+
+                    SChat.showToast(
+                        err.message,
+                        "error"
+                    );
+
+                }
+
+            }
+
+
+            /*
+             * WebSocket connection
+             */
+
+            if (
+                typeof SChatWS !== "undefined"
+            ) {
+
+                SChatWS.connect();
+
+
+                SChatWS.onMessage(
+                    function (data) {
+
+                        if (
+                            data.type === "chat" &&
+                            data.senderId === friendId
+                        ) {
+
+                            renderMessage(
+                                data,
+                                false
+                            );
+
+                        }
+
+                        else if (
+                            data.type === "error"
+                        ) {
+
+                            SChat.showToast(
+                                data.message,
+                                "error"
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+            /*
+             * Normal chat send
+             */
+
+            const chatForm =
+                document.getElementById(
+                    "chat-send-form"
+                );
+
+            const textarea =
+                document.getElementById(
+                    "chat-message-box"
+                );
+
+            const fileInput =
+                document.getElementById(
+                    "chat-file-sender"
+                );
+
+
+            if (
+                chatForm &&
+                textarea &&
+                fileInput &&
+                typeof SChatWS !== "undefined"
+            ) {
+
+                chatForm.addEventListener(
+                    "submit",
+                    async function (event) {
+
+                        event.preventDefault();
+
+
+                        const content =
+                            textarea.value.trim();
+
+                        let attachmentUrl =
+                            null;
+
+
+                        /*
+                         * Upload attachment first
+                         */
+
+                        if (
+                            fileInput.files.length
+                        ) {
+
+                            const fd =
+                                new FormData();
+
+                            fd.append(
+                                "file",
+                                fileInput.files[0]
+                            );
+
+
+                            try {
+
+                                const result =
+                                    await SChat.apiUpload(
+                                        "/chat/attachment",
+                                        fd
+                                    );
+
+
+                                attachmentUrl =
+                                    result.url;
+
+
+                            } catch (err) {
+
+                                SChat.showToast(
+                                    err.message,
+                                    "error"
+                                );
+
+                                return;
+
+                            }
+
+                        }
+
+
+                        /*
+                         * Don't send empty message
+                         */
+
+                        if (
+                            !content &&
+                            !attachmentUrl
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * Send through WebSocket
+                         */
+
+                        const sent =
+                            SChatWS.send(
+                                friendId,
+                                content,
+                                attachmentUrl
+                            );
+
+
+                        if (sent) {
+
+                            renderMessage(
+                                {
+                                    content,
+                                    attachmentUrl,
+                                    sentAt:
+                                        new Date()
+                                            .toISOString()
+                                },
+                                true
+                            );
+
+
+                            textarea.value =
+                                "";
+
+                            fileInput.value =
+                                "";
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+            /*
+             * Load existing messages
+             */
+
+            loadHistory();
+
+        });
+
+    </script>
+
+
+    <!-- =========================================================
+         ORB DRAG SCRIPT
+         ========================================================= -->
+
+    <script src="js/orb-drag.js" defer></script>
+
+</body>
+</html>
+```
