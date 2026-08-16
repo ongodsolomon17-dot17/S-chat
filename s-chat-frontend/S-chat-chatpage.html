@@ -49,9 +49,12 @@
             const friendName = params.get("name") || (isAI ? "Gemini" : "Chat");
 
             const peerName = document.getElementById("peer-name");
-            if (peerName) peerName.textContent = friendName;
-
             const thread = document.getElementById("chat-thread");
+            const chatForm = document.getElementById("chat-send-form");
+            const textarea = document.getElementById("chat-message-box");
+            const fileInput = document.getElementById("chat-file-sender");
+
+            if (peerName) peerName.textContent = friendName;
 
             if (!isAI && !friendId) {
                 if (thread) {
@@ -61,28 +64,35 @@
             }
 
             function renderMessage(msg, mine) {
-                if (!thread) return;
+                if (!thread) return null;
+
                 const bubble = document.createElement("div");
                 bubble.className = "chat-bubble " + (mine ? "mine" : "theirs");
 
-                const text = document.createElement("span");
-                text.textContent = msg.content || "";
-                bubble.appendChild(text);
+                if (msg.content) {
+                    const text = document.createElement("span");
+                    text.textContent = msg.content;
+                    bubble.appendChild(text);
+                }
 
                 if (msg.attachmentUrl) {
-                    const isVideo = /\.(mp4|mov)$/i.test(msg.attachmentUrl);
+                    const isVideo = /\.(mp4|mov|webm)$/i.test(msg.attachmentUrl);
                     const media = document.createElement(isVideo ? "video" : "img");
                     media.src = msg.attachmentUrl;
+                    media.alt = isVideo ? "Video attachment" : "Image attachment";
                     if (isVideo) media.controls = true;
                     media.style.maxWidth = "100%";
                     media.style.borderRadius = "10px";
-                    media.style.marginTop = "6px";
+                    media.style.marginTop = msg.content ? "6px" : "0";
                     bubble.appendChild(media);
                 }
 
                 const meta = document.createElement("span");
                 meta.className = "meta";
-                meta.textContent = new Date(msg.sentAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                meta.textContent = new Date(msg.sentAt || Date.now()).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
                 bubble.appendChild(meta);
 
                 thread.appendChild(bubble);
@@ -90,48 +100,110 @@
                 return bubble;
             }
 
+            function addTypingBubble() {
+                const bubble = renderMessage({ content: "Gemini is typing..." }, false);
+                if (bubble) {
+                    bubble.dataset.typing = "true";
+                    bubble.style.opacity = "0.65";
+                    bubble.style.fontStyle = "italic";
+                }
+                return bubble;
+            }
+
             /* =====================================================
-               AI ASSISTANT MODE — same chat UI, no backend/WebSocket.
-               Reachable only via the pinned "AI Assistant" row on
-               S-chat-home.html (S-chat-home.html?ai=1 -> here).
-               Swap getDemoResponse() for a real Gemini API call later.
+               REAL GEMINI MODE
+               The browser sends conversation context to our own
+               authenticated Spring Boot endpoint. The Gemini API key
+               never reaches the browser.
                ===================================================== */
             if (isAI) {
-                renderMessage({ content: "Hey! 👋 I'm Gemini, your S-Chat AI assistant. How can I help you today?" }, false);
-
-                const fileBox = document.querySelector(".chat-file-sender-box");
-                if (fileBox) fileBox.style.display = "none"; // no AI attachment support yet
-
-                function getDemoResponse(message) {
-                    const text = message.toLowerCase().trim();
-                    if (text.includes("hello") || text.includes("hi") || text.includes("hey")) {
-                        return "Hey! 👋 Nice to hear from you. How can I help?";
-                    }
-                    if (text.includes("who are you")) {
-                        return "I'm Gemini, the AI assistant inside S-Chat. 🤖";
-                    }
-                    return "I'm here with you inside S-Chat 🤖. Running in local demo mode for now — the real model connects next.";
+                if (fileInput?.closest(".chat-file-sender-box")) {
+                    fileInput.closest(".chat-file-sender-box").style.display = "none";
                 }
 
-                document.getElementById("chat-send-form").addEventListener("submit", () => {
-                    const textarea = document.getElementById("chat-message-box");
+                const user = SChat.Auth.getUser();
+                const storageKey = "schat_ai_history_v1_" + (user?.publicId || "account");
+                let aiHistory = [];
+
+                try {
+                    const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+                    if (Array.isArray(saved)) aiHistory = saved;
+                } catch {
+                    aiHistory = [];
+                }
+
+                // Keep only valid user/model turns and prevent old local history
+                // from growing forever. The backend applies its own stricter limits.
+                aiHistory = aiHistory
+                    .filter((m) => m && (m.role === "user" || m.role === "model") && typeof m.content === "string")
+                    .slice(-24);
+
+                function saveHistory() {
+                    try {
+                        localStorage.setItem(storageKey, JSON.stringify(aiHistory.slice(-24)));
+                    } catch {
+                        // Storage can be unavailable in private/restricted browser modes.
+                    }
+                }
+
+                if (!aiHistory.length) {
+                    const greeting = "Hey! 👋 I'm Gemini, your S-Chat AI assistant. How can I help you today?";
+                    aiHistory.push({ role: "model", content: greeting });
+                    saveHistory();
+                }
+
+                aiHistory.forEach((message) => renderMessage(
+                    { content: message.content },
+                    message.role === "user"
+                ));
+
+                chatForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+
                     const content = textarea.value.trim();
                     if (!content) return;
 
-                    renderMessage({ content }, true);
                     textarea.value = "";
+                    renderMessage({ content }, true);
+                    aiHistory.push({ role: "user", content });
+                    saveHistory();
 
-                    const typing = renderMessage({ content: "Gemini is typing..." }, false);
-                    typing.style.opacity = "0.6";
-                    typing.style.fontStyle = "italic";
+                    const typing = addTypingBubble();
+                    const sendButton = document.getElementById("send-chat-btn");
+                    if (sendButton) sendButton.disabled = true;
 
-                    setTimeout(() => {
-                        typing.remove();
-                        renderMessage({ content: getDemoResponse(content) }, false);
-                    }, 700);
+                    try {
+                        const result = await SChat.apiFetch("/ai/chat", {
+                            method: "POST",
+                            body: JSON.stringify({ messages: aiHistory.slice(-24) })
+                        });
+
+                        if (typing) typing.remove();
+
+                        const reply = result?.text?.trim();
+                        if (!reply) throw new Error("The AI assistant returned an empty response.");
+
+                        renderMessage({ content: reply }, false);
+                        aiHistory.push({ role: "model", content: reply });
+                        saveHistory();
+                    } catch (err) {
+                        if (typing) typing.remove();
+                        SChat.showToast(err.message || "The AI assistant is unavailable right now.", "error");
+                    } finally {
+                        if (sendButton) sendButton.disabled = false;
+                        textarea.focus();
+                    }
                 });
 
-                return; // skip all the friend-chat wiring below
+                // Enter sends; Shift+Enter creates a new line.
+                textarea.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        chatForm.requestSubmit();
+                    }
+                });
+
+                return;
             }
 
             /* =====================================================
@@ -140,7 +212,9 @@
             async function loadHistory() {
                 try {
                     const messages = await SChat.apiFetch(`/chat/history/${friendId}?page=0&size=50`);
-                    messages.slice().reverse().forEach((m) => renderMessage(m, m.senderId !== friendId));
+                    messages.slice().reverse().forEach((m) => {
+                        renderMessage(m, m.senderId !== friendId);
+                    });
                 } catch (err) {
                     SChat.showToast(err.message, "error");
                 }
@@ -157,12 +231,10 @@
                 });
             }
 
-            const chatForm = document.getElementById("chat-send-form");
-            const textarea = document.getElementById("chat-message-box");
-            const fileInput = document.getElementById("chat-file-sender");
-
             if (chatForm && textarea && fileInput && typeof SChatWS !== "undefined") {
-                chatForm.addEventListener("submit", async () => {
+                chatForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+
                     const content = textarea.value.trim();
                     let attachmentUrl = null;
 
@@ -182,9 +254,20 @@
 
                     const sent = SChatWS.send(friendId, content, attachmentUrl);
                     if (sent) {
-                        renderMessage({ content, attachmentUrl, sentAt: new Date().toISOString() }, true);
+                        renderMessage({
+                            content,
+                            attachmentUrl,
+                            sentAt: new Date().toISOString()
+                        }, true);
                         textarea.value = "";
                         fileInput.value = "";
+                    }
+                });
+
+                textarea.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        chatForm.requestSubmit();
                     }
                 });
             }

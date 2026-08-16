@@ -1,6 +1,8 @@
 package com.stech.schat.service;
 
 import com.stech.schat.dto.ChatMessageDto;
+import com.stech.schat.dto.ChatListItemDto;
+import com.stech.schat.dto.FriendRequestDto;
 import com.stech.schat.exception.ForbiddenActionException;
 import com.stech.schat.model.ChatMessage;
 import com.stech.schat.repository.ChatMessageRepository;
@@ -11,7 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -49,6 +54,47 @@ public class ChatService {
             m.setDeliveredAt(Instant.now());
             chatMessageRepository.save(m);
         });
+    }
+
+    /**
+     * Builds the chat-list payload with the newest persisted message for every friend.
+     * Friendships that have never exchanged a message are kept at the bottom.
+     */
+    public List<ChatListItemDto> getChatList(UUID currentUserId) {
+        List<FriendRequestDto> friends = friendService.listFriends(currentUserId);
+        if (friends.isEmpty()) return List.of();
+
+        List<UUID> friendIds = friends.stream()
+                .map(f -> f.otherUser().id())
+                .toList();
+
+        Map<UUID, ChatMessage> latestByFriend = chatMessageRepository
+                .findLatestMessagesForFriends(currentUserId, friendIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        m -> m.getSenderId().equals(currentUserId) ? m.getReceiverId() : m.getSenderId(),
+                        Function.identity()
+                ));
+
+        return friends.stream()
+                .map(friend -> {
+                    UUID friendId = friend.otherUser().id();
+                    ChatMessage latest = latestByFriend.get(friendId);
+                    return new ChatListItemDto(
+                            friend.otherUser(),
+                            latest == null ? null : latest.getContent(),
+                            latest == null ? null : latest.getAttachmentUrl(),
+                            latest == null ? null : latest.getSentAt(),
+                            latest == null ? null : latest.getSenderId()
+                    );
+                })
+                .sorted((a, b) -> {
+                    if (a.latestMessageAt() == null && b.latestMessageAt() == null) return 0;
+                    if (a.latestMessageAt() == null) return 1;
+                    if (b.latestMessageAt() == null) return -1;
+                    return b.latestMessageAt().compareTo(a.latestMessageAt());
+                })
+                .toList();
     }
 
     public List<ChatMessageDto> getConversation(UUID userA, UUID userB, int page, int size) {

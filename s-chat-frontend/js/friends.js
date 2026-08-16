@@ -17,5 +17,8 @@ window.SChatFriends = {
   },
   async myFriends() {
     return SChat.apiFetch("/friends");
+  },
+  async myChats() {
+    return SChat.apiFetch("/chat/list");
   }
 };

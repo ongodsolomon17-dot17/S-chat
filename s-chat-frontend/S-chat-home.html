@@ -9,23 +9,72 @@
     <script src="js/api.js" defer></script>
     <style>
         .friend-row {
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 16px; cursor: pointer; border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 12px;
             transition: background 0.15s ease;
         }
-        .friend-row:hover, .friend-row:focus-visible { background: rgba(255,255,255,0.06); }
-        .friend-row img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: var(--s-panel); flex-shrink:0; }
-        .friend-row .name { font-weight: 600; font-size: 14px; }
-        .friend-row .sub { font-size: 12px; color: var(--s-text-dim); }
-        .empty-state { text-align: center; color: var(--s-text-dim); padding: 40px 20px; font-size: 14px; }
+        .friend-row:hover,
+        .friend-row:focus-visible {
+            background: rgba(255,255,255,0.06);
+        }
+        .friend-row img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--s-panel);
+            flex-shrink: 0;
+        }
+        .friend-row .friend-main {
+            min-width: 0;
+            flex: 1;
+        }
+        .friend-row .friend-topline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .friend-row .name {
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .friend-row .time {
+            flex-shrink: 0;
+            font-size: 10px;
+            color: var(--s-text-dim);
+        }
+        .friend-row .sub {
+            margin-top: 3px;
+            font-size: 12px;
+            color: var(--s-text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .empty-state {
+            text-align: center;
+            color: var(--s-text-dim);
+            padding: 40px 20px;
+            font-size: 14px;
+        }
 
-        /* Pinned AI Assistant row — always sits above real friends, unaffected by search/reload */
+        /* Pinned AI Assistant row — always stays above real chats. */
         .ai-friend-row {
             border: 1px solid var(--s-accent-cyan-dim);
             background: rgba(7, 255, 243, 0.05);
             margin: 0 8px 4px;
         }
-        .ai-friend-row:hover, .ai-friend-row:focus-visible {
+        .ai-friend-row:hover,
+        .ai-friend-row:focus-visible {
             background: rgba(7, 255, 243, 0.1);
         }
         .ai-friend-row img {
@@ -33,6 +82,14 @@
             box-shadow: 0 0 12px var(--s-accent-cyan-dim);
         }
         .ai-friend-row .name { color: var(--s-accent-cyan); }
+
+        @media (max-width: 420px) {
+            .friend-row { padding: 11px 10px; gap: 10px; }
+            .friend-row img { width: 44px; height: 44px; }
+            .friend-row .name { font-size: 13px; }
+            .friend-row .sub { font-size: 11px; }
+            .friend-row .time { font-size: 9px; }
+        }
     </style>
 </head>
 <body>
@@ -46,20 +103,20 @@
 
         <div class="chat-home-searchbar">
             <form onsubmit="return false;">
-                <input type="text" placeholder="Search chats..." class="chat-home-searchinput" id="chat-search-input" name="home-chat-searchinput">
+                <input type="text" placeholder="Search chats..." class="chat-home-searchinput" id="chat-search-input" name="home-chat-searchinput" autocomplete="off">
                 <button type="submit" name="home-chat-search-icon" class="home-chat-search-icon" aria-label="Search">
                     <img src="my icons/search-magnifire-icon.png" alt="" width="20" height="20">
                 </button>
             </form>
         </div>
 
-        <!-- Pinned above the dynamic friend list so it survives renderFriends() clearing
-             #friend-list's innerHTML on every reload/search filter. -->
-        <div class="friend-row ai-friend-row" id="ai-assistant-row" tabindex="0"
+        <div class="friend-row ai-friend-row" id="ai-assistant-row" tabindex="0" role="button" aria-label="Open Gemini AI assistant"
              style="max-width: 640px; margin-left: auto; margin-right: auto;">
             <img src="images/MY S.png" alt="">
-            <div>
-                <div class="name">Gemini · S-Tech AI</div>
+            <div class="friend-main">
+                <div class="friend-topline">
+                    <div class="name">Gemini · S-Tech AI</div>
+                </div>
                 <div class="sub">Ask me anything</div>
             </div>
         </div>
@@ -76,85 +133,173 @@
 
     <script src="js/nav.js" defer></script>
     <script src="js/friends.js" defer></script>
+    <script src="js/ws-chat.js" defer></script>
     <script>
         (function () {
-            let allFriends = [];
+            let allChats = [];
+            let searchQuery = "";
+            let reloadInProgress = false;
 
-            function renderFriends(friends) {
+            function escapeHtml(value) {
+                const div = document.createElement("div");
+                div.textContent = value == null ? "" : String(value);
+                return div.innerHTML;
+            }
+
+            function formatChatTime(value) {
+                if (!value) return "";
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return "";
+
+                const now = new Date();
+                const sameDay = date.toDateString() === now.toDateString();
+                if (sameDay) {
+                    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                }
+
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+                if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+                return date.toLocaleDateString([], { day: "2-digit", month: "2-digit" });
+            }
+
+            function latestPreview(chat) {
+                if (chat.latestMessage) return chat.latestMessage;
+                if (chat.latestAttachmentUrl) {
+                    return /\.(mp4|mov|webm)$/i.test(chat.latestAttachmentUrl) ? "🎥 Video" : "📎 Attachment";
+                }
+                return chat.otherUser.deleted ? "This user deleted their account" : "Tap to chat";
+            }
+
+            function renderFriends(chats) {
                 const list = document.getElementById("friend-list");
+                if (!list) return;
                 list.innerHTML = "";
 
-                if (!friends.length) {
-                    list.innerHTML = '<div class="empty-state">No chats yet. Add a friend from Settings to get started.</div>';
+                const filtered = chats.filter((chat) => {
+                    const username = (chat.otherUser?.username || "").toLowerCase();
+                    return username.includes(searchQuery);
+                });
+
+                if (!filtered.length) {
+                    list.innerHTML = searchQuery
+                        ? '<div class="empty-state">No chats match your search.</div>'
+                        : '<div class="empty-state">No chats yet. Add a friend from Settings to get started.</div>';
                     return;
                 }
 
-                friends.forEach((f) => {
+                filtered.forEach((chat) => {
+                    const user = chat.otherUser;
                     const row = document.createElement("div");
                     row.className = "friend-row";
                     row.tabIndex = 0;
                     row.innerHTML = `
-                        <img src="${f.otherUser.profilePictureUrl || 'images/MY S.png'}" alt="">
-                        <div>
-                            <div class="name">${escapeHtml(f.otherUser.username)}</div>
-                            <div class="sub">${f.otherUser.deleted ? "This user deleted their account" : "Tap to chat"}</div>
+                        <img src="${escapeHtml(user.profilePictureUrl || 'images/MY S.png')}" alt="">
+                        <div class="friend-main">
+                            <div class="friend-topline">
+                                <div class="name">${escapeHtml(user.username)}</div>
+                                <div class="time">${escapeHtml(formatChatTime(chat.latestMessageAt))}</div>
+                            </div>
+                            <div class="sub">${escapeHtml(latestPreview(chat))}</div>
                         </div>
                     `;
+
                     const open = () => {
-                        window.location.href = `S-chat-chatpage.html?friend=${encodeURIComponent(f.otherUser.id)}&name=${encodeURIComponent(f.otherUser.username)}`;
+                        window.location.href = `S-chat-chatpage.html?friend=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.username)}`;
                     };
                     row.addEventListener("click", open);
-                    row.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+                    row.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            open();
+                        }
+                    });
                     list.appendChild(row);
                 });
             }
 
-            function escapeHtml(str) {
-                const div = document.createElement("div");
-                div.textContent = str;
-                return div.innerHTML;
-            }
-
-            async function loadFriends() {
+            async function loadChats() {
+                if (reloadInProgress) return;
+                reloadInProgress = true;
                 try {
-                    allFriends = await SChatFriends.myFriends();
-                    renderFriends(allFriends);
+                    allChats = await SChatFriends.myChats();
+                    renderFriends(allChats);
                 } catch (err) {
                     SChat.showToast(err.message, "error");
+                } finally {
+                    reloadInProgress = false;
                 }
             }
 
-            document.getElementById("chat-search-input").addEventListener("input", (e) => {
-                const q = e.target.value.trim().toLowerCase();
-                renderFriends(allFriends.filter((f) => f.otherUser.username.toLowerCase().includes(q)));
-            });
+            function updateFromIncomingMessage(data) {
+                if (!data || data.type !== "chat" || !data.senderId) return;
 
-            // Show the user's own profile picture in the header, matching Settings.
+                const index = allChats.findIndex((chat) => chat.otherUser?.id === data.senderId);
+                if (index === -1) {
+                    // A friendship may have been accepted in another tab. Reload to
+                    // obtain the new friend and its latest message from the server.
+                    loadChats();
+                    return;
+                }
+
+                const chat = allChats[index];
+                chat.latestMessage = data.content || null;
+                chat.latestAttachmentUrl = data.attachmentUrl || null;
+                chat.latestMessageAt = data.sentAt || new Date().toISOString();
+                chat.latestSenderId = data.senderId;
+
+                // Move the active conversation to the top immediately.
+                allChats.splice(index, 1);
+                allChats.unshift(chat);
+                renderFriends(allChats);
+            }
+
             async function loadMyAvatar() {
                 try {
                     const profile = await SChat.apiFetch("/users/me");
                     if (profile.profilePictureUrl) {
                         document.getElementById("my-avatar").src = profile.profilePictureUrl;
                     }
-                } catch { /* header stays on the default logo */ }
+                } catch {
+                    // Header stays on the default logo.
+                }
             }
 
             function openAIAssistant() {
                 window.location.href = "S-chat-chatpage.html?ai=1&name=" + encodeURIComponent("Gemini");
             }
-            document.getElementById("ai-assistant-row").addEventListener("click", openAIAssistant);
-            document.getElementById("ai-assistant-row").addEventListener("keydown", (e) => {
-                if (e.key === "Enter") openAIAssistant();
-            });
 
-            // This whole block runs as an inline <script> with no `defer`, so it executes
-            // immediately during parsing — before js/api.js (loaded with `defer`) has run.
-            // Calling SChat.* here directly throws "SChat is not defined" every page load
-            // if not deferred. Deferring both calls to DOMContentLoaded guarantees
-            // js/api.js and js/friends.js have already executed.
             document.addEventListener("DOMContentLoaded", () => {
-                loadFriends();
+                const searchInput = document.getElementById("chat-search-input");
+                searchInput.addEventListener("input", (e) => {
+                    searchQuery = e.target.value.trim().toLowerCase();
+                    renderFriends(allChats);
+                });
+
+                document.getElementById("ai-assistant-row").addEventListener("click", openAIAssistant);
+                document.getElementById("ai-assistant-row").addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openAIAssistant();
+                    }
+                });
+
+                loadChats();
                 loadMyAvatar();
+
+                if (typeof SChatWS !== "undefined") {
+                    SChatWS.connect();
+                    SChatWS.onMessage(updateFromIncomingMessage);
+                }
+
+                // Re-check when returning to this page/tab so a message sent from
+                // another page/tab is reflected even though that tab did not receive
+                // the WebSocket event itself.
+                window.addEventListener("focus", loadChats);
+                document.addEventListener("visibilitychange", () => {
+                    if (!document.hidden) loadChats();
+                });
             });
         })();
     </script>

@@ -1,6 +1,7 @@
 package com.stech.schat.controller;
 
 import com.stech.schat.dto.ChatMessageDto;
+import com.stech.schat.dto.ChatListItemDto;
 import com.stech.schat.service.ChatService;
 import com.stech.schat.service.StorageService;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,11 @@ public class ChatController {
     public ChatController(ChatService chatService, StorageService storageService) {
         this.chatService = chatService;
         this.storageService = storageService;
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<List<ChatListItemDto>> chatList(Authentication auth) {
+        return ResponseEntity.ok(chatService.getChatList(currentUserId(auth)));
     }
 
     @GetMapping("/history/{friendUserId}")
