@@ -37,8 +37,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        sessionRegistry.unregister(currentUserId(session), session);
-    }
+    sessionRegistry.unregister(currentUserId(session));
+}
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
