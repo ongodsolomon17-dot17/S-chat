@@ -1,7 +1,10 @@
 package com.stech.schat.controller;
 
+import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.dto.StatusPostDto;
+import com.stech.schat.dto.StatusReplyRequest;
 import com.stech.schat.service.StatusService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -25,10 +28,12 @@ public class StatusController {
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<StatusPostDto> create(
             Authentication auth,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "caption", required = false) String caption
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "caption", required = false) String caption,
+            @RequestParam(value = "textContent", required = false) String textContent,
+            @RequestParam(value = "backgroundColor", required = false) String backgroundColor
     ) throws Exception {
-        return ResponseEntity.ok(statusService.create(currentUserId(auth), file, caption));
+        return ResponseEntity.ok(statusService.create(currentUserId(auth), file, caption, textContent, backgroundColor));
     }
 
     @GetMapping("/feed")
@@ -45,5 +50,14 @@ public class StatusController {
     public ResponseEntity<Void> delete(Authentication auth, @PathVariable UUID statusId) {
         statusService.delete(currentUserId(auth), statusId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{statusId}/reply")
+    public ResponseEntity<ChatMessageDto> reply(
+            Authentication auth,
+            @PathVariable UUID statusId,
+            @Valid @RequestBody StatusReplyRequest request
+    ) {
+        return ResponseEntity.ok(statusService.reply(currentUserId(auth), statusId, request.content()));
     }
 }

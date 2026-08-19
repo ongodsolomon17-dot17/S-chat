@@ -27,8 +27,8 @@ spring:
 
   jpa:
     hibernate:
-      # Use "validate" once schema.sql / migrations are the source of truth in production.
-      # "update" is convenient while the schema is still evolving.
+      # Keep update for the current live project so deployment does not break an existing
+      # database. After the full schema is baselined into Flyway, set JPA_DDL_AUTO=validate.
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
@@ -75,3 +75,9 @@ logging:
     root: INFO
     com.stech.schat: INFO
     org.springframework.security: WARN
+
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration

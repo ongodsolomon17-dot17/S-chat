@@ -30,11 +30,23 @@ public class StatusPost {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "media_url", nullable = false, length = 512)
+    // Nullable now: a text-only status (Feature: text status) has no media at all.
+    // Voice-note statuses reuse this same column — StorageService's audio MIME types
+    // already cover them, so no schema change was needed for that case specifically.
+    @Column(name = "media_url", length = 512)
     private String mediaUrl;
 
     @Column(length = 280)
     private String caption;
+
+    // Text-status content — mutually exclusive with mediaUrl (exactly one of the two is
+    // set; enforced in StatusService, not the DB, to keep the column nullable/simple).
+    @Column(name = "text_content", length = 700)
+    private String textContent;
+
+    // Hex color (e.g. "#0aa89a") for the text-status background. Ignored for media statuses.
+    @Column(name = "background_color", length = 16)
+    private String backgroundColor;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -46,5 +58,9 @@ public class StatusPost {
     void onCreate() {
         this.createdAt = Instant.now();
         this.expiresAt = this.createdAt.plusSeconds(24 * 60 * 60);
+    }
+
+    public boolean isTextStatus() {
+        return mediaUrl == null;
     }
 }

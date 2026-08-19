@@ -76,6 +76,15 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of(403, "FORBIDDEN", ex.getMessage()));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleServiceUnavailable(IllegalStateException ex) {
+        // Used for "temporarily unavailable" style failures (e.g. the AI provider is
+        // unreachable or not configured) — distinct from a bad request from the client.
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiError.of(503, "SERVICE_UNAVAILABLE",
+                        ex.getMessage() == null ? "Service temporarily unavailable" : ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
 

@@ -9,15 +9,20 @@
     <script src="js/api.js" defer></script>
 </head>
 <body>
-
     <div class="titleandprofile">
         <img src="images/MY S.png" alt="S-Tech logo" width="80" height="75" class="profilepicture">
         <h1 class="h1-title">Calls</h1>
     </div>
 
-    <div style="padding: 24px; color: var(--s-text-dim); text-align:center;">
-        No recent calls yet.
-    </div>
+    <main class="calls-page">
+        <div class="calls-page-head">
+            <h2>Recent calls</h2>
+            <span>Voice &amp; video</span>
+        </div>
+        <div id="calls-list" class="calls-list">
+            <div class="calls-empty">Loading calls…</div>
+        </div>
+    </main>
 
     <div class="pages-btn-container">
         <nav><a href="S-chat-home.html"><button class="primary-btn"><img src="my icons/chats-icon.png" alt="" width="20" height="20">Chats</button></a></nav>
@@ -27,5 +32,52 @@
     </div>
 
     <script src="js/nav.js" defer></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const list = document.getElementById("calls-list");
+        try {
+            const [calls, friends, meProfile] = await Promise.all([
+                SChat.apiFetch("/calls/history?size=50"),
+                SChat.apiFetch("/friends"),
+                SChat.apiFetch("/users/me")
+            ]);
+            const friendMap = new Map((friends || []).map(f => {
+                const u = f.otherUser || f;
+                return [u.id, u.username || "Friend"];
+            }));
+            const myId = meProfile?.id;
+
+            if (!calls?.length) {
+                list.innerHTML = '<div class="calls-empty">No recent calls yet.</div>';
+                return;
+            }
+
+            list.innerHTML = calls.map(call => {
+                const outgoing = call.callerId === myId;
+                const otherId = outgoing ? call.calleeId : call.callerId;
+                const name = friendMap.get(otherId) || "Friend";
+                const icon = call.callType === "VIDEO" ? "📹" : "📞";
+                const direction = outgoing ? "Outgoing" : "Incoming";
+                const date = new Date(call.startedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+                return `<article class="call-row">
+                    <div class="call-row-icon">${icon}</div>
+                    <div class="call-row-main">
+                        <strong>${escapeHtml(name)}</strong>
+                        <span>${direction} · ${escapeHtml(call.status)} · ${escapeHtml(date)}</span>
+                    </div>
+                    <span class="call-row-status">${call.status === "ACCEPTED" || call.status === "ENDED" ? "✓" : ""}</span>
+                </article>`;
+            }).join("");
+        } catch (err) {
+            list.innerHTML = `<div class="calls-empty">${escapeHtml(err.message || "Could not load calls.")}</div>`;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, c => ({
+                "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+            }[c]));
+        }
+    });
+    </script>
 </body>
 </html>

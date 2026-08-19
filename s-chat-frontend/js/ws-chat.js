@@ -75,15 +75,30 @@ window.SChatWS = (function () {
     return () => { handlers = handlers.filter((h) => h !== handler); };
   }
 
-  function send(toUserId, content, attachmentUrl) {
+  function send(toUserId, content, attachmentUrl, replyToMessageId, clientMessageId) {
+    return sendFrame({
+      type: "chat",
+      to: toUserId,
+      content,
+      attachmentUrl: attachmentUrl || null,
+      replyToMessageId: replyToMessageId || null,
+      clientMessageId: clientMessageId || null
+    });
+  }
+
+  function sendFrame(frame) {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       SChat.showToast("Not connected. Reconnecting…", "error");
       connect();
       return false;
     }
-    socket.send(JSON.stringify({ type: "chat", to: toUserId, content, attachmentUrl: attachmentUrl || null }));
+    socket.send(JSON.stringify(frame));
     return true;
   }
 
-  return { connect, disconnect, onMessage, send };
+  function sendSignal(frame) {
+    return sendFrame(frame);
+  }
+
+  return { connect, disconnect, onMessage, send, sendFrame, sendSignal };
 })();

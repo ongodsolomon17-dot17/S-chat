@@ -27,7 +27,14 @@ public class SupabaseStorageService implements StorageService {
             "image/gif",
             "image/webp",
             "video/mp4",
-            "video/quicktime"
+            "video/quicktime",
+            // Voice notes — audio/webm and audio/ogg are what MediaRecorder produces in
+            // Chrome/Firefox; audio/mp4 and audio/x-m4a cover Safari/iOS recordings.
+            "audio/webm",
+            "audio/ogg",
+            "audio/mp4",
+            "audio/x-m4a",
+            "audio/mpeg"
     );
 
     private static final long MAX_FILE_BYTES = 25L * 1024 * 1024;
@@ -103,6 +110,10 @@ public class SupabaseStorageService implements StorageService {
             case "image/webp" -> ".webp";
             case "video/mp4" -> ".mp4";
             case "video/quicktime" -> ".mov";
+            case "audio/webm" -> ".webm";
+            case "audio/ogg" -> ".ogg";
+            case "audio/mp4", "audio/x-m4a" -> ".m4a";
+            case "audio/mpeg" -> ".mp3";
             default -> "";
         };
 

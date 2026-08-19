@@ -23,3 +23,28 @@
     }
   });
 })();
+
+/* Global calling layer: loads on authenticated pages so incoming calls can ring
+   even when the user is not currently viewing a chat. */
+(function loadSChatCalls() {
+  if (!window.SChat || !SChat.Auth.isLoggedIn()) return;
+  if (document.querySelector("script[data-schat-calls]")) return;
+
+  const loadCalls = () => {
+    if (document.querySelector("script[data-schat-calls]")) return;
+    const script = document.createElement("script");
+    script.src = "js/calls.js";
+    script.defer = true;
+    script.dataset.schatCalls = "true";
+    document.body.appendChild(script);
+  };
+
+  if (typeof window.SChatWS !== "undefined") {
+    loadCalls();
+  } else {
+    const wsScript = document.createElement("script");
+    wsScript.src = "js/ws-chat.js";
+    wsScript.onload = loadCalls;
+    document.body.appendChild(wsScript);
+  }
+})();

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — S-Chat</title>
+    <link rel="stylesheet" href="css/S-Chat-Style.css">
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <style>
+        .settings-wrap { max-width: 520px; margin: 0 auto 130px; padding: 0 16px; }
+        .settings-section {
+            background: var(--s-panel); border: 1px solid var(--s-panel-border);
+            border-radius: 16px; padding: 18px; margin-bottom: 14px;
+        }
+        .settings-section h2 { margin: 0 0 12px; font-size: 15px; font-family: var(--font-body); }
+        .avatar-row { display: flex; align-items: center; gap: 16px; }
+        .avatar-preview {
+            width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--s-panel-border); background: rgba(255,255,255,0.05);
+        }
+        .upload-btn {
+            background: rgba(255,255,255,0.08); color: var(--s-text); border: 1px solid var(--s-panel-border);
+            border-radius: 10px; padding: 8px 14px; font-size: 13px; cursor: pointer;
+        }
+        .settings-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-row .label { font-size: 14px; }
+        .settings-row .hint { font-size: 12px; color: var(--s-text-dim); margin-top: 2px; }
+
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .track {
+            position: absolute; inset: 0; background: rgba(255,255,255,0.15);
+            border-radius: 999px; cursor: pointer; transition: background 0.2s ease;
+        }
+        .switch .track::before {
+            content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px;
+            background: white; border-radius: 50%; transition: transform 0.2s ease;
+        }
+        .switch input:checked + .track { background: var(--s-accent-cyan); }
+        .switch input:checked + .track::before { transform: translateX(20px); }
+
+        .id-row { display: flex; gap: 8px; align-items: center; }
+        .id-input {
+            flex: 1; background: rgba(0,0,0,0.4); border: 1px solid var(--s-panel-border);
+            color: white; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-family: monospace;
+        }
+        .small-btn {
+            background: linear-gradient(135deg, #0aa89a, #067a8f); color: white; border: none;
+            border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .add-friend-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+        .add-friend-tabs button {
+            flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--s-panel-border);
+            background: transparent; color: var(--s-text-dim); font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .add-friend-tabs button.active { background: var(--s-accent-cyan-dim); color: var(--s-accent-cyan); border-color: var(--s-accent-cyan-dim); }
+
+        .request-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .request-row:last-child { border-bottom: none; }
+        .request-row img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--s-panel); }
+        .request-row .name { font-size: 13px; font-weight: 600; flex: 1; }
+        .req-btn { border: none; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .req-btn.accept { background: rgba(43,224,138,0.2); color: #a8ffd2; }
+        .req-btn.decline { background: rgba(255,92,108,0.2); color: #ffc3ca; }
+
+        .danger-btn {
+            width: 100%; background: rgba(255,92,108,0.12); color: #ffb3bb;
+            border: 1px solid rgba(255,92,108,0.4); border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer;
+        }
+        .empty-note { color: var(--s-text-dim); font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <div class="titleandprofile">
+        <img src="images/MY S.png" alt="S-Tech logo" width="80" height="75" class="profilepicture">
+        <h1 class="h1-title">Settings</h1>
+    </div>
+
+    <div class="settings-wrap">
+
+        <div class="settings-section">
+            <h2>Profile Picture</h2>
+            <div class="avatar-row">
+                <img id="avatar-preview" src="images/MY S.png" alt="" class="avatar-preview">
+                <div>
+                    <label class="upload-btn" for="avatar-file-input">Change Photo</label>
+                    <input type="file" id="avatar-file-input" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+                    <div id="avatar-status" class="hint" style="margin-top:6px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Your S-Chat ID</h2>
+            <p class="hint" style="margin-top:-6px;">Others can add you with this instead of your phone/email. Editable — must be unique.</p>
+            <div class="id-row" style="margin-top:8px;">
+                <input type="text" id="public-id-input" class="id-input" maxlength="32">
+                <button class="small-btn" id="save-id-btn">Save</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Who Can Add You</h2>
+            <div class="settings-row">
+                <div>
+                    <div class="label">Add by ID only</div>
+                    <div class="hint">Off = friends can also find you by phone/email (default). On = ID only.</div>
+                </div>
+                <label class="switch"><input type="checkbox" id="toggle-add-by-id"><span class="track"></span></label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div class="label">Approve requests</div>
+                    <div class="hint">On = you must accept each request. Off = new adds are accepted automatically.</div>
+                </div>
+                <label class="switch"><input type="checkbox" id="toggle-approval"><span class="track"></span></label>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Your Phone Number</h2>
+            <p class="hint" style="margin-top:-6px;">Used for the default "add by contact" lookup.</p>
+            <div class="id-row" style="margin-top:8px;">
+                <input type="tel" id="phone-input" class="id-input" placeholder="+1 555 000 0000">
+                <button class="small-btn" id="save-phone-btn">Save</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Add a Friend</h2>
+            <div class="add-friend-tabs">
+                <button type="button" id="tab-contact" class="active">By Contact</button>
+                <button type="button" id="tab-id">By S-Chat ID</button>
+            </div>
+            <div class="id-row">
+                <input type="text" id="add-friend-input" class="id-input" placeholder="Phone number or email">
+                <button class="small-btn" id="send-request-btn">Add</button>
+            </div>
+            <div id="add-friend-status" class="hint" style="margin-top:8px;"></div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Friend Requests</h2>
+            <div id="incoming-requests"><p class="empty-note">Loading…</p></div>
+        </div>
+
+        <div class="settings-section">
+            <h2>Session</h2>
+            <button id="logout-btn" class="login-icon-btn" style="width:100%;">Log Out</button>
+        </div>
+
+        <div class="settings-section">
+            <h2>Danger Zone</h2>
+            <p class="hint" style="margin-bottom:10px;">
+                Deleting your account disables it immediately — your friends and existing chat history are kept as-is.
+            </p>
+            <button id="delete-account-btn" class="danger-btn">Delete My Account</button>
+        </div>
+
+    </div>
+
+    <div class="pages-btn-container">
+        <nav><a href="S-chat-home.html"><button class="primary-btn"><img src="my icons/chats-icon.png" alt="" width="20" height="20">Chats</button></a></nav>
+        <nav><a href="S-chat-status.html"><button class="primary-btn"><img src="my icons/status-icon.png" alt="" width="20" height="20">Status</button></a></nav>
+        <nav><a href="S-chat-calls.html"><button class="primary-btn"><img src="my icons/contact-icon.png" alt="" width="20" height="20">Calls</button></a></nav>
+        <nav><a href="S-chat-settings.html"><button class="primary-btn"><img src="my icons/settings-icon.png" alt="" width="20" height="20">Settings</button></a></nav>
+    </div>
+
+    <script src="js/nav.js" defer></script>
+    <script src="js/friends.js" defer></script>
+    <script>
+        (function () {
+            let viaId = false;
+
+            function escapeHtml(str) {
+                const div = document.createElement("div");
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            async function loadProfile() {
+                try {
+                    const profile = await SChat.apiFetch("/users/me");
+                    document.getElementById("public-id-input").value = profile.publicId;
+                    document.getElementById("phone-input").value = profile.phoneNumber || "";
+                    document.getElementById("toggle-add-by-id").checked = profile.addByIdOnly;
+                    document.getElementById("toggle-approval").checked = profile.approvalRequired;
+                    if (profile.profilePictureUrl) {
+                        document.getElementById("avatar-preview").src = profile.profilePictureUrl;
+                    }
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            }
+
+            document.getElementById("avatar-file-input").addEventListener("change", async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const statusEl = document.getElementById("avatar-status");
+                statusEl.textContent = "Uploading…";
+                try {
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    const profile = await SChat.apiUpload("/users/me/profile-picture", fd);
+                    document.getElementById("avatar-preview").src = profile.profilePictureUrl;
+                    statusEl.textContent = "Updated!";
+                    setTimeout(() => (statusEl.textContent = ""), 2000);
+                } catch (err) {
+                    statusEl.textContent = err.message;
+                }
+            });
+
+            document.getElementById("save-id-btn").addEventListener("click", async () => {
+                try {
+                    await SChat.apiFetch("/users/me", {
+                        method: "PATCH",
+                        body: JSON.stringify({ publicId: document.getElementById("public-id-input").value.trim() })
+                    });
+                    SChat.showToast("S-Chat ID updated", "success");
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            });
+
+            document.getElementById("save-phone-btn").addEventListener("click", async () => {
+                try {
+                    await SChat.apiFetch("/users/me", {
+                        method: "PATCH",
+                        body: JSON.stringify({ phoneNumber: document.getElementById("phone-input").value.trim() })
+                    });
+                    SChat.showToast("Phone number saved", "success");
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            });
+
+            async function patchToggle(key, value) {
+                try {
+                    await SChat.apiFetch("/users/me", { method: "PATCH", body: JSON.stringify({ [key]: value }) });
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            }
+            document.getElementById("toggle-add-by-id").addEventListener("change", (e) => patchToggle("addByIdOnly", e.target.checked));
+            document.getElementById("toggle-approval").addEventListener("change", (e) => patchToggle("approvalRequired", e.target.checked));
+
+            const tabContact = document.getElementById("tab-contact");
+            const tabId = document.getElementById("tab-id");
+            const addInput = document.getElementById("add-friend-input");
+            tabContact.addEventListener("click", () => {
+                viaId = false; tabContact.classList.add("active"); tabId.classList.remove("active");
+                addInput.placeholder = "Phone number or email";
+            });
+            tabId.addEventListener("click", () => {
+                viaId = true; tabId.classList.add("active"); tabContact.classList.remove("active");
+                addInput.placeholder = "e.g. SC-7F3K9QZP";
+            });
+
+            document.getElementById("send-request-btn").addEventListener("click", async () => {
+                const identifier = addInput.value.trim();
+                const statusEl = document.getElementById("add-friend-status");
+                if (!identifier) return;
+                try {
+                    const result = await SChatFriends.sendRequest(identifier, viaId);
+                    statusEl.textContent = result.status === "ACCEPTED"
+                        ? `You're now connected with ${result.otherUser.username}.`
+                        : `Request sent to ${result.otherUser.username}.`;
+                    addInput.value = "";
+                    loadIncoming();
+                } catch (err) {
+                    statusEl.textContent = err.message;
+                }
+            });
+
+            async function loadIncoming() {
+                const container = document.getElementById("incoming-requests");
+                try {
+                    const requests = await SChatFriends.incoming();
+                    if (!requests.length) {
+                        container.innerHTML = '<p class="empty-note">No pending requests.</p>';
+                        return;
+                    }
+                    container.innerHTML = "";
+                    requests.forEach((r) => {
+                        const row = document.createElement("div");
+                        row.className = "request-row";
+                        row.innerHTML = `
+                            <img src="${r.otherUser.profilePictureUrl || 'images/MY S.png'}" alt="">
+                            <span class="name">${escapeHtml(r.otherUser.username)}</span>
+                            <button class="req-btn accept">Accept</button>
+                            <button class="req-btn decline">Decline</button>
+                        `;
+                        row.querySelector(".accept").addEventListener("click", async () => {
+                            try { await SChatFriends.accept(r.requestId); loadIncoming(); }
+                            catch (err) { SChat.showToast(err.message, "error"); }
+                        });
+                        row.querySelector(".decline").addEventListener("click", async () => {
+                            try { await SChatFriends.decline(r.requestId); loadIncoming(); }
+                            catch (err) { SChat.showToast(err.message, "error"); }
+                        });
+                        container.appendChild(row);
+                    });
+                } catch (err) {
+                    container.innerHTML = `<p class="empty-note">${escapeHtml(err.message)}</p>`;
+                }
+            }
+
+            document.getElementById("logout-btn").addEventListener("click", () => SChat.Auth.logout());
+
+            document.getElementById("delete-account-btn").addEventListener("click", async () => {
+                const confirmed = confirm(
+                    "Delete your account? This disables your account for you and your friends, " +
+                    "but your existing chat history stays intact. This can't be undone from the app."
+                );
+                if (!confirmed) return;
+                try {
+                    await SChat.apiFetch("/users/me", { method: "DELETE" });
+                    SChat.Auth.clearSession();
+                    window.location.href = "index.html";
+                } catch (err) {
+                    SChat.showToast(err.message, "error");
+                }
+            });
+
+            document.addEventListener("DOMContentLoaded", () => { loadProfile(); loadIncoming(); });
+        })();
+    </script>
+</body>
+</html>

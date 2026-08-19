@@ -8,5 +8,7 @@ public record ChatListItemDto(
         String latestMessage,
         String latestAttachmentUrl,
         Instant latestMessageAt,
-        UUID latestSenderId
+        UUID latestSenderId,
+        boolean latestIsReply,
+        long unreadCount
 ) {}

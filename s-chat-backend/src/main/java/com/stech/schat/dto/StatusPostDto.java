@@ -8,6 +8,8 @@ public record StatusPostDto(
         UserSummaryDto author,
         String mediaUrl,
         String caption,
+        String textContent,
+        String backgroundColor,
         Instant createdAt,
         Instant expiresAt
 ) {}

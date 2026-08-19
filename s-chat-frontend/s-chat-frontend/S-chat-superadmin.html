@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-Chat — Super Admin</title>
+    <link rel="stylesheet" href="css/S-Chat-Style.css">
+    <style>
+        .admin-shell { max-width: 1100px; margin: 0 auto; padding: clamp(16px, 4vw, 24px) 16px 100px; box-sizing: border-box; }
+        .admin-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .admin-badge { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--s-accent-cyan);
+            border: 1px solid var(--s-accent-cyan-dim); border-radius: 999px; padding: 4px 12px; text-transform: uppercase; white-space: nowrap; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: clamp(10px, 3vw, 16px); margin-bottom: 28px; }
+        .stat-card { background: var(--s-panel); border: 1px solid var(--s-panel-border); border-radius: 16px; padding: clamp(14px, 4vw, 20px); min-width: 0; }
+        .stat-card .label { font-size: 12px; color: var(--s-text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: clamp(20px, 5vw, 28px); font-weight: 700; font-family: var(--font-display); margin-top: 6px; }
+        .panel { background: var(--s-panel); border: 1px solid var(--s-panel-border); border-radius: 16px; padding: clamp(14px, 4vw, 20px); margin-bottom: 20px; box-sizing: border-box; }
+        .panel h2 { margin: 0 0 14px; font-size: 16px; font-family: var(--font-body); }
+        .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table.admin-table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px; }
+        table.admin-table th { text-align: left; color: var(--s-text-dim); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--s-panel-border); white-space: nowrap; }
+        table.admin-table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+        .role-pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+        .role-pill.SUPERADMIN { background: rgba(255,92,108,0.18); color: #ffb3bb; }
+        .role-pill.ADMIN { background: rgba(7,255,243,0.15); color: var(--s-accent-cyan); }
+        .role-pill.USER { background: rgba(255,255,255,0.08); color: var(--s-text-dim); }
+        .empty-note { color: var(--s-text-dim); font-size: 13px; padding: 12px 0; }
+        #admin-gate { width: 100%; max-width: 380px; margin: clamp(40px, 15vw, 80px) auto; padding: 0 16px; box-sizing: border-box; }
+    </style>
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+</head>
+<body>
+
+    <!-- Auth gate: shown until a SUPERADMIN/ADMIN session is confirmed -->
+    <div id="admin-gate" class="signup-box" style="display:none;">
+        <form id="admin-login-form" novalidate>
+            <fieldset class="custom-size-log-in-page">
+                <legend class="signuptextlabels">Super Admin Access</legend>
+                <input type="text" id="admin-identifier" placeholder="Username or email" class="relog-in-textfield" required autocomplete="username">
+                <input type="password" id="admin-password" placeholder="Password" class="relog-in-textfield" required autocomplete="current-password">
+            </fieldset>
+            <div class="relogin-submit-btn-contaner">
+                <button type="submit" class="relogin-submit-btn">Enter Dashboard</button>
+            </div>
+        </form>
+        <div id="admin-auth-alert" class="auth-alert" role="alert"></div>
+    </div>
+
+    <!-- Dashboard: shown once access is confirmed -->
+    <div id="admin-dashboard" class="admin-shell" style="display:none;">
+        <div class="admin-header">
+            <h1 class="h1-title" style="margin:0;">S-Chat Control Center</h1>
+            <span class="admin-badge" id="admin-role-badge">SUPERADMIN</span>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-card"><div class="label">Total Users</div><div class="value" id="stat-users">—</div></div>
+            <div class="stat-card"><div class="label">Active Today</div><div class="value" id="stat-active">—</div></div>
+            <div class="stat-card"><div class="label">Locked Accounts</div><div class="value" id="stat-locked">—</div></div>
+            <div class="stat-card"><div class="label">Messages Sent</div><div class="value" id="stat-messages">—</div></div>
+        </div>
+
+        <div class="panel">
+            <h2>User Management</h2>
+            <div class="table-scroll">
+                <table class="admin-table" id="user-table">
+                    <thead>
+                        <tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr>
+                    </thead>
+                    <tbody id="user-table-body"></tbody>
+                </table>
+            </div>
+            <p class="empty-note" id="user-table-empty">
+                Connecting the live user list requires the <code>/api/superadmin/users</code> endpoint (next backend phase).
+            </p>
+        </div>
+
+        <div class="panel">
+            <h2>Session</h2>
+            <button id="admin-logout-btn" class="login-icon-btn">Log Out</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const gate = document.getElementById("admin-gate");
+            const dashboard = document.getElementById("admin-dashboard");
+            const alertBox = document.getElementById("admin-auth-alert");
+
+            function showAlert(message) {
+                alertBox.textContent = message;
+                alertBox.classList.add("show", "error");
+            }
+
+            function boot() {
+                const user = SChat.Auth.getUser();
+                const isAdmin = user && (user.role === "ADMIN" || user.role === "SUPERADMIN");
+
+                if (SChat.Auth.isLoggedIn() && isAdmin) {
+                    gate.style.display = "none";
+                    dashboard.style.display = "block";
+                    document.getElementById("admin-role-badge").textContent = user.role;
+                } else {
+                    gate.style.display = "flex";
+                    dashboard.style.display = "none";
+                }
+            }
+
+            document.getElementById("admin-login-form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const usernameOrEmail = document.getElementById("admin-identifier").value.trim();
+                const password = document.getElementById("admin-password").value;
+
+                try {
+                    const result = await SChat.apiFetch("/auth/login", {
+                        method: "POST",
+                        skipAuth: true,
+                        body: JSON.stringify({ usernameOrEmail, password })
+                    });
+
+                    if (result.role !== "ADMIN" && result.role !== "SUPERADMIN") {
+                        showAlert("This account doesn't have admin access.");
+                        return;
+                    }
+
+                    SChat.Auth.saveSession(result);
+                    boot();
+                } catch (err) {
+                    showAlert(err.message);
+                }
+            });
+
+            document.getElementById("admin-logout-btn").addEventListener("click", () => SChat.Auth.logout());
+
+            document.addEventListener("DOMContentLoaded", boot);
+        })();
+    </script>
+</body>
+</html>

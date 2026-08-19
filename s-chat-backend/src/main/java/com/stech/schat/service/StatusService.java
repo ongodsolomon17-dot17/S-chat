@@ -1,5 +1,6 @@
 package com.stech.schat.service;
 
+import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.dto.FriendRequestDto;
 import com.stech.schat.dto.StatusPostDto;
 import com.stech.schat.dto.UserSummaryDto;
@@ -33,23 +34,54 @@ public class StatusService {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final FriendService friendService;
+    private final ChatService chatService;
 
     public StatusService(StatusPostRepository statusPostRepository, UserRepository userRepository,
-                          StorageService storageService, FriendService friendService) {
+                          StorageService storageService, FriendService friendService, ChatService chatService) {
         this.statusPostRepository = statusPostRepository;
         this.userRepository = userRepository;
         this.storageService = storageService;
         this.friendService = friendService;
+        this.chatService = chatService;
     }
 
+    /**
+     * A status reply is just a normal chat message with replyToStatusId set — it reuses
+     * ChatService.sendMessage() (friendship check, persistence, realtime push to the
+     * status author) instead of a parallel messaging system, per the feature spec.
+     */
     @Transactional
-    public StatusPostDto create(UUID userId, MultipartFile file, String caption) throws Exception {
-        String url = storageService.upload("status", file);
-        StatusPost post = StatusPost.builder()
-                .userId(userId)
-                .mediaUrl(url)
-                .caption(caption)
-                .build();
+    public ChatMessageDto reply(UUID currentUserId, UUID statusId, String content) {
+        StatusPost post = statusPostRepository.findById(statusId)
+                .orElseThrow(() -> new ResourceNotFoundException("Status not found"));
+        if (post.getExpiresAt().isBefore(Instant.now())) {
+            throw new ResourceNotFoundException("Status not found");
+        }
+        ChatMessageDto dto = chatService.sendMessage(currentUserId, post.getUserId(), content, null, null, statusId);
+        chatService.pushToOtherParticipant(dto, currentUserId);
+        return dto;
+    }
+
+    private static final String DEFAULT_TEXT_STATUS_BG = "#0aa89a";
+
+    @Transactional
+    public StatusPostDto create(UUID userId, MultipartFile file, String caption, String textContent, String backgroundColor) throws Exception {
+        boolean hasFile = file != null && !file.isEmpty();
+        boolean hasText = textContent != null && !textContent.isBlank();
+        if (!hasFile && !hasText) {
+            throw new IllegalArgumentException("A status needs a photo, video, voice note, or text");
+        }
+
+        StatusPost.StatusPostBuilder builder = StatusPost.builder().userId(userId);
+        if (hasFile) {
+            String url = storageService.upload("status", file);
+            builder.mediaUrl(url).caption(caption);
+        } else {
+            builder.textContent(textContent.trim())
+                    .backgroundColor(backgroundColor != null && !backgroundColor.isBlank() ? backgroundColor : DEFAULT_TEXT_STATUS_BG);
+        }
+
+        StatusPost post = builder.build();
         statusPostRepository.save(post);
         return toDto(post);
     }
@@ -74,6 +106,15 @@ public class StatusService {
             throw new ForbiddenActionException("You can only delete your own status");
         }
         statusPostRepository.delete(post);
+        if (post.getMediaUrl() != null) {
+            try {
+                storageService.delete(post.getMediaUrl());
+            } catch (Exception ex) {
+                // Row is already gone either way — a stray file in the bucket is a much
+                // smaller problem than blocking the delete the user actually asked for.
+                log.warn("Could not delete media for manually-deleted status {}: {}", post.getId(), ex.getMessage());
+            }
+        }
     }
 
     /**
@@ -91,6 +132,7 @@ public class StatusService {
         if (expired.isEmpty()) return;
 
         for (StatusPost post : expired) {
+            if (post.getMediaUrl() == null) continue; // text-only status has no media to clean up
             try {
                 storageService.delete(post.getMediaUrl());
             } catch (Exception ex) {
@@ -128,6 +170,6 @@ public class StatusService {
                     author.getPublicId(), author.getProfilePictureUrl(), author.isDeleted());
 
         return new StatusPostDto(post.getId(), authorDto, post.getMediaUrl(), post.getCaption(),
-                post.getCreatedAt(), post.getExpiresAt());
+                post.getTextContent(), post.getBackgroundColor(), post.getCreatedAt(), post.getExpiresAt());
     }
 }
