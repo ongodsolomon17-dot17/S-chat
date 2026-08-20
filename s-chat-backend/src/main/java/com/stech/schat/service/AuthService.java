@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -71,11 +72,11 @@ public class AuthService {
         }
 
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
-            throw new AccountLockedException(user.getLockedUntil());
+            throw new InvalidCredentialsException("Incorrect username/email or password");
         }
 
         if (!user.isAccountEnabled()) {
-            throw new InvalidCredentialsException("This account has been disabled");
+            throw new InvalidCredentialsException("Incorrect username/email or password");
         }
 
         boolean passwordMatches = passwordEncoder.matches(request.password(), user.getPasswordHash());
@@ -116,11 +117,14 @@ public class AuthService {
                 throw new InvalidCredentialsException("Invalid refresh token");
             }
 
+            Long tokenVersion = claims.get("ver", Long.class);
+            if (tokenVersion == null) throw new InvalidCredentialsException("Invalid refresh token");
+
             java.util.UUID userId = java.util.UUID.fromString(claims.getSubject());
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new InvalidCredentialsException("Invalid refresh token"));
 
-            if (user.isDeleted() || !user.isAccountEnabled()) {
+            if (user.isDeleted() || !user.isAccountEnabled() || tokenVersion.longValue() != user.getRefreshTokenVersion()) {
                 throw new InvalidCredentialsException("Invalid refresh token");
             }
 
@@ -130,10 +134,32 @@ public class AuthService {
         }
     }
 
+    public String issueWebSocketTicket(UUID userId) {
+        User user = userRepository.findById(userId)
+                .filter(u -> !u.isDeleted() && u.isAccountEnabled())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid session"));
+        return jwtService.generateWebSocketTicket(user.getId());
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) return;
+        try {
+            Claims claims = jwtService.parseAndValidate(refreshToken);
+            if (!"refresh".equals(claims.get("type", String.class))) return;
+            UUID userId = UUID.fromString(claims.getSubject());
+            userRepository.findById(userId).ifPresent(user -> {
+                user.setRefreshTokenVersion(user.getRefreshTokenVersion() + 1);
+                userRepository.save(user);
+            });
+        } catch (JwtException | IllegalArgumentException ignored) {
+            // Always clear the browser cookie even if the presented token is already invalid.
+        }
+    }
+
     private AuthResponse issueTokens(User user) {
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole().name());
-        String refreshToken = jwtService.generateRefreshToken(user.getId());
-
+        String refreshToken = jwtService.generateRefreshToken(user.getId(), user.getRefreshTokenVersion());
         return new AuthResponse(
                 accessToken,
                 refreshToken,

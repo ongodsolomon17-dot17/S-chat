@@ -81,3 +81,39 @@ Tell me when you're ready for #3 (superadmin API) or #6 (Gemini-backed orb) and 
 - The frontend uses short-lived access tokens plus refresh tokens.
 - WebSocket authentication uses the access token in the handshake query because browser WebSocket APIs do not provide a normal Authorization-header option.
 - Do not upload `.env` files or real credentials to GitHub.
+
+## Deep security/reliability hardening (2026-08-20)
+
+- Refresh tokens are now `HttpOnly`, `Secure`, `SameSite=None` cookies and are no longer exposed to frontend JavaScript/localStorage.
+- Access tokens are kept in `sessionStorage` instead of long-lived `localStorage`.
+- Refresh/logout require the custom `X-S-Chat-Client: web` header to reduce CSRF risk.
+- WebSocket messages are capped at 64 KB and rate-limited per authenticated connection.
+- Call signaling is accepted only after the call has been accepted by the callee; stale calls expire after 90 seconds.
+- Caller display names are taken from the authenticated account, not trusted from client input.
+- Chat attachment URLs must belong to the configured S-Chat Supabase bucket before they can be persisted as messages.
+- Profile pictures are restricted to images; status uploads are restricted to images, video, and audio.
+- Status text, captions, and background colors are validated server-side.
+- TURN credentials are generated server-side using the coturn shared-secret REST credential mechanism. No TURN secret or long-lived TURN credential belongs in frontend JavaScript.
+- Frontend calls obtain short-lived ICE server credentials from `/api/calls/ice-servers` before creating the `RTCPeerConnection`.
+
+### Production TURN environment variables
+
+Set these on Render only:
+
+```text
+TURN_URLS=turn:turn.yourdomain.com:3478?transport=udp,turns:turn.yourdomain.com:5349?transport=tcp
+TURN_SHARED_SECRET=<same secret configured in coturn>
+TURN_CREDENTIAL_TTL_SECONDS=3600
+```
+
+Do not put `TURN_SHARED_SECRET` or generated TURN credentials into Vercel/frontend files.
+
+## Final security hardening notes
+
+- Refresh tokens are HttpOnly cookies and are version-revocable on logout.
+- WebSocket authentication uses short-lived, one-time tickets rather than putting the access JWT in the WebSocket URL.
+- WebSocket frames are size/rate limited and call signaling is authorized against the persisted call record.
+- Chat attachment URLs are server-validated as S-Chat-managed storage URLs.
+- Supabase service credentials remain backend-only.
+- Production Supabase tables/storage should still be reviewed against the current RLS/access-control policies before enabling any direct browser Data API access.
+- Once the production schema has a complete Flyway baseline, set `JPA_DDL_AUTO=validate` instead of `update`.

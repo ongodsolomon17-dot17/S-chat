@@ -3,7 +3,6 @@
   const API_BASE_URL = window.S_CHAT_CONFIG.API_BASE_URL.replace(/\/$/, "");
 
   const TOKEN_KEY = "schat_access_token";
-  const REFRESH_KEY = "schat_refresh_token";
   const USER_KEY = "schat_user";
   let refreshPromise = null;
 
@@ -12,8 +11,7 @@
       if (!authResponse || !authResponse.accessToken) {
         throw new Error("Invalid authentication response from server.");
       }
-      localStorage.setItem(TOKEN_KEY, authResponse.accessToken);
-      if (authResponse.refreshToken) localStorage.setItem(REFRESH_KEY, authResponse.refreshToken);
+      sessionStorage.setItem(TOKEN_KEY, authResponse.accessToken);
       if (authResponse.username) {
         localStorage.setItem(USER_KEY, JSON.stringify({
           username: authResponse.username,
@@ -22,8 +20,7 @@
         }));
       }
     },
-    getAccessToken() { return localStorage.getItem(TOKEN_KEY); },
-    getRefreshToken() { return localStorage.getItem(REFRESH_KEY); },
+    getAccessToken() { return sessionStorage.getItem(TOKEN_KEY); },
     getUser() {
       try {
         const raw = localStorage.getItem(USER_KEY);
@@ -32,13 +29,14 @@
     },
     isLoggedIn() { return !!this.getAccessToken(); },
     clearSession() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
     },
     logout() {
-      this.clearSession();
-      window.location.href = "S-chat-log-in.html";
+      fetch(API_BASE_URL + "/auth/logout", { method: "POST", headers: { "X-S-Chat-Client": "web" }, credentials: "include", keepalive: true }).finally(() => {
+        this.clearSession();
+        window.location.href = "S-chat-log-in.html";
+      });
     }
   };
 
@@ -68,16 +66,13 @@
   }
 
   async function refreshAccessToken() {
-    const refreshToken = Auth.getRefreshToken();
-    if (!refreshToken) return false;
-
     if (refreshPromise) return refreshPromise;
     refreshPromise = (async () => {
       try {
         const response = await fetch(API_BASE_URL + "/auth/refresh", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken })
+          headers: { "X-S-Chat-Client": "web" },
+          credentials: "include"
         });
         const body = await parseBody(response);
         if (!response.ok || !body || !body.accessToken) {
@@ -109,7 +104,7 @@
 
     let response;
     try {
-      response = await fetch(API_BASE_URL + path, { ...requestOptions, headers });
+      response = await fetch(API_BASE_URL + path, { ...requestOptions, headers, credentials: "include" });
     } catch {
       throw new Error("Can't reach the server. Check your connection and try again.");
     }
@@ -134,7 +129,7 @@
     const headers = token ? { Authorization: "Bearer " + token } : {};
     let response;
     try {
-      response = await fetch(API_BASE_URL + path, { method: "POST", headers, body: formData });
+      response = await fetch(API_BASE_URL + path, { method: "POST", headers, body: formData, credentials: "include" });
     } catch {
       throw new Error("Can't reach the server. Check your connection and try again.");
     }
@@ -150,5 +145,40 @@
     return body;
   }
 
-  window.SChat = { Auth, apiFetch, apiUpload, showToast, refreshAccessToken };
+  function apiUploadWithProgress(path, formData, onProgress, retried = false) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const token = Auth.getAccessToken();
+      xhr.open("POST", API_BASE_URL + path, true);
+      xhr.withCredentials = true;
+      if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && typeof onProgress === "function") onProgress(e.loaded / e.total);
+      };
+      xhr.onerror = () => reject(new Error("Can't reach the server. Check your connection and try again."));
+      xhr.onload = async () => {
+        let body = null;
+        try { body = xhr.getResponseHeader("content-type")?.includes("application/json") ? JSON.parse(xhr.responseText) : null; } catch {}
+        if (xhr.status === 401) {
+          const refreshed = await refreshAccessToken();
+          if (refreshed && !retried) {
+            try { resolve(await apiUploadWithProgress(path, formData, onProgress, true)); } catch (e) { reject(e); }
+          } else {
+            Auth.clearSession();
+            window.location.href = "S-chat-log-in.html";
+            reject(new Error("Session expired. Please log in again."));
+          }
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error(errorFromBody(body, "Upload failed.")));
+          return;
+        }
+        resolve(body);
+      };
+      xhr.send(formData);
+    });
+  }
+
+  window.SChat = { Auth, apiFetch, apiUpload, apiUploadWithProgress, showToast, refreshAccessToken };
 })();

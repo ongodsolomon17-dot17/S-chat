@@ -36,3 +36,13 @@ The implementation includes public STUN servers and optional TURN configuration 
 `S-chat-frontend/js/config.js`
 
 For reliable calls across restrictive mobile networks, configure a real TURN relay before treating calling as production-ready.
+
+## Security checks added in the deep-debug pass
+
+21. Confirm the browser never stores a refresh token in localStorage/sessionStorage.
+22. Confirm `/api/auth/refresh` works only with the HttpOnly `schat_refresh` cookie and `X-S-Chat-Client: web`.
+23. Confirm WebSocket frames above 64 KB are rejected and abusive message bursts are rate-limited.
+24. Confirm a user cannot send a fabricated external attachment URL through WebSocket.
+25. Confirm profile-picture upload rejects non-images and status upload rejects documents.
+26. Confirm call SDP/ICE signaling is rejected until the call record is ACCEPTED.
+27. Confirm TURN credentials returned by `/api/calls/ice-servers` are short-lived and no shared secret appears in frontend source.

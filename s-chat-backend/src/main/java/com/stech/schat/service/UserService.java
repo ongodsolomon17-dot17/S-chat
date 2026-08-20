@@ -72,6 +72,9 @@ public class UserService {
     @Transactional
     public ProfileDto updateProfilePicture(UUID userId, MultipartFile file) throws Exception {
         User user = getActiveUserOrThrow(userId);
+        if (file == null || file.isEmpty() || file.getContentType() == null || !file.getContentType().toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("Profile picture must be an image");
+        }
         String url = storageService.upload("profile-pictures", file);
         user.setProfilePictureUrl(url);
         userRepository.save(user);

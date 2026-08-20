@@ -15,17 +15,20 @@ spring:
     hikari:
       maximum-pool-size: 5
       connection-timeout: 10000
+      # Supabase's connection pooler (port 6543) runs PgBouncer in "transaction" mode,
+      # which does not preserve server-side prepared statements across transactions/
+      # connections. The pgjdbc driver defaults to switching a statement to a server-side
+      # prepared statement after 5 executions (prepareThreshold=5), which then intermittently
+      # fails against PgBouncer with "prepared statement ... does not exist" errors under
+      # real traffic. Setting prepareThreshold=0 keeps every statement as a simple query,
+      # which is what PgBouncer transaction mode requires.
       data-source-properties:
         prepareThreshold: 0
 
-  flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:db/migration
-
   jpa:
     hibernate:
+      # Keep update for the current live project so deployment does not break an existing
+      # database. After the full schema is baselined into Flyway, set JPA_DDL_AUTO=validate.
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
@@ -36,8 +39,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 25MB
-      max-request-size: 25MB
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 app:
   jwt:
@@ -45,6 +48,7 @@ app:
     access-ttl-minutes: ${JWT_ACCESS_TTL_MIN:15}
     refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
   cors:
+    # Comma-separated, e.g. https://s-chat.vercel.app,https://www.s-chat.vercel.app
     allowed-origins: ${FRONTEND_ORIGINS:https://s-chat-zeta.vercel.app}
   resend:
     api-key: ${RESEND_API_KEY:}
@@ -53,6 +57,11 @@ app:
     url: ${SUPABASE_URL}
     service-key: ${SUPABASE_SERVICE_KEY}
     storage-bucket: ${SUPABASE_STORAGE_BUCKET:s-chat-media}
+  turn:
+    # Comma-separated TURN URLs. Keep the shared secret backend-only; never put it in frontend JS.
+    urls: ${TURN_URLS:}
+    shared-secret: ${TURN_SHARED_SECRET:}
+    ttl-seconds: ${TURN_CREDENTIAL_TTL_SECONDS:3600}
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-2.5-flash}
@@ -71,3 +80,9 @@ logging:
     root: INFO
     com.stech.schat: INFO
     org.springframework.security: WARN
+
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration

@@ -84,6 +84,13 @@ public class User {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    // Incremented whenever the refresh session is revoked (logout/account disable).
+    // Refresh JWTs carry this version so a stolen refresh token cannot remain valid
+    // after revocation.
+    @Column(name = "refresh_token_version", nullable = false)
+    @Builder.Default
+    private long refreshTokenVersion = 0L;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

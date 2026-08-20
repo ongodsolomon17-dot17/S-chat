@@ -67,7 +67,16 @@ public class StatusService {
     @Transactional
     public StatusPostDto create(UUID userId, MultipartFile file, String caption, String textContent, String backgroundColor) throws Exception {
         boolean hasFile = file != null && !file.isEmpty();
-        boolean hasText = textContent != null && !textContent.isBlank();
+        String safeText = textContent == null ? "" : textContent.trim();
+        String safeCaption = caption == null ? "" : caption.trim();
+        boolean hasText = !safeText.isBlank();
+        if (hasFile && hasText) throw new IllegalArgumentException("Choose either media or text for a status");
+        if (safeText.length() > 700) throw new IllegalArgumentException("Status text is too long");
+        if (safeCaption.length() > 280) throw new IllegalArgumentException("Status caption is too long");
+        if (backgroundColor != null && !backgroundColor.isBlank()
+                && !backgroundColor.matches("^#[0-9A-Fa-f]{6}$")) {
+            throw new IllegalArgumentException("Invalid status background color");
+        }
         if (!hasFile && !hasText) {
             throw new IllegalArgumentException("A status needs a photo, video, voice note, or text");
         }
@@ -75,9 +84,9 @@ public class StatusService {
         StatusPost.StatusPostBuilder builder = StatusPost.builder().userId(userId);
         if (hasFile) {
             String url = storageService.upload("status", file);
-            builder.mediaUrl(url).caption(caption);
+            builder.mediaUrl(url).caption(safeCaption.isBlank() ? null : safeCaption);
         } else {
-            builder.textContent(textContent.trim())
+            builder.textContent(safeText)
                     .backgroundColor(backgroundColor != null && !backgroundColor.isBlank() ? backgroundColor : DEFAULT_TEXT_STATUS_BG);
         }
 

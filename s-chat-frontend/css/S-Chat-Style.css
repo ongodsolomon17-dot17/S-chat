@@ -1842,6 +1842,44 @@ fieldset.custom-size-log-in-page {
   display: none !important;
 }
 
+
+.file-preview-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+.file-preview-item {
+  min-width: 210px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+}
+.file-preview-item img, .file-preview-glyph {
+  width: 38px; height: 38px; object-fit: cover; border-radius: 7px;
+  display: grid; place-items: center; flex-shrink: 0; font-size: 22px;
+}
+.file-preview-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.file-preview-meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--s-text); }
+.file-preview-meta small { color: var(--s-text-dim); }
+.file-upload-progress { height: 3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.file-upload-progress i { display: block; width: 0; height: 100%; background: var(--s-accent-cyan); transition: width .1s linear; }
+.file-preview-item button { background: none; border: 0; color: var(--s-danger); cursor: pointer; font-size: 18px; }
+#chat-send-form.drag-over .chat-message-box-container { outline: 2px dashed var(--s-accent-cyan); outline-offset: 2px; }
+.attachment-file-card {
+  display: flex; align-items: center; gap: 10px; max-width: 320px; padding: 10px;
+  border: 1px solid var(--s-panel-border); border-radius: 12px; color: var(--s-text);
+  text-decoration: none; background: rgba(255,255,255,.04);
+}
+.attachment-file-icon { font-size: 26px; }
+.attachment-file-info { display: flex; flex-direction: column; min-width: 0; }
+.attachment-file-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-file-info small { color: var(--s-text-dim); margin-top: 2px; }
+
 .file-preview-chip {
   display: none;
   align-items: center;

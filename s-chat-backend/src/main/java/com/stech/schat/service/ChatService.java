@@ -52,17 +52,20 @@ public class ChatService {
     private final MessageHiddenForRepository messageHiddenForRepository;
     private final FriendService friendService;
     private final WebSocketSessionRegistry sessionRegistry;
+    private final StorageService storageService;
 
     public ChatService(ChatMessageRepository chatMessageRepository,
                         MessageReactionRepository messageReactionRepository,
                         MessageHiddenForRepository messageHiddenForRepository,
                         FriendService friendService,
-                        WebSocketSessionRegistry sessionRegistry) {
+                        WebSocketSessionRegistry sessionRegistry,
+                        StorageService storageService) {
         this.chatMessageRepository = chatMessageRepository;
         this.messageReactionRepository = messageReactionRepository;
         this.messageHiddenForRepository = messageHiddenForRepository;
         this.friendService = friendService;
         this.sessionRegistry = sessionRegistry;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -73,6 +76,16 @@ public class ChatService {
         // funnel through this method.
         if (!friendService.areFriends(senderId, receiverId)) {
             throw new ForbiddenActionException("You can only message users you're friends with");
+        }
+        String safeContent = content == null ? "" : content.trim();
+        if (safeContent.length() > 5000) throw new IllegalArgumentException("Message is too long");
+        if (attachmentUrl != null) {
+            if (attachmentUrl.length() > 2048 || !storageService.isManagedUrl(attachmentUrl)) {
+                throw new IllegalArgumentException("Invalid attachment");
+            }
+        }
+        if (safeContent.isBlank() && attachmentUrl == null) {
+            throw new IllegalArgumentException("Message cannot be empty");
         }
 
         ChatMessage replyTarget = null;
@@ -90,7 +103,7 @@ public class ChatService {
         ChatMessage message = ChatMessage.builder()
                 .senderId(senderId)
                 .receiverId(receiverId)
-                .content(content == null ? "" : content)
+                .content(safeContent)
                 .attachmentUrl(attachmentUrl)
                 .replyToMessageId(replyToMessageId)
                 .replyToStatusId(replyToStatusId)

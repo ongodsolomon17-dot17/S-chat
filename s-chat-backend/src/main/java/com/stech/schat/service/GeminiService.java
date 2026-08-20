@@ -128,7 +128,7 @@ public class GeminiService {
 
             String text = extractText(body);
             if (text.isBlank()) {
-                log.warn("Gemini returned no text candidate: {}", response.body());
+                log.warn("Gemini returned no text candidate. status={}", response.statusCode());
                 throw new IllegalStateException("The AI assistant returned an empty response. Please try again.");
             }
 

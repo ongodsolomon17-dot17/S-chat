@@ -37,6 +37,12 @@ public class WebSocketSessionRegistry {
         sessions.remove(userId);
     }
 
+    /** Remove only this session, so a newer login/session for the same user is not disconnected. */
+    public void unregister(UUID userId, WebSocketSession session) {
+        if (userId == null || session == null) return;
+        sessions.remove(userId, session);
+    }
+
     public boolean isOnline(UUID userId) {
         WebSocketSession session = sessions.get(userId);
         return session != null && session.isOpen();

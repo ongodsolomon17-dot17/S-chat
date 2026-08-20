@@ -47,11 +47,12 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateRefreshToken(UUID userId) {
+    public String generateRefreshToken(UUID userId, long refreshTokenVersion) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("type", "refresh")
+                .claim("ver", refreshTokenVersion)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + refreshTokenTtlMs))
                 .signWith(signingKey)
@@ -60,6 +61,18 @@ public class JwtService {
 
     public long getAccessTokenTtlSeconds() {
         return accessTokenTtlMs / 1000;
+    }
+
+    public String generateWebSocketTicket(UUID userId) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("type", "ws")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + 30_000))
+                .id(UUID.randomUUID().toString())
+                .signWith(signingKey)
+                .compact();
     }
 
     /** Throws JwtException/subclasses if invalid or expired — callers should catch and reject the request. */

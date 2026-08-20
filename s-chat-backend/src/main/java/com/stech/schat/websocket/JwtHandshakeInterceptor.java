@@ -16,9 +16,11 @@ import java.util.Map;
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     private final JwtService jwtService;
+    private final WebSocketTicketReplayGuard replayGuard;
 
-    public JwtHandshakeInterceptor(JwtService jwtService) {
+    public JwtHandshakeInterceptor(JwtService jwtService, WebSocketTicketReplayGuard replayGuard) {
         this.jwtService = jwtService;
+        this.replayGuard = replayGuard;
     }
 
     @Override
@@ -29,9 +31,10 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             return false;
         }
 
-        // Browsers can't attach an Authorization header to a WebSocket handshake,
-        // so the access token is passed as a query param here instead: wss://.../ws?token=...
-        String token = servletRequest.getServletRequest().getParameter("token");
+        // Never put the long-lived access JWT in the WebSocket URL: URLs can be logged by
+        // proxies/observability systems. The frontend first obtains a 30-second WS ticket
+        // over the authenticated HTTPS API, then spends that short-lived ticket once here.
+        String token = servletRequest.getServletRequest().getParameter("ticket");
         if (token == null) {
             response.setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
             return false;
@@ -39,7 +42,11 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
         try {
             Claims claims = jwtService.parseAndValidate(token);
-            if (!"access".equals(claims.get("type", String.class))) {
+            if (!"ws".equals(claims.get("type", String.class)) || claims.getId() == null || claims.getExpiration() == null) {
+                response.setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
+                return false;
+            }
+            if (!replayGuard.consume(claims.getId(), claims.getExpiration().toInstant().getEpochSecond())) {
                 response.setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
                 return false;
             }

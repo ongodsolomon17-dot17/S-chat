@@ -15,4 +15,7 @@ public interface StorageService {
      * forever. Implementations should not throw on failure — callers treat this as advisory.
      */
     void delete(String publicUrl);
+
+    /** Returns true only for URLs issued by this application's configured storage bucket. */
+    default boolean isManagedUrl(String url) { return false; }
 }

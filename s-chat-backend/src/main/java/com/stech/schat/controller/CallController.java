@@ -2,6 +2,7 @@ package com.stech.schat.controller;
 
 import com.stech.schat.dto.CallRecordDto;
 import com.stech.schat.service.CallService;
+import com.stech.schat.service.TurnCredentialService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,16 @@ import static com.stech.schat.controller.UserController.currentUserId;
 @RequestMapping("/api/calls")
 public class CallController {
     private final CallService callService;
-    public CallController(CallService callService) { this.callService = callService; }
+    private final TurnCredentialService turnCredentialService;
+    public CallController(CallService callService, TurnCredentialService turnCredentialService) {
+        this.callService = callService;
+        this.turnCredentialService = turnCredentialService;
+    }
+
+    @GetMapping("/ice-servers")
+    public ResponseEntity<java.util.Map<String, Object>> iceServers(Authentication auth) {
+        return ResponseEntity.ok(turnCredentialService.issue(currentUserId(auth)));
+    }
 
     @GetMapping("/history")
     public ResponseEntity<List<CallRecordDto>> history(

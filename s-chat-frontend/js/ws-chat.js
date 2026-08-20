@@ -35,9 +35,14 @@ window.SChatWS = (function () {
       if (isTokenExpiringSoon(token, 60)) {
         await SChat.refreshAccessToken();
       }
-      const currentToken = SChat.Auth.getAccessToken();
-      if (!currentToken || intentionalClose) return;
-      socket = new WebSocket(window.S_CHAT_CONFIG.WS_URL + "?token=" + encodeURIComponent(currentToken));
+      if (!SChat.Auth.getAccessToken() || intentionalClose) return;
+      const ticketResponse = await SChat.apiFetch("/auth/ws-ticket", {
+        method: "POST",
+        headers: { "X-S-Chat-Client": "web" }
+      });
+      const ticket = ticketResponse?.ticket;
+      if (!ticket || intentionalClose) return;
+      socket = new WebSocket(window.S_CHAT_CONFIG.WS_URL + "?ticket=" + encodeURIComponent(ticket));
 
       socket.onopen = () => { reconnectDelay = 1000; connecting = false; };
       socket.onmessage = (event) => {

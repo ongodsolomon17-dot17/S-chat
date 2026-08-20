@@ -40,6 +40,12 @@ public class CallService {
         if (!call.getCalleeId().equals(userId))
             throw new ForbiddenActionException("Only the recipient can accept this call");
         if (call.getStatus() == CallRecord.CallStatus.RINGING) {
+            if (call.getStartedAt().isBefore(Instant.now().minusSeconds(90))) {
+                call.setStatus(CallRecord.CallStatus.MISSED);
+                call.setEndedAt(Instant.now());
+                repository.save(call);
+                throw new IllegalArgumentException("This call has expired");
+            }
             call.setStatus(CallRecord.CallStatus.ACCEPTED);
             call.setAnsweredAt(Instant.now());
             repository.save(call);
@@ -71,7 +77,11 @@ public class CallService {
 
     @Transactional(readOnly = true)
     public CallRecordDto requireParticipantForSignal(UUID userId, UUID callId) {
-        return toDto(requireParticipant(userId, callId));
+        CallRecord call = requireParticipant(userId, callId);
+        if (call.getStatus() != CallRecord.CallStatus.ACCEPTED) {
+            throw new ForbiddenActionException("Call signaling is only allowed after acceptance");
+        }
+        return toDto(call);
     }
 
     @Scheduled(fixedRate = 60_000)

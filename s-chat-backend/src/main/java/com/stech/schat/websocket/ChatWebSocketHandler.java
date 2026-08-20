@@ -6,6 +6,7 @@ import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.model.CallRecord;
 import com.stech.schat.service.CallService;
 import com.stech.schat.service.ChatService;
+import com.stech.schat.repository.UserRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -14,6 +15,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.time.Instant;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
@@ -21,13 +27,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final CallService callService;
     private final ObjectMapper objectMapper;
     private final WebSocketSessionRegistry sessionRegistry;
+    private final UserRepository userRepository;
+    private static final int MAX_FRAME_CHARS = 64 * 1024;
+    private static final int MAX_MESSAGES_PER_10S = 80;
+    private final ConcurrentMap<String, Deque<Long>> rateWindows = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(ChatService chatService, CallService callService,
-                                ObjectMapper objectMapper, WebSocketSessionRegistry sessionRegistry) {
+                                ObjectMapper objectMapper, WebSocketSessionRegistry sessionRegistry, UserRepository userRepository) {
         this.chatService = chatService;
         this.callService = callService;
         this.objectMapper = objectMapper;
         this.sessionRegistry = sessionRegistry;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -37,12 +48,22 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-    sessionRegistry.unregister(currentUserId(session));
-}
+        sessionRegistry.unregister(currentUserId(session), session);
+        rateWindows.remove(session.getId());
+    }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         UUID senderId = currentUserId(session);
+        if (message.getPayloadLength() > MAX_FRAME_CHARS) {
+            sendError(session, "Message is too large");
+            session.close(new CloseStatus(1009, "Message too large"));
+            return;
+        }
+        if (!allowMessage(session)) {
+            sendError(session, "Too many requests. Please slow down.");
+            return;
+        }
         Map<String, Object> payload;
         try {
             payload = objectMapper.readValue(message.getPayload(), Map.class);
@@ -110,7 +131,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         incoming.put("type", "call_invite");
         incoming.put("callId", call.id().toString());
         incoming.put("from", callerId.toString());
-        incoming.put("fromName", String.valueOf(p.getOrDefault("fromName", "Friend")));
+        String callerName = userRepository.findById(callerId).map(u -> u.getUsername()).orElse("Friend");
+        incoming.put("fromName", callerName);
         incoming.put("callType", call.callType().name());
         sessionRegistry.send(calleeId, incoming);
     }
@@ -140,11 +162,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private void relayCallSignal(UUID userId, Map<String, Object> p, String type) {
         UUID callId = UUID.fromString(String.valueOf(p.get("callId")));
         CallRecordDto call = callService.requireParticipantForSignal(userId, callId);
+        if (call.status() != CallRecord.CallStatus.ACCEPTED) {
+            throw new IllegalArgumentException("Call is not connected yet");
+        }
         UUID other = call.callerId().equals(userId) ? call.calleeId() : call.callerId();
         Map<String, Object> frame = new HashMap<>(p);
         frame.put("type", type);
         frame.put("from", userId.toString());
         sessionRegistry.send(other, frame);
+    }
+
+    private boolean allowMessage(WebSocketSession session) {
+        long now = Instant.now().toEpochMilli();
+        Deque<Long> window = rateWindows.computeIfAbsent(session.getId(), k -> new ArrayDeque<>());
+        synchronized (window) {
+            while (!window.isEmpty() && now - window.peekFirst() > 10_000) window.removeFirst();
+            if (window.size() >= MAX_MESSAGES_PER_10S) return false;
+            window.addLast(now);
+            return true;
+        }
     }
 
     private void sendError(WebSocketSession session, String message) throws IOException {

@@ -116,7 +116,7 @@
                 <div class="hint" id="my-status-hint">Tap to add a status update</div>
             </div>
         </div>
-        <input type="file" id="status-file-input" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov" style="display:none;">
+        <input type="file" id="status-file-input" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.webm,.ogg,.m4a,.mp3,.aac" style="display:none;">
 
         <div class="section-label">Recent Updates</div>
         <div id="status-feed" class="status-grid"></div>
@@ -194,7 +194,7 @@
                 return div.innerHTML;
             }
             function isVideo(url) { return /\.(mp4|mov)$/i.test(url || ""); }
-            function isAudio(url) { return /\.(webm|ogg|m4a|mp3|aac)$/i.test(url || ""); }
+            function isAudio(url) { return /\.(ogg|m4a|mp3|aac)$/i.test(url || "") || /\.webm$/i.test(url || "") && !isVideo(url); }
             function timeAgo(iso) {
                 const diffMs = Date.now() - new Date(iso).getTime();
                 const mins = Math.floor(diffMs / 60000);
@@ -594,6 +594,17 @@
                 return m + ":" + String(s).padStart(2, "0");
             }
 
+            function pickStatusAudioMimeType() {
+                const candidates = [
+                    "audio/webm;codecs=opus",
+                    "audio/webm",
+                    "audio/ogg;codecs=opus",
+                    "audio/ogg",
+                    "audio/mp4"
+                ];
+                return candidates.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
+            }
+
             document.getElementById("add-status-voice").addEventListener("click", async () => {
                 closeAddStatusMenu();
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
@@ -607,7 +618,14 @@
                     return;
                 }
                 statusChunks = [];
-                statusRecorder = new MediaRecorder(statusRecordStream);
+                const preferredMime = pickStatusAudioMimeType();
+                try {
+                    statusRecorder = preferredMime ? new MediaRecorder(statusRecordStream, { mimeType: preferredMime }) : new MediaRecorder(statusRecordStream);
+                } catch {
+                    statusRecordStream.getTracks().forEach((t) => t.stop());
+                    SChat.showToast("Could not start voice recording on this device.", "error");
+                    return;
+                }
                 statusRecorder.addEventListener("dataavailable", (e) => { if (e.data.size > 0) statusChunks.push(e.data); });
                 statusRecorder.start();
                 statusRecordStart = Date.now();
@@ -640,15 +658,17 @@
                 await finished;
 
                 if (!statusChunks.length) return;
-                const blob = new Blob(statusChunks, { type: statusRecorder.mimeType || "audio/webm" });
+                const mimeType = statusRecorder.mimeType || "audio/webm";
+                const blob = new Blob(statusChunks, { type: mimeType });
                 statusChunks = [];
                 if (blob.size < 500) {
                     SChat.showToast("Recording was too short.", "error");
                     return;
                 }
                 try {
+                    const extension = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
                     const fd = new FormData();
-                    fd.append("file", blob, "voice-status.webm");
+                    fd.append("file", blob, `voice-status.${extension}`);
                     await SChat.apiUpload("/status", fd);
                     SChat.showToast("Voice status posted", "success");
                     loadFeed();

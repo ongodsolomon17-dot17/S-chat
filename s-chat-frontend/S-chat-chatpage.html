@@ -28,11 +28,10 @@
         <button type="button" class="composer-reply-cancel" id="reply-preview-cancel" aria-label="Cancel reply">&times;</button>
     </div>
 
-    <!-- Selected-file chip shown above the composer for file-only / text+file sends -->
+    <!-- Attachment tray: multiple files, previews and upload progress. -->
     <div class="file-preview-chip" id="file-preview-chip">
-        <img id="file-preview-thumb" alt="" style="display:none;">
-        <span class="file-preview-name" id="file-preview-name"></span>
-        <button type="button" class="file-preview-remove" id="file-preview-remove" aria-label="Remove file">&times;</button>
+        <div id="file-preview-list" class="file-preview-list"></div>
+        <button type="button" class="file-preview-remove" id="file-preview-remove" aria-label="Clear attachments">&times;</button>
     </div>
 
     <!-- Voice-note recording indicator shown while recording is in progress -->
@@ -62,7 +61,7 @@
                     <img src="my icons/files-extention-icon.png" alt="" height="20" width="20">
                 </label>
                 <input type="file" name="chat-file-sender" id="chat-file-sender" class="chat-file-sender"
-                    accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov">
+                    accept="image/*,video/*,audio/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" multiple>
             </div>
         </div>
     </form>
@@ -224,14 +223,13 @@
                             <div class="attachment-audio">
                                 <audio src="${escapeHtml(msg.attachmentUrl)}" controls preload="metadata"></audio>
                             </div>`;
+                    } else if (isVideoUrl(msg.attachmentUrl)) {
+                        html += `<div class="attachment-media is-video" data-url="${escapeHtml(msg.attachmentUrl)}" data-video="true"><video src="${escapeHtml(msg.attachmentUrl)}" controls playsinline preload="metadata"></video></div>`;
+                    } else if (/\.(jpg|jpeg|png|gif|webp)(?:$|[?#])/i.test(msg.attachmentUrl)) {
+                        html += `<div class="attachment-media" data-url="${escapeHtml(msg.attachmentUrl)}" data-video="false"><img src="${escapeHtml(msg.attachmentUrl)}" alt="" loading="lazy"><span class="expand-hint">Tap to view</span></div>`;
                     } else {
-                        const video = isVideoUrl(msg.attachmentUrl);
-                        html += `
-                            <div class="attachment-media${video ? " is-video" : ""}" data-url="${escapeHtml(msg.attachmentUrl)}" data-video="${video}">
-                                ${video
-                                    ? `<video src="${escapeHtml(msg.attachmentUrl)}" controls playsinline></video>`
-                                    : `<img src="${escapeHtml(msg.attachmentUrl)}" alt="" loading="lazy"><span class="expand-hint">Tap to view</span>`}
-                            </div>`;
+                        const name = decodeURIComponent((msg.attachmentUrl || "").split("/").pop().split("?")[0]) || "Attachment";
+                        html += `<a class="attachment-file-card" href="${escapeHtml(msg.attachmentUrl)}" target="_blank" rel="noopener" download><span class="attachment-file-icon">📎</span><span class="attachment-file-info"><strong>${escapeHtml(name)}</strong><small>Open / download file</small></span></a>`;
                     }
                 }
 
@@ -284,6 +282,43 @@
                     }
 
                     attachSwipeToReply(row, bubble, msg);
+
+                    // Desktop: right-click the message.
+                    bubble.addEventListener("contextmenu", (e) => {
+                        if (!msg.id) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openMessageActions(e, row, msg, mine);
+                    });
+
+                    // Mobile/tablet: long-press the message. Keep swipe-to-reply intact
+                    // by cancelling the timer as soon as the finger moves.
+                    let longPressTimer = null;
+                    let longPressTriggered = false;
+                    let longPressStartX = 0;
+                    let longPressStartY = 0;
+                    bubble.addEventListener("pointerdown", (e) => {
+                        if (e.pointerType === "mouse" || !msg.id) return;
+                        longPressTriggered = false;
+                        longPressStartX = e.clientX;
+                        longPressStartY = e.clientY;
+                        longPressTimer = setTimeout(() => {
+                            longPressTriggered = true;
+                            openMessageActions({ stopPropagation() {}, currentTarget: bubble }, row, msg, mine);
+                        }, 550);
+                    });
+                    bubble.addEventListener("pointermove", (e) => {
+                        if (e.pointerType !== "mouse" && longPressTimer
+                                && (Math.abs(e.clientX - longPressStartX) > 8 || Math.abs(e.clientY - longPressStartY) > 8)) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                    });
+                    ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, (e) => {
+                        if (longPressTimer) clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                        if (longPressTriggered && e.cancelable) e.preventDefault();
+                    }));
                 }
 
                 thread.appendChild(row);
@@ -706,102 +741,104 @@
             const fileInput = document.getElementById("chat-file-sender");
 
             if (chatForm && textarea && fileInput && typeof SChatWS !== "undefined") {
-                chatForm.addEventListener("submit", async () => {
-                    const content = textarea.value.trim();
-                    let attachmentUrl = null;
+                const selectedFiles = [];
+                const previewChip = document.getElementById("file-preview-chip");
+                const previewList = document.getElementById("file-preview-list");
 
-                    if (fileInput.files.length) {
-                        const fd = new FormData();
-                        fd.append("file", fileInput.files[0]);
+                function formatBytes(bytes) {
+                    if (!bytes) return "0 B";
+                    const units = ["B", "KB", "MB", "GB"];
+                    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+                    return (bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0) + " " + units[i];
+                }
+                function renderAttachmentTray() {
+                    previewList.innerHTML = "";
+                    selectedFiles.forEach((file, index) => {
+                        const item = document.createElement("div");
+                        item.className = "file-preview-item";
+                        const thumb = file.type.startsWith("image/") ? `<img src="${URL.createObjectURL(file)}" alt="">` : `<span class="file-preview-glyph">${file.type.startsWith("video/") ? "🎬" : file.type.startsWith("audio/") ? "🎙️" : "📎"}</span>`;
+                        item.innerHTML = `${thumb}<span class="file-preview-meta"><strong>${escapeHtml(file.name)}</strong><small>${formatBytes(file.size)}</small><span class="file-upload-progress"><i></i></span></span><button type="button" aria-label="Remove ${escapeHtml(file.name)}">×</button>`;
+                        item.querySelector("button").addEventListener("click", () => { selectedFiles.splice(index, 1); renderAttachmentTray(); updateComposerButtons(); });
+                        previewList.appendChild(item);
+                    });
+                    previewChip.classList.toggle("show", selectedFiles.length > 0);
+                }
+                function setFiles(fileList) {
+                    const maxBytes = 50 * 1024 * 1024;
+                    for (const file of Array.from(fileList || [])) {
+                        if (file.size > maxBytes) { SChat.showToast(`${file.name} is larger than 50 MB.`, "error"); continue; }
+                        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) selectedFiles.push(file);
+                    }
+                    renderAttachmentTray();
+                    updateComposerButtons();
+                }
+                fileInput.addEventListener("change", () => { setFiles(fileInput.files); fileInput.value = ""; });
+
+                ["dragenter", "dragover"].forEach(type => chatForm.addEventListener(type, e => { e.preventDefault(); chatForm.classList.add("drag-over"); }));
+                ["dragleave", "drop"].forEach(type => chatForm.addEventListener(type, e => { e.preventDefault(); chatForm.classList.remove("drag-over"); }));
+                chatForm.addEventListener("drop", e => setFiles(e.dataTransfer.files));
+                textarea.addEventListener("paste", e => {
+                    const files = Array.from(e.clipboardData?.files || []);
+                    if (files.length) setFiles(files);
+                });
+
+                document.getElementById("file-preview-remove").addEventListener("click", () => { selectedFiles.length = 0; renderAttachmentTray(); updateComposerButtons(); });
+
+                let uploadingAttachments = false;
+                chatForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    if (uploadingAttachments) return;
+                    const content = textarea.value.trim();
+                    if (!content && !selectedFiles.length) return;
+                    const filesToSend = selectedFiles.slice();
+                    const replyToMessageId = replyingTo ? replyingTo.id : null;
+                    uploadingAttachments = filesToSend.length > 0;
+                    for (let i = 0; i < filesToSend.length; i++) {
+                        const file = filesToSend[i];
                         try {
-                            const result = await SChat.apiUpload("/chat/attachment", fd);
-                            attachmentUrl = result.url;
-                        } catch (err) {
-                            SChat.showToast(err.message, "error");
-                            return;
+                            const fd = new FormData();
+                            fd.append("file", file, file.name);
+                            const item = previewList.children[i];
+                            const bar = item?.querySelector(".file-upload-progress i");
+                            const result = await SChat.apiUploadWithProgress("/chat/attachment", fd, p => { if (bar) bar.style.width = `${Math.round(p * 100)}%`; });
+                            const clientMessageId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+                            const sent = SChatWS.send(friendId, i === 0 ? content : "", result.url, replyToMessageId, clientMessageId);
+                            if (sent) {
+                                const replyToSnapshot = replyingTo ? { messageId: replyingTo.id, senderId: replyingTo.senderId, snippet: replyingTo.content, attachmentUrl: replyingTo.attachmentUrl || null, deleted: false } : null;
+                                pendingRows.set(clientMessageId, renderMessage({ content: i === 0 ? content : "", attachmentUrl: result.url, sentAt: new Date().toISOString(), senderId: myUserId, replyTo: replyToSnapshot, reactions: [] }, true));
+                            }
+                        } catch (err) { SChat.showToast(`Could not send ${file.name}: ${err.message}`, "error"); }
+                    }
+                    if (content && !filesToSend.length) {
+                        const clientMessageId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+                        const sent = SChatWS.send(friendId, content, null, replyToMessageId, clientMessageId);
+                        if (sent) {
+                            const replyToSnapshot = replyingTo ? { messageId: replyingTo.id, senderId: replyingTo.senderId, snippet: replyingTo.content, attachmentUrl: replyingTo.attachmentUrl || null, deleted: false } : null;
+                            pendingRows.set(clientMessageId, renderMessage({ content, attachmentUrl: null, sentAt: new Date().toISOString(), senderId: myUserId, replyTo: replyToSnapshot, reactions: [] }, true));
                         }
                     }
-
-                    // Feature Group B: a file alone is a valid send — no text required.
-                    if (!content && !attachmentUrl) return;
-
-                    const replyToMessageId = replyingTo ? replyingTo.id : null;
-                    const clientMessageId = crypto.randomUUID ? crypto.randomUUID() : (
-                        Date.now().toString(36) + "-" + Math.random().toString(36).slice(2)
-                    );
-                    const sent = SChatWS.send(friendId, content, attachmentUrl, replyToMessageId, clientMessageId);
-                    if (sent) {
-                        const replyToSnapshot = replyingTo
-                            ? {
-                                messageId: replyingTo.id,
-                                senderId: replyingTo.senderId,
-                                snippet: replyingTo.content,
-                                attachmentUrl: replyingTo.attachmentUrl || null,
-                                deleted: false
-                            }
-                            : null;
-                        const pendingRow = renderMessage({
-                            content, attachmentUrl, sentAt: new Date().toISOString(),
-                            senderId: myUserId, replyTo: replyToSnapshot, reactions: []
-                        }, true);
-                        pendingRows.set(clientMessageId, pendingRow);
-                        textarea.value = "";
-                        clearSelectedFile();
-                        cancelReply();
-                        updateComposerButtons();
-                    }
-                });
-            }
-
-            // =====================================================
-            // SEND / VOICE BUTTON SWAP + FILE-ONLY SEND (Feature Group B)
-            // =====================================================
-            const filePreviewChip = document.getElementById("file-preview-chip");
-            const filePreviewThumb = document.getElementById("file-preview-thumb");
-            const filePreviewName = document.getElementById("file-preview-name");
-
-            function clearSelectedFile() {
-                if (fileInput) fileInput.value = "";
-                filePreviewChip.classList.remove("show");
-                filePreviewThumb.style.display = "none";
-            }
-            document.getElementById("file-preview-remove").addEventListener("click", () => {
-                clearSelectedFile();
-                updateComposerButtons();
-            });
-
-            if (fileInput) {
-                fileInput.addEventListener("change", () => {
-                    const file = fileInput.files[0];
-                    if (!file) { clearSelectedFile(); updateComposerButtons(); return; }
-                    filePreviewName.textContent = file.name;
-                    if (file.type.startsWith("image/")) {
-                        filePreviewThumb.src = URL.createObjectURL(file);
-                        filePreviewThumb.style.display = "block";
-                    } else {
-                        filePreviewThumb.style.display = "none";
-                    }
-                    filePreviewChip.classList.add("show");
+                    selectedFiles.length = 0;
+                    uploadingAttachments = false;
+                    renderAttachmentTray();
+                    textarea.value = "";
+                    cancelReply();
                     updateComposerButtons();
                 });
             }
 
-            function wireComposerButtonSwap() {
-                if (textarea) textarea.addEventListener("input", updateComposerButtons);
-                updateComposerButtons();
-            }
-
+            // COMPOSER BUTTONS — text/attachments switch to Send.
+            const textareaForButtons = document.getElementById("chat-message-box");
             function updateComposerButtons() {
-                const sendBtn = document.getElementById("send-chat-btn");
                 const voiceBtn = document.getElementById("voice-note-btn");
-                const hasText = !!(textarea && textarea.value.trim());
-                const hasFile = !!(fileInput && fileInput.files && fileInput.files.length);
-                const showSend = hasText || hasFile;
-                sendBtn.hidden = !showSend;
-                voiceBtn.hidden = showSend;
+                const sendBtn = document.getElementById("send-chat-btn");
+                const hasText = !!textareaForButtons?.value.trim();
+                const hasFiles = !!document.getElementById("file-preview-list")?.children.length;
+                if (sendBtn) sendBtn.hidden = !(hasText || hasFiles);
+                if (voiceBtn) voiceBtn.hidden = hasText || hasFiles;
             }
+            textareaForButtons?.addEventListener("input", updateComposerButtons);
+            updateComposerButtons();
 
-            // =====================================================
             // VOICE NOTES — MediaRecorder -> upload via the same
             // /chat/attachment endpoint as files -> sent as a file-only
             // message (no text required, reuses Feature Group B's path).

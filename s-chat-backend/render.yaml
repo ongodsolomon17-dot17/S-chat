@@ -32,3 +32,9 @@ services:
         sync: false        # set manually in Render dashboard — never commit this
       - key: GEMINI_MODEL
         value: gemini-2.5-flash
+      - key: TURN_URLS
+        sync: false
+      - key: TURN_SHARED_SECRET
+        sync: false
+      - key: TURN_CREDENTIAL_TTL_SECONDS
+        value: "3600"

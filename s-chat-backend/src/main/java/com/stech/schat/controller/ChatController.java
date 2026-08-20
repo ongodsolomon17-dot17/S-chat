@@ -51,7 +51,8 @@ public class ChatController {
     }
 
     @PostMapping(value = "/attachment", consumes = "multipart/form-data")
-    public ResponseEntity<Map<String, String>> uploadAttachment(@RequestParam("file") MultipartFile file) throws Exception {
+    public ResponseEntity<Map<String, String>> uploadAttachment(Authentication auth, @RequestParam("file") MultipartFile file) throws Exception {
+        currentUserId(auth);
         String url = storageService.upload("attachments", file);
         return ResponseEntity.ok(Map.of("url", url));
     }

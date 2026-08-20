@@ -20,6 +20,7 @@
   let callTimer = null;
   let callTimeout = null;
   let ending = false;
+  let pendingIceCandidates = [];
 
   function ensureUi() {
     if (document.getElementById("schat-call-overlay")) return;
@@ -136,6 +137,7 @@
     activePeerId = null;
     activePeerName = "Friend";
     isCaller = false;
+    pendingIceCandidates = [];
     ending = false;
     hideOverlay();
   }
@@ -158,24 +160,24 @@
     if (local) local.srcObject = localStream;
   }
 
-  function createPeer() {
+  let iceServerCache = null;
+  let iceServerCacheExpiresAt = 0;
+
+  async function getIceServers() {
+    if (iceServerCache && Date.now() < iceServerCacheExpiresAt - 30_000) return iceServerCache;
+    const data = await SChat.apiFetch("/calls/ice-servers");
+    const servers = Array.isArray(data?.iceServers) ? data.iceServers : [];
+    if (!servers.length) throw new Error("Call networking is not configured.");
+    iceServerCache = servers;
+    iceServerCacheExpiresAt = data.expiresAt ? Date.parse(data.expiresAt) : Date.now() + 300_000;
+    return servers;
+  }
+
+  async function createPeer() {
     closePeer();
     remoteStream = new MediaStream();
-
-    const iceServers = [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" }
-    ];
-    const cfg = window.S_CHAT_CONFIG || {};
-    if (cfg.TURN_URL) {
-      iceServers.push({
-        urls: cfg.TURN_URL,
-        username: cfg.TURN_USERNAME || "",
-        credential: cfg.TURN_CREDENTIAL || ""
-      });
-    }
-
-    pc = new RTCPeerConnection({ iceServers });
+    const iceServers = await getIceServers();
+    pc = new RTCPeerConnection({ iceServers, iceCandidatePoolSize: 4 });
     localStream?.getTracks().forEach(track => pc.addTrack(track, localStream));
 
     pc.onicecandidate = e => {
@@ -198,7 +200,15 @@
         setText("schat-call-status", "Connected");
         startTimer();
       } else if (pc.connectionState === "failed") {
-        setText("schat-call-status", "Connection failed");
+        setText("schat-call-status", "Connection failed — TURN may be required");
+      } else if (pc.connectionState === "disconnected") {
+        setText("schat-call-status", "Reconnecting…");
+      }
+    };
+    pc.oniceconnectionstatechange = () => {
+      if (!pc) return;
+      if (pc.iceConnectionState === "failed") {
+        setText("schat-call-status", "Network path failed — check TURN configuration");
       }
     };
   }
@@ -210,7 +220,7 @@
       activePeerName = friendName;
       isCaller = true;
       await getMedia(type);
-      createPeer();
+      await createPeer();
       setText("schat-call-name", activePeerName);
       setText("schat-call-status", "Calling…");
       setMode(type);
@@ -239,7 +249,7 @@
     if (!activeCallId || !activePeerId) return;
     try {
       await getMedia(activeCallType);
-      createPeer();
+      await createPeer();
       setIncoming(false);
       setText("schat-call-status", "Connecting…");
       signal({ type: "call_accept", callId: activeCallId });
@@ -266,17 +276,28 @@
   async function onOffer(data) {
     if (!pc || !activeCallId) return;
     await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+    for (const candidate of pendingIceCandidates.splice(0)) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn("Queued ICE candidate failed", e); }
+    }
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     signal({ type: "webrtc_answer", callId: activeCallId, description: pc.localDescription });
   }
 
   async function onAnswer(data) {
-    if (pc && activeCallId) await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+    if (!pc || !activeCallId) return;
+    await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+    for (const candidate of pendingIceCandidates.splice(0)) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn("Queued ICE candidate failed", e); }
+    }
   }
 
   async function onIce(data) {
-    if (!pc || !data.candidate) return;
+    if (!data.candidate || !activeCallId) return;
+    if (!pc || !pc.remoteDescription) {
+      pendingIceCandidates.push(data.candidate);
+      return;
+    }
     try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) {
       console.warn("S-Chat ICE candidate error", e);
     }

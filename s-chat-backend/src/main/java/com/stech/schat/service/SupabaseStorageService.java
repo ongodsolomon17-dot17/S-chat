@@ -34,10 +34,21 @@ public class SupabaseStorageService implements StorageService {
             "audio/ogg",
             "audio/mp4",
             "audio/x-m4a",
-            "audio/mpeg"
+            "audio/mpeg",
+            "application/pdf",
+            "text/plain",
+            "text/csv",
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     );
 
-    private static final long MAX_FILE_BYTES = 25L * 1024 * 1024;
+    private static final long MAX_FILE_BYTES = 50L * 1024 * 1024;
 
     private final String supabaseUrl;
     private final String serviceKey;
@@ -53,26 +64,26 @@ public class SupabaseStorageService implements StorageService {
         this.serviceKey = serviceKey;
         this.bucket = bucket;
 
-        log.info("Supabase Storage initialized. URL={}, bucket={}",
-                supabaseUrl, bucket);
+        log.info("Supabase Storage initialized for configured bucket");
     }
 
     @Override
     public String upload(String folder, MultipartFile file) throws Exception {
 
-        log.info("Storage upload started. folder={}, filename={}, size={}, contentType={}",
-                folder,
-                file.getOriginalFilename(),
-                file.getSize(),
-                file.getContentType());
+        log.debug("Storage upload started. folder={}, size={}, contentType={}",
+                folder, file.getSize(), file.getContentType());
 
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
+        String originalName = file.getOriginalFilename();
+        if (originalName != null && (originalName.contains("..") || originalName.contains("\\") || originalName.contains("/"))) {
+            throw new IllegalArgumentException("Invalid file name");
+        }
 
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new IllegalArgumentException(
-                    "File exceeds the 25MB limit"
+                    "File exceeds the 50MB limit"
             );
         }
 
@@ -87,6 +98,16 @@ public class SupabaseStorageService implements StorageService {
             throw new IllegalArgumentException(
                     "Unsupported file type: " + contentType
             );
+        }
+
+        String normalizedType = contentType.toLowerCase();
+        String normalizedFolder = folder == null ? "files" : folder.toLowerCase();
+        if ("profile-pictures".equals(normalizedFolder) && !normalizedType.startsWith("image/")) {
+            throw new IllegalArgumentException("Profile picture must be an image");
+        }
+        if ("status".equals(normalizedFolder)
+                && !(normalizedType.startsWith("image/") || normalizedType.startsWith("video/") || normalizedType.startsWith("audio/"))) {
+            throw new IllegalArgumentException("Status media must be an image, video, or audio file");
         }
 
         byte[] bytes = file.getBytes();
@@ -114,7 +135,17 @@ public class SupabaseStorageService implements StorageService {
             case "audio/ogg" -> ".ogg";
             case "audio/mp4", "audio/x-m4a" -> ".m4a";
             case "audio/mpeg" -> ".mp3";
-            default -> "";
+            case "application/pdf" -> ".pdf";
+            case "text/plain" -> ".txt";
+            case "text/csv" -> ".csv";
+            case "application/zip", "application/x-zip-compressed" -> ".zip";
+            case "application/msword" -> ".doc";
+            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> ".docx";
+            case "application/vnd.ms-excel" -> ".xls";
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> ".xlsx";
+            case "application/vnd.ms-powerpoint" -> ".ppt";
+            case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> ".pptx";
+            default -> ".bin";
         };
 
         String safeFolder = folder == null
@@ -154,25 +185,19 @@ public class SupabaseStorageService implements StorageService {
                         HttpResponse.BodyHandlers.ofString()
                 );
 
-        log.info("Supabase upload response. status={}, body={}",
-                response.statusCode(),
-                response.body());
+        log.debug("Supabase upload response. status={}", response.statusCode());
 
         if (response.statusCode() >= 300) {
 
             log.error(
-                    "Supabase Storage upload FAILED. status={}, bucket={}, objectPath={}, responseBody={}",
-                    response.statusCode(),
-                    bucket,
-                    objectPath,
-                    response.body()
+                    "Supabase Storage upload FAILED. status={}, objectPath={}",
+                    response.statusCode(), objectPath
             );
 
             throw new IllegalStateException(
                     "Upload to storage failed (status "
                             + response.statusCode()
-                            + "): "
-                            + response.body()
+                            + ")"
             );
         }
 
@@ -183,10 +208,25 @@ public class SupabaseStorageService implements StorageService {
                         + "/"
                         + objectPath;
 
-        log.info("Supabase upload successful. publicUrl={}",
-                publicUrl);
+        log.debug("Supabase upload successful. objectPath={}", objectPath);
 
         return publicUrl;
+    }
+
+    @Override
+    public boolean isManagedUrl(String url) {
+        if (url == null || url.isBlank()) return false;
+        try {
+            URI parsed = URI.create(url);
+            String expectedHost = URI.create(supabaseUrl).getHost();
+            if (expectedHost == null || !expectedHost.equalsIgnoreCase(parsed.getHost())) return false;
+            String marker = "/storage/v1/object/public/" + bucket + "/";
+            String path = parsed.getPath();
+            return path != null && path.startsWith(marker) && path.length() > marker.length()
+                    && !path.contains("..") && !path.contains("\\");
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     @Override
@@ -232,10 +272,9 @@ public class SupabaseStorageService implements StorageService {
                     && response.statusCode() != 404) {
 
                 log.warn(
-                        "Failed to delete storage object. objectPath={}, status={}, response={}",
+                        "Failed to delete storage object. objectPath={}, status={}",
                         objectPath,
-                        response.statusCode(),
-                        response.body()
+                        response.statusCode()
                 );
             }
 
