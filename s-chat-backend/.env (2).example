@@ -1,0 +1,39 @@
+# Copy to .env for local dev only. On Render, set these in the dashboard's
+# Environment tab instead — never commit real secrets to git.
+
+PORT=8080
+
+# Supabase Postgres (use the connection pooler URL, port 6543, for Render)
+SUPABASE_DB_URL=jdbc:postgresql://aws-0-<region>.pooler.supabase.com:6543/postgres
+SUPABASE_DB_USER=postgres.<project-ref>
+SUPABASE_DB_PASSWORD=
+
+# Generate with: openssl rand -base64 48
+JWT_SECRET=
+JWT_ACCESS_TTL_MIN=15
+JWT_REFRESH_TTL_DAYS=7
+
+# Your deployed Vercel URL(s), comma-separated, no trailing slash
+FRONTEND_ORIGINS=https://s-chat-zeta.vercel.app
+
+# Resend (transactional email / feedback)
+RESEND_API_KEY=
+RESEND_FROM_ADDRESS=S-Chat <no-reply@yourdomain.com>
+
+# Supabase Storage (profile pictures, status media, chat attachments)
+# Project Settings > API — use the "service_role" key, never the anon key, and never expose it client-side
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_KEY=
+SUPABASE_STORAGE_BUCKET=s-chat-media
+
+JPA_DDL_AUTO=update
+
+# TURN / WebRTC. Use coturn with --use-auth-secret and the same shared secret.
+# Example: turn:turn.example.com:3478?transport=udp,turns:turn.example.com:5349?transport=tcp
+TURN_URLS=
+TURN_SHARED_SECRET=
+TURN_CREDENTIAL_TTL_SECONDS=3600
+
+# Gemini AI (keep this secret; set it in Render Environment, never in frontend JS)
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash

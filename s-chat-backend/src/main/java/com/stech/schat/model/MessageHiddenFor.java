@@ -17,8 +17,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "chat_message_hidden_for",
-        uniqueConstraints = @UniqueConstraint(name = "uq_hidden_message_user", columnNames = {"message_id", "user_id"}),
-        indexes = @Index(name = "idx_hidden_message", columnList = "message_id"))
+        uniqueConstraints = @UniqueConstraint(name = "uq_hidden_message_user", columnNames = {"message_id", "user_id"}))
 @Getter
 @Setter
 @NoArgsConstructor

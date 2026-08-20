@@ -13,6 +13,8 @@ import com.stech.schat.security.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,8 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final int LOCKOUT_MINUTES = 15;
@@ -79,7 +83,15 @@ public class AuthService {
             throw new InvalidCredentialsException("Incorrect username/email or password");
         }
 
-        boolean passwordMatches = passwordEncoder.matches(request.password(), user.getPasswordHash());
+        boolean passwordMatches;
+        try {
+            passwordMatches = passwordEncoder.matches(request.password(), user.getPasswordHash());
+        } catch (IllegalArgumentException ex) {
+            // A legacy/corrupt password_hash must never turn a normal login attempt into HTTP 500.
+            // Treat it exactly like a bad password and record the failed attempt.
+            log.warn("Invalid password hash encountered for username='{}'; rejecting login", user.getUsername());
+            passwordMatches = false;
+        }
 
         if (!passwordMatches) {
             registerFailedAttempt(user);

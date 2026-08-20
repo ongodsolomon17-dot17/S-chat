@@ -117,3 +117,15 @@ Do not put `TURN_SHARED_SECRET` or generated TURN credentials into Vercel/fronte
 - Supabase service credentials remain backend-only.
 - Production Supabase tables/storage should still be reviewed against the current RLS/access-control policies before enabling any direct browser Data API access.
 - Once the production schema has a complete Flyway baseline, set `JPA_DDL_AUTO=validate` instead of `update`.
+
+
+## Deep-debug fixes applied (2026-08-20)
+
+- Login now treats a malformed/legacy `password_hash` as invalid credentials instead of allowing
+  `BCryptPasswordEncoder` to throw an uncaught `IllegalArgumentException` and return HTTP 500.
+- Removed Hibernate's ownership of the existing `idx_hidden_message` database index. The production
+  database already has that index, and `hibernate.hbm2ddl.auto=update` was attempting to recreate it
+  during startup. This removes the noisy `relation "idx_hidden_message" already exists` startup error
+  without deleting the existing index.
+- Added `spring-boot-starter-actuator` so Render's configured `/actuator/health` health check is backed
+  by a real endpoint.
