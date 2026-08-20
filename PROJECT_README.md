@@ -1,5 +1,5 @@
 # S-Chat — Project Status & Roadmap
- 
+
 ## What's in this delivery
 
 **Backend** (`/backend`) — Spring Boot, Java 21
