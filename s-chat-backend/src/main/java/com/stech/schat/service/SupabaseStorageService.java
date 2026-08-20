@@ -28,6 +28,7 @@ public class SupabaseStorageService implements StorageService {
             "image/webp",
             "video/mp4",
             "video/quicktime",
+            "video/webm",
             // Voice notes — audio/webm and audio/ogg are what MediaRecorder produces in
             // Chrome/Firefox; audio/mp4 and audio/x-m4a cover Safari/iOS recordings.
             "audio/webm",
@@ -87,10 +88,13 @@ public class SupabaseStorageService implements StorageService {
             );
         }
 
-        String contentType = file.getContentType();
+        String rawContentType = file.getContentType();
+        // Browsers may send a MIME parameter such as audio/webm;codecs=opus.
+        // Normalize it before validation so valid MediaRecorder output is not rejected.
+        String contentType = rawContentType == null ? null : rawContentType.split(";", 2)[0].trim().toLowerCase();
 
         if (contentType == null ||
-                !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+                !ALLOWED_CONTENT_TYPES.contains(contentType)) {
 
             log.warn("Rejected upload because of unsupported MIME type: {}",
                     contentType);
@@ -100,7 +104,7 @@ public class SupabaseStorageService implements StorageService {
             );
         }
 
-        String normalizedType = contentType.toLowerCase();
+        String normalizedType = contentType;
         String normalizedFolder = folder == null ? "files" : folder.toLowerCase();
         if ("profile-pictures".equals(normalizedFolder) && !normalizedType.startsWith("image/")) {
             throw new IllegalArgumentException("Profile picture must be an image");
@@ -131,6 +135,7 @@ public class SupabaseStorageService implements StorageService {
             case "image/webp" -> ".webp";
             case "video/mp4" -> ".mp4";
             case "video/quicktime" -> ".mov";
+            case "video/webm" -> ".webm";
             case "audio/webm" -> ".webm";
             case "audio/ogg" -> ".ogg";
             case "audio/mp4", "audio/x-m4a" -> ".m4a";

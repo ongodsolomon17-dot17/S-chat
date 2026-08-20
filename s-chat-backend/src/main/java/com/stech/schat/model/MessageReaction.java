@@ -17,9 +17,7 @@ import java.util.UUID;
  * "all reactions for these N messages" lookups for chat history/list loads.
  */
 @Entity
-@Table(name = "chat_message_reactions",
-        uniqueConstraints = @UniqueConstraint(name = "uq_reaction_message_user", columnNames = {"message_id", "user_id"}),
-        indexes = @Index(name = "idx_reaction_message", columnList = "message_id"))
+@Table(name = "chat_message_reactions")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,7 +37,7 @@ public class MessageReaction {
 
     // Kept as a short string rather than an enum column so the allowed reaction set
     // (currently ❤️ 😂 👍 😮 😢 🙏) can grow without a migration.
-    @Column(name = "reaction_type", nullable = false, length = 8)
+    @Column(name = "reaction_type", nullable = false, length = 32)
     private String reactionType;
 
     @Column(name = "created_at", nullable = false, updatable = false)

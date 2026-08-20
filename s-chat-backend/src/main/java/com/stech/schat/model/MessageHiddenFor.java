@@ -16,8 +16,7 @@ import java.util.UUID;
  * are untouched; this just excludes it from *this* user's history/list queries.
  */
 @Entity
-@Table(name = "chat_message_hidden_for",
-        uniqueConstraints = @UniqueConstraint(name = "uq_hidden_message_user", columnNames = {"message_id", "user_id"}))
+@Table(name = "chat_message_hidden_for")
 @Getter
 @Setter
 @NoArgsConstructor

@@ -594,25 +594,34 @@
             }
 
             /* =====================================================
-               AI ASSISTANT MODE — same chat UI, wired to the real
-               backend Gemini endpoint (POST /api/ai/chat). Reachable
-               only via the pinned "AI Assistant" row on S-chat-home.html
-               (S-chat-home.html?ai=1 -> here).
+               STECH AI MODE — persistent server-side history
                ===================================================== */
             if (isAI) {
-                renderMessage({ content: "Hey! \ud83d\udc4b I'm Gemini, your S-Chat AI assistant. How can I help you today?" }, false);
-
                 const fileBox = document.querySelector(".chat-file-sender-box");
-                if (fileBox) fileBox.style.display = "none"; // no AI attachment support yet
+                if (fileBox) fileBox.style.display = "none";
                 const voiceBtnEl = document.getElementById("voice-note-btn");
-                if (voiceBtnEl) voiceBtnEl.style.display = "none"; // no AI voice-note support yet
+                if (voiceBtnEl) voiceBtnEl.style.display = "none";
                 const sendBtnEl = document.getElementById("send-chat-btn");
-                if (sendBtnEl) sendBtnEl.hidden = false; // send is always the visible action in AI mode
+                if (sendBtnEl) sendBtnEl.hidden = false;
 
-                // Conversation history kept client-side, per the backend's contract
-                // (POST /api/ai/chat takes the whole { role, content } list each turn —
-                // there's no server-side AI conversation storage in this phase).
-                const aiHistory = [];
+                let aiHistory = [];
+
+                function renderAiHistory(messages) {
+                    thread.innerHTML = "";
+                    if (!messages || !messages.length) {
+                        renderMessage({ content: "Hey! 👋 I'm STech AI, your S-Chat AI assistant. How can I help you today?" }, false);
+                        return;
+                    }
+                    messages.forEach((m) => renderMessage({ content: m.content }, m.role === "user"));
+                }
+
+                try {
+                    aiHistory = await SChat.apiFetch("/ai/history");
+                    renderAiHistory(aiHistory);
+                } catch (err) {
+                    renderAiHistory([]);
+                    SChat.showToast("Could not load AI chat history: " + err.message, "error");
+                }
 
                 document.getElementById("chat-send-form").addEventListener("submit", async () => {
                     const textarea = document.getElementById("chat-message-box");
@@ -621,9 +630,8 @@
 
                     renderMessage({ content }, true);
                     textarea.value = "";
-                    aiHistory.push({ role: "user", content });
-
-                    const typingRow = renderMessage({ content: "Gemini is typing..." }, false);
+                    const clientMessageId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (Date.now() + "-" + Math.random().toString(36).slice(2));
+                    const typingRow = renderMessage({ content: "STech AI is typing..." }, false);
                     const typingBubble = typingRow.querySelector(".chat-bubble");
                     typingBubble.style.opacity = "0.6";
                     typingBubble.style.fontStyle = "italic";
@@ -631,22 +639,21 @@
                     try {
                         const response = await SChat.apiFetch("/ai/chat", {
                             method: "POST",
-                            body: JSON.stringify({ messages: aiHistory })
+                            body: JSON.stringify({ messages: [{ role: "user", content }], clientMessageId })
                         });
                         typingRow.remove();
                         renderMessage({ content: response.text }, false);
-                        aiHistory.push({ role: "model", content: response.text });
+                        aiHistory = response.history || aiHistory.concat([
+                            { role: "user", content },
+                            { role: "model", content: response.text }
+                        ]);
                     } catch (err) {
                         typingRow.remove();
-                        // Don't push a "model" turn on failure — aiHistory still correctly
-                        // ends on the user's turn, so a retry just resends as-is.
-                        renderMessage({ content: "\u26a0\ufe0f " + err.message }, false);
+                        renderMessage({ content: "⚠️ " + err.message }, false);
                     }
                 });
 
-                // Send is the only composer action in AI mode (no voice/file support yet),
-                // so the button stays fixed rather than swapping with text state.
-                return; // skip all the friend-chat wiring below
+                return;
             }
 
             /* =====================================================

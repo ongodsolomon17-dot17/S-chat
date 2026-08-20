@@ -7,10 +7,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "call_records", indexes = {
-        @Index(name = "idx_call_caller_started", columnList = "caller_id, started_at"),
-        @Index(name = "idx_call_callee_started", columnList = "callee_id, started_at")
-})
+@Table(name = "call_records")
 @Getter
 @Setter
 @NoArgsConstructor
