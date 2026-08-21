@@ -1,34 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat — S-Chat</title>
-
     <link rel="stylesheet" href="css/S-Chat-Style.css">
-
     <script src="js/config.js" defer></script>
     <script src="js/api.js" defer></script>
 </head>
-
 <body>
 
     <div class="app-shell">
-
         <div class="titleandprofile">
-            <img src="images/MY S.png"
-                 alt=""
-                 width="80"
-                 height="75"
-                 class="profilepicture"
-                 id="peer-avatar">
-
+            <img src="images/MY S.png" alt="" width="80" height="75" class="profilepicture" id="peer-avatar">
             <h1 class="h1-title" id="peer-name">Chat</h1>
         </div>
 
         <div id="chat-thread" class="chat-thread"></div>
-
+    <button type="button" class="chat-scroll-bottom" id="chat-scroll-bottom" aria-label="Jump to latest messages" title="Jump to latest messages">↓</button>
     </div>
 
     <!-- Reply preview shown above the composer while replying to a message -->
@@ -37,3299 +26,983 @@
             <div class="reply-label" id="reply-preview-label">Replying to</div>
             <div class="reply-text" id="reply-preview-text"></div>
         </div>
-
-        <button type="button"
-                class="composer-reply-cancel"
-                id="reply-preview-cancel"
-                aria-label="Cancel reply">
-            &times;
-        </button>
+        <button type="button" class="composer-reply-cancel" id="reply-preview-cancel" aria-label="Cancel reply">&times;</button>
     </div>
 
-    <!-- Attachment tray: multiple files, previews and upload progress -->
+    <!-- Attachment tray: multiple files, previews and upload progress. -->
     <div class="file-preview-chip" id="file-preview-chip">
-
         <div id="file-preview-list" class="file-preview-list"></div>
-
-        <button type="button"
-                class="file-preview-remove"
-                id="file-preview-remove"
-                aria-label="Clear attachments">
-            &times;
-        </button>
-
+        <button type="button" class="file-preview-remove" id="file-preview-remove" aria-label="Clear attachments">&times;</button>
     </div>
 
     <!-- Voice-note recording indicator shown while recording is in progress -->
     <div class="voice-recording-chip" id="voice-recording-chip">
-
         <span class="voice-recording-dot"></span>
-
-        <span class="voice-recording-time" id="voice-recording-time">
-            0:00
-        </span>
-
-        <span class="voice-recording-label">
-            Recording voice note…
-        </span>
-
-        <button type="button"
-                class="voice-recording-cancel"
-                id="voice-recording-cancel"
-                aria-label="Cancel recording">
-            &times;
-        </button>
-
-        <button type="button"
-                class="voice-recording-send"
-                id="voice-recording-send"
-                aria-label="Send voice note">
-            &#10148;
-        </button>
-
+        <span class="voice-recording-time" id="voice-recording-time">0:00</span>
+        <span class="voice-recording-label">Recording voice note…</span>
+        <button type="button" class="voice-recording-cancel" id="voice-recording-cancel" aria-label="Cancel recording">&times;</button>
+        <button type="button" class="voice-recording-send" id="voice-recording-send" aria-label="Send voice note">&#10148;</button>
     </div>
 
-    <!-- Chat composer -->
-    <form id="chat-send-form">
-
+    <form id="chat-send-form" onsubmit="return false;">
         <div class="chat-message-box-container">
+            <textarea name="chat-message-box" id="chat-message-box" class="chat-message-box"
+                placeholder="Message..." rows="1" spellcheck="true"></textarea>
 
-            <textarea
-                name="chat-message-box"
-                id="chat-message-box"
-                class="chat-message-box"
-                placeholder="Message..."
-                rows="1"
-                spellcheck="true"
-                autofocus></textarea>
-
-            <button
-                class="send-chat-btn"
-                id="send-chat-btn"
-                type="submit"
-                aria-label="Send message"
-                hidden>
-
-                <img src="my icons/send-icon.png"
-                     alt=""
-                     height="22"
-                     width="22">
-
+            <button class="send-chat-btn" id="send-chat-btn" type="submit" aria-label="Send message" hidden>
+                <img src="my icons/send-icon.png" alt="" height="22" width="22">
             </button>
 
-            <button
-                class="voice-note-btn"
-                id="voice-note-btn"
-                type="button"
-                aria-label="Record voice note">
-
+            <button class="voice-note-btn" id="voice-note-btn" type="button" aria-label="Record voice note">
                 🎙️
-
             </button>
 
             <div class="chat-file-sender-box">
-
-                <label
-                    for="chat-file-sender"
-                    class="chat-files-sender-icon"
-                    aria-label="Attach file">
-
-                    <img
-                        src="my icons/files-extention-icon.png"
-                        alt=""
-                        height="20"
-                        width="20">
-
+                <label for="chat-file-sender" class="chat-files-sender-icon" aria-label="Attach file">
+                    <img src="my icons/files-extention-icon.png" alt="" height="20" width="20">
                 </label>
-
-                <input
-                    type="file"
-                    name="chat-file-sender"
-                    id="chat-file-sender"
-                    class="chat-file-sender"
-                    accept="image/*,video/*,audio/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-                    multiple>
-
+                <input type="file" name="chat-file-sender" id="chat-file-sender" class="chat-file-sender"
+                    accept="image/*,video/*,audio/*,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" multiple>
             </div>
-
         </div>
-
     </form>
 
     <!-- Fullscreen media viewer for tapped images/videos -->
     <div class="media-lightbox" id="media-lightbox">
-
-        <button
-            class="close-btn"
-            id="media-lightbox-close"
-            aria-label="Close">
-            &times;
-        </button>
-
+        <button class="close-btn" id="media-lightbox-close" aria-label="Close">&times;</button>
         <div id="media-lightbox-content"></div>
-
     </div>
 
-    <!-- Reply / React / Delete menu -->
+    <!-- Reply / React / Delete menu, positioned next to the tapped bubble -->
     <div class="message-actions" id="message-actions"></div>
 
-    <!-- Emoji reaction picker -->
+    <!-- Emoji reaction picker, positioned next to the tapped bubble -->
     <div class="reaction-picker" id="reaction-picker"></div>
 
-    <!-- Full emoji picker -->
+    <!-- Full emoji picker — opened via the "+" in the reaction picker -->
     <div class="full-emoji-overlay" id="full-emoji-overlay">
-
         <div class="full-emoji-panel">
-
             <div class="full-emoji-header">
-
-                <input
-                    type="text"
-                    id="full-emoji-search"
-                    placeholder="Search categories (e.g. food, animals)…">
-
-                <button
-                    type="button"
-                    id="full-emoji-close"
-                    aria-label="Close">
-                    &times;
-                </button>
-
+                <input type="text" id="full-emoji-search" placeholder="Search categories (e.g. food, animals)…">
+                <button type="button" id="full-emoji-close" aria-label="Close">&times;</button>
             </div>
-
-            <div
-                class="full-emoji-grid"
-                id="full-emoji-grid">
-            </div>
-
+            <div class="full-emoji-grid" id="full-emoji-grid"></div>
         </div>
-
     </div>
 
     <script src="js/nav.js" defer></script>
     <script src="js/friends.js" defer></script>
     <script src="js/ws-chat.js" defer></script>
     <script src="js/notifications.js" defer></script>
-
     <script>
-
         document.addEventListener("DOMContentLoaded", async function () {
-
             const params = new URLSearchParams(window.location.search);
-
             const isAI = params.get("ai") === "1";
             const friendId = params.get("friend");
-
-            const friendName =
-                params.get("name") ||
-                (isAI ? "Gemini" : "Chat");
+            const friendName = params.get("name") || (isAI ? "Gemini" : "Chat");
 
             const peerName = document.getElementById("peer-name");
-
-            if (peerName) {
-                peerName.textContent = friendName;
-            }
+            if (peerName) peerName.textContent = friendName;
 
             const thread = document.getElementById("chat-thread");
-
-            /*
-             * /users/me is the source of truth for the current user's id.
-             * The locally cached session only stores username/role/publicId.
-             */
-            let myUserId = null;
-
-            try {
-
-                const me = await SChat.apiFetch("/users/me");
-
-                myUserId = me.id || null;
-
-            } catch {
-                /*
-                 * Stays null.
-                 * renderMessage still works using the mine/theirs flag.
-                 */
+            const scrollBottomBtn = document.getElementById("chat-scroll-bottom");
+            function isNearChatBottom() {
+                if (!thread) return true;
+                return thread.scrollHeight - thread.scrollTop - thread.clientHeight < 96;
             }
+            function scrollChatToBottom(smooth = true) {
+                if (!thread) return;
+                thread.scrollTo({ top: thread.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+                updateChatBottomButton();
+            }
+            function updateChatBottomButton() {
+                if (!scrollBottomBtn || !thread) return;
+                const awayFromBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight > 120;
+                scrollBottomBtn.classList.toggle("show", awayFromBottom);
+            }
+            thread?.addEventListener("scroll", updateChatBottomButton, { passive: true });
+            scrollBottomBtn?.addEventListener("click", () => scrollChatToBottom(true));
+
+            // /users/me is the source of truth for the current user's id (the locally
+            // cached session only stores username/role/publicId) — needed to tell "mine"
+            // vs "theirs" bubbles apart for reply-quote labels and delete permissions.
+            let myUserId = null;
+            try {
+                const me = await SChat.apiFetch("/users/me");
+                myUserId = me.id || null;
+            } catch { /* stays null; renderMessage still works using the mine/theirs flag passed in */ }
 
             if (!isAI && !friendId) {
-
                 if (thread) {
-
-                    thread.innerHTML =
-                        '<p style="text-align:center;color:var(--s-text-dim);padding:24px;">' +
-                        'Open a chat from your Chats list.' +
-                        '</p>';
-
+                    thread.innerHTML = '<p style="text-align:center;color:var(--s-text-dim);padding:24px;">Open a chat from your Chats list.</p>';
                 }
-
-                const composer =
-                    document.getElementById("chat-send-form");
-
-                if (composer) {
-                    composer.style.display = "none";
-                }
-
+                const composer = document.getElementById("chat-send-form");
+                if (composer) composer.style.display = "none";
                 return;
             }
 
-            const REACTION_SET = [
-                "❤️",
-                "😂",
-                "👍",
-                "😮",
-                "😢",
-                "🙏"
-            ];
-
-            /*
-             * Video attachments only ever come back as .mp4/.mov.
-             */
-            const isVideoUrl = (url) =>
-                /\.(mp4|mov)$/i.test(url || "");
-
-            /*
-             * Audio/voice-note extensions.
-             */
-            const isAudioUrl = (url) =>
-                /\.(webm|ogg|m4a|mp3|aac)$/i.test(url || "");
+            const REACTION_SET = ["\u2764\ufe0f", "\ud83d\ude02", "\ud83d\udc4d", "\ud83d\ude2e", "\ud83d\ude22", "\ud83d\ude4f"];
+            // Video attachments only ever come back as .mp4/.mov (the only video MIME types
+            // the backend accepts), so .webm/.ogg/.m4a/.mp3/.aac are unambiguously voice notes.
+            const isVideoUrl = (url) => /\.(mp4|mov)$/i.test(url || "");
+            const isAudioUrl = (url) => /\.(webm|ogg|m4a|mp3|aac)$/i.test(url || "");
 
             function escapeHtml(str) {
-
                 const div = document.createElement("div");
-
-                div.textContent =
-                    str == null ? "" : String(str);
-
+                div.textContent = str == null ? "" : String(str);
                 return div.innerHTML;
             }
 
             // =====================================================
-            // MEDIA LIGHTBOX
+            // MEDIA LIGHTBOX (tap-to-expand)
             // =====================================================
-
-            const lightbox =
-                document.getElementById("media-lightbox");
-
-            const lightboxContent =
-                document.getElementById("media-lightbox-content");
-
+            const lightbox = document.getElementById("media-lightbox");
+            const lightboxContent = document.getElementById("media-lightbox-content");
             function openLightbox(url, video) {
-
                 lightboxContent.innerHTML = video
-
                     ? `<video src="${escapeHtml(url)}" controls autoplay></video>`
-
                     : `<img src="${escapeHtml(url)}" alt="">`;
-
                 lightbox.classList.add("show");
             }
-
             function closeLightbox() {
-
                 lightbox.classList.remove("show");
-
                 lightboxContent.innerHTML = "";
             }
-
-            document
-                .getElementById("media-lightbox-close")
-                .addEventListener("click", closeLightbox);
-
-            lightbox.addEventListener("click", (e) => {
-
-                if (e.target === lightbox) {
-                    closeLightbox();
-                }
-
-            });
+            document.getElementById("media-lightbox-close").addEventListener("click", closeLightbox);
+            lightbox.addEventListener("click", (e) => { if (e.target === lightbox) closeLightbox(); });
 
             // =====================================================
             // MESSAGE RENDERING
             // =====================================================
 
             function renderReplyQuote(replyTo) {
-
                 if (!replyTo) return "";
-
-                if (
-                    replyTo.deleted ||
-                    (!replyTo.snippet && !replyTo.attachmentUrl)
-                ) {
-
-                    return `
-                        <div class="reply-quote deleted">
-                            <span class="reply-snippet">
-                                Original message unavailable
-                            </span>
-                        </div>
-                    `;
+                if (replyTo.deleted || (!replyTo.snippet && !replyTo.attachmentUrl)) {
+                    return `<div class="reply-quote deleted"><span class="reply-snippet">Original message unavailable</span></div>`;
                 }
-
-                const who =
-                    replyTo.senderId === myUserId
-                        ? "You"
-                        : escapeHtml(friendName);
-
-                const snippetText =
-                    replyTo.snippet ||
-                    attachmentLabel(replyTo.attachmentUrl);
-
+                const who = replyTo.senderId === myUserId ? "You" : escapeHtml(friendName);
+                const snippetText = replyTo.snippet || attachmentLabel(replyTo.attachmentUrl);
                 return `
                     <div class="reply-quote">
-                        <span class="reply-sender">
-                            ${who}
-                        </span>
-
-                        <span class="reply-snippet">
-                            ${escapeHtml(snippetText)}
-                        </span>
-                    </div>
-                `;
+                        <span class="reply-sender">${who}</span>
+                        <span class="reply-snippet">${escapeHtml(snippetText)}</span>
+                    </div>`;
             }
 
             function attachmentLabel(url) {
-
-                if (isAudioUrl(url)) {
-                    return "🎤 Voice message";
-                }
-
-                if (isVideoUrl(url)) {
-                    return "🎥 Video";
-                }
-
-                return "📷 Photo";
+                if (isAudioUrl(url)) return "\ud83c\udfa4 Voice message";
+                if (isVideoUrl(url)) return "\ud83c\udfa5 Video";
+                return "\ud83d\udcf7 Photo";
             }
 
             // =====================================================
-            // READ RECEIPTS
+            // READ RECEIPTS — sent (single check) -> read (double blue
+            // check). "Delivered" (double gray) only fires on the rare
+            // case the recipient was online at send-time; see the read-me
+            // guideline for why this is a deliberate simplification.
             // =====================================================
-
             function renderTicks(msg) {
-
-                if (msg.readAt) {
-
-                    return `
-                        <span class="ticks read" title="Read">
-                            ✓✓
-                        </span>
-                    `;
-                }
-
-                if (msg.deliveredAt) {
-
-                    return `
-                        <span class="ticks delivered" title="Delivered">
-                            ✓✓
-                        </span>
-                    `;
-                }
-
-                return `
-                    <span class="ticks sent" title="Sent">
-                        ✓
-                    </span>
-                `;
+                if (msg.readAt) return '<span class="ticks read" title="Read">\u2713\u2713</span>';
+                if (msg.deliveredAt) return '<span class="ticks delivered" title="Delivered">\u2713\u2713</span>';
+                return '<span class="ticks sent" title="Sent">\u2713</span>';
             }
 
             function markRowRead(row) {
-
-                const ticksEl =
-                    row.querySelector(".ticks");
-
+                const ticksEl = row.querySelector(".ticks");
                 if (!ticksEl) return;
-
-                ticksEl.outerHTML = `
-                    <span class="ticks read" title="Read">
-                        ✓✓
-                    </span>
-                `;
+                ticksEl.outerHTML = '<span class="ticks read" title="Read">\u2713\u2713</span>';
             }
 
             function renderReactionBar(reactions) {
-
-                if (!reactions || !reactions.length) {
-                    return "";
-                }
-
-                return `
-                    <div class="reaction-bar">
-
-                        ${reactions.map((r) => `
-                            <span
-                                class="reaction-pill${r.reactedByMe ? " mine" : ""}"
-                                data-reaction="${escapeHtml(r.reactionType)}">
-
-                                ${escapeHtml(r.reactionType)}
-                                ${r.count}
-
-                            </span>
-                        `).join("")}
-
-                    </div>
-                `;
+                if (!reactions || !reactions.length) return "";
+                return `<div class="reaction-bar">${reactions.map((r) =>
+                    `<span class="reaction-pill${r.reactedByMe ? " mine" : ""}" data-reaction="${escapeHtml(r.reactionType)}">${escapeHtml(r.reactionType)} ${r.count}</span>`
+                ).join("")}</div>`;
             }
 
             function renderMessage(msg, mine) {
-
                 if (!thread) return;
 
-                const row =
-                    document.createElement("div");
+                const row = document.createElement("div");
+                row.className = "chat-bubble-row " + (mine ? "mine" : "theirs");
+                if (msg.id) row.dataset.messageId = msg.id;
+                row.dataset.senderId = mine ? (myUserId || "") : friendId;
 
-                row.className =
-                    "chat-bubble-row " +
-                    (mine ? "mine" : "theirs");
-
-                if (msg.id) {
-                    row.dataset.messageId = msg.id;
-                }
-
-                row.dataset.senderId =
-                    mine
-                        ? (myUserId || "")
-                        : friendId;
-
-                const bubble =
-                    document.createElement("div");
-
-                const hasMedia =
-                    !!msg.attachmentUrl;
-
-                bubble.className =
-                    "chat-bubble " +
-                    (mine ? "mine" : "theirs") +
-                    (hasMedia ? " has-media" : "") +
-                    (msg.deleted ? " deleted-message" : "");
+                const bubble = document.createElement("div");
+                const hasMedia = !!msg.attachmentUrl;
+                bubble.className = "chat-bubble " + (mine ? "mine" : "theirs") + (hasMedia ? " has-media" : "") + (msg.deleted ? " deleted-message" : "");
 
                 let html = "";
-
                 html += renderReplyQuote(msg.replyTo);
 
                 if (hasMedia && !msg.deleted) {
-
                     if (isAudioUrl(msg.attachmentUrl)) {
-
                         html += `
                             <div class="attachment-audio">
-                                <audio
-                                    src="${escapeHtml(msg.attachmentUrl)}"
-                                    controls
-                                    preload="metadata">
-                                </audio>
-                            </div>
-                        `;
-
+                                <audio src="${escapeHtml(msg.attachmentUrl)}" controls preload="metadata"></audio>
+                            </div>`;
                     } else if (isVideoUrl(msg.attachmentUrl)) {
-
-                        html += `
-                            <div
-                                class="attachment-media is-video"
-                                data-url="${escapeHtml(msg.attachmentUrl)}"
-                                data-video="true">
-
-                                <video
-                                    src="${escapeHtml(msg.attachmentUrl)}"
-                                    controls
-                                    playsinline
-                                    preload="metadata">
-                                </video>
-
-                            </div>
-                        `;
-
-                    } else if (
-                        /\.(jpg|jpeg|png|gif|webp)(?:$|[?#])/i
-                        .test(msg.attachmentUrl)
-                    ) {
-
-                        html += `
-                            <div
-                                class="attachment-media"
-                                data-url="${escapeHtml(msg.attachmentUrl)}"
-                                data-video="false">
-
-                                <img
-                                    src="${escapeHtml(msg.attachmentUrl)}"
-                                    alt=""
-                                    loading="lazy">
-
-                                <span class="expand-hint">
-                                    Tap to view
-                                </span>
-
-                            </div>
-                        `;
-
+                        html += `<div class="attachment-media is-video" data-url="${escapeHtml(msg.attachmentUrl)}" data-video="true"><video src="${escapeHtml(msg.attachmentUrl)}" controls playsinline preload="metadata"></video></div>`;
+                    } else if (/\.(jpg|jpeg|png|gif|webp)(?:$|[?#])/i.test(msg.attachmentUrl)) {
+                        html += `<div class="attachment-media" data-url="${escapeHtml(msg.attachmentUrl)}" data-video="false"><img src="${escapeHtml(msg.attachmentUrl)}" alt="" loading="lazy"><span class="expand-hint">Tap to view</span></div>`;
                     } else {
-
-                        const name =
-                            decodeURIComponent(
-                                (msg.attachmentUrl || "")
-                                    .split("/")
-                                    .pop()
-                                    .split("?")[0]
-                            ) || "Attachment";
-
-                        html += `
-                            <a
-                                class="attachment-file-card"
-                                href="${escapeHtml(msg.attachmentUrl)}"
-                                target="_blank"
-                                rel="noopener"
-                                download>
-
-                                <span class="attachment-file-icon">
-                                    📎
-                                </span>
-
-                                <span class="attachment-file-info">
-
-                                    <strong>
-                                        ${escapeHtml(name)}
-                                    </strong>
-
-                                    <small>
-                                        Open / download file
-                                    </small>
-
-                                </span>
-
-                            </a>
-                        `;
+                        const name = decodeURIComponent((msg.attachmentUrl || "").split("/").pop().split("?")[0]) || "Attachment";
+                        html += `<a class="attachment-file-card" href="${escapeHtml(msg.attachmentUrl)}" target="_blank" rel="noopener" download><span class="attachment-file-icon">📎</span><span class="attachment-file-info"><strong>${escapeHtml(name)}</strong><small>Open / download file</small></span></a>`;
                     }
                 }
 
-                const textContent =
-                    msg.deleted
-                        ? "This message was deleted"
-                        : (msg.content || "");
-
+                const textContent = msg.deleted ? "This message was deleted" : (msg.content || "");
                 if (textContent) {
-
-                    html += `
-                        <span class="bubble-text">
-                            ${escapeHtml(textContent)}
-                        </span>
-                    `;
+                    html += `<span class="bubble-text">${escapeHtml(textContent)}</span>`;
                 }
 
-                const time =
-                    new Date(
-                        msg.sentAt || Date.now()
-                    ).toLocaleTimeString(
-                        [],
-                        {
-                            hour: "2-digit",
-                            minute: "2-digit"
-                        }
-                    );
-
-                const ticksHtml =
-                    mine &&
-                    !msg.deleted &&
-                    msg.id
-                        ? renderTicks(msg)
-                        : "";
-
-                html += `
-                    <span class="meta">
-                        ${time}${ticksHtml}
-                    </span>
-                `;
+                const time = new Date(msg.sentAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                const ticksHtml = mine && !msg.deleted && msg.id ? renderTicks(msg) : "";
+                html += `<span class="meta">${time}${ticksHtml}</span>`;
 
                 bubble.innerHTML = html;
 
                 if (hasMedia && !msg.deleted) {
-
-                    const mediaEl =
-                        bubble.querySelector(
-                            ".attachment-media"
-                        );
-
-                    if (
-                        mediaEl &&
-                        mediaEl.dataset.video !== "true"
-                    ) {
-
-                        mediaEl.addEventListener(
-                            "click",
-                            () =>
-                                openLightbox(
-                                    mediaEl.dataset.url,
-                                    false
-                                )
-                        );
+                    const mediaEl = bubble.querySelector(".attachment-media");
+                    if (mediaEl && mediaEl.dataset.video !== "true") {
+                        mediaEl.addEventListener("click", () => openLightbox(mediaEl.dataset.url, false));
                     }
                 }
 
-                const bubbleLine =
-                    document.createElement("div");
-
+                const bubbleLine = document.createElement("div");
                 bubbleLine.className = "bubble-line";
-
                 row.appendChild(bubbleLine);
-
                 bubbleLine.appendChild(bubble);
 
                 if (!msg.deleted) {
-
-                    const reactionBar =
-                        document.createElement("div");
-
-                    reactionBar.innerHTML =
-                        renderReactionBar(msg.reactions);
-
+                    const reactionBar = document.createElement("div");
+                    reactionBar.innerHTML = renderReactionBar(msg.reactions);
                     if (reactionBar.firstChild) {
-
-                        row.appendChild(
-                            reactionBar.firstChild
-                        );
-
-                        row
-                            .querySelectorAll(".reaction-pill")
-                            .forEach((pill) => {
-
-                                pill.addEventListener(
-                                    "click",
-                                    () =>
-                                        toggleReaction(
-                                            row,
-                                            pill.dataset.reaction
-                                        )
-                                );
-
-                            });
+                        row.appendChild(reactionBar.firstChild);
+                        row.querySelectorAll(".reaction-pill").forEach((pill) => {
+                            pill.addEventListener("click", () => toggleReaction(row, pill.dataset.reaction));
+                        });
                     }
 
-                    const trigger =
-                        document.createElement("button");
-
+                    const trigger = document.createElement("button");
                     trigger.type = "button";
-
-                    trigger.className =
-                        "hover-actions-trigger";
-
-                    trigger.setAttribute(
-                        "aria-label",
-                        "Message actions"
-                    );
-
-                    trigger.textContent = "⋯";
-
-                    trigger.addEventListener(
-                        "click",
-                        (e) =>
-                            openMessageActions(
-                                e,
-                                row,
-                                msg,
-                                mine
-                            )
-                    );
-
-                    if (mine) {
-                        bubbleLine.insertBefore(
-                            trigger,
-                            bubble
-                        );
-                    } else {
-                        bubbleLine.appendChild(trigger);
-                    }
+                    trigger.className = "hover-actions-trigger";
+                    trigger.setAttribute("aria-label", "Message actions");
+                    trigger.textContent = "\u22ef";
+                    trigger.addEventListener("click", (e) => openMessageActions(e, row, msg, mine));
+                    if (mine) bubbleLine.insertBefore(trigger, bubble); else bubbleLine.appendChild(trigger);
 
                     if (msg.id) {
-
-                        const swipeIcon =
-                            document.createElement("span");
-
-                        swipeIcon.className =
-                            "swipe-reply-icon";
-
-                        swipeIcon.textContent = "↩️";
-
-                        row.insertBefore(
-                            swipeIcon,
-                            row.firstChild
-                        );
+                        const swipeIcon = document.createElement("span");
+                        swipeIcon.className = "swipe-reply-icon";
+                        swipeIcon.textContent = "\u21a9\ufe0f";
+                        row.insertBefore(swipeIcon, row.firstChild);
                     }
 
-                    attachSwipeToReply(
-                        row,
-                        bubble,
-                        msg
-                    );
+                    attachSwipeToReply(row, bubble, msg);
 
-                    // Desktop: right-click
-                    bubble.addEventListener(
-                        "contextmenu",
-                        (e) => {
+                    // Desktop: right-click the message.
+                    bubble.addEventListener("contextmenu", (e) => {
+                        if (!msg.id) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openMessageActions(e, row, msg, mine);
+                    });
 
-                            if (!msg.id) return;
-
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            openMessageActions(
-                                e,
-                                row,
-                                msg,
-                                mine
-                            );
-                        }
-                    );
-
-                    // Mobile/tablet: long press
+                    // Mobile/tablet: long-press the message. Keep swipe-to-reply intact
+                    // by cancelling the timer as soon as the finger moves.
                     let longPressTimer = null;
                     let longPressTriggered = false;
-
                     let longPressStartX = 0;
                     let longPressStartY = 0;
-
-                    bubble.addEventListener(
-                        "pointerdown",
-                        (e) => {
-
-                            if (
-                                e.pointerType === "mouse" ||
-                                !msg.id
-                            ) {
-                                return;
-                            }
-
-                            longPressTriggered = false;
-
-                            longPressStartX =
-                                e.clientX;
-
-                            longPressStartY =
-                                e.clientY;
-
-                            longPressTimer =
-                                setTimeout(() => {
-
-                                    longPressTriggered =
-                                        true;
-
-                                    openMessageActions(
-                                        {
-                                            stopPropagation() {},
-                                            currentTarget: bubble
-                                        },
-                                        row,
-                                        msg,
-                                        mine
-                                    );
-
-                                }, 550);
-                        }
-                    );
-
-                    bubble.addEventListener(
-                        "pointermove",
-                        (e) => {
-
-                            if (
-                                e.pointerType !== "mouse" &&
-                                longPressTimer &&
-                                (
-                                    Math.abs(
-                                        e.clientX -
-                                        longPressStartX
-                                    ) > 8 ||
-                                    Math.abs(
-                                        e.clientY -
-                                        longPressStartY
-                                    ) > 8
-                                )
-                            ) {
-
-                                clearTimeout(
-                                    longPressTimer
-                                );
-
-                                longPressTimer = null;
-                            }
-                        }
-                    );
-
-                    [
-                        "pointerup",
-                        "pointercancel",
-                        "pointerleave"
-                    ].forEach(type => {
-
-                        bubble.addEventListener(
-                            type,
-                            (e) => {
-
-                                if (longPressTimer) {
-                                    clearTimeout(
-                                        longPressTimer
-                                    );
-                                }
-
-                                longPressTimer = null;
-
-                                if (
-                                    longPressTriggered &&
-                                    e.cancelable
-                                ) {
-                                    e.preventDefault();
-                                }
-                            }
-                        );
-
+                    bubble.addEventListener("pointerdown", (e) => {
+                        if (e.pointerType === "mouse" || !msg.id) return;
+                        longPressTriggered = false;
+                        longPressStartX = e.clientX;
+                        longPressStartY = e.clientY;
+                        longPressTimer = setTimeout(() => {
+                            longPressTriggered = true;
+                            openMessageActions({ stopPropagation() {}, currentTarget: bubble }, row, msg, mine);
+                        }, 550);
                     });
+                    bubble.addEventListener("pointermove", (e) => {
+                        if (e.pointerType !== "mouse" && longPressTimer
+                                && (Math.abs(e.clientX - longPressStartX) > 8 || Math.abs(e.clientY - longPressStartY) > 8)) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                    });
+                    ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, (e) => {
+                        if (longPressTimer) clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                        if (longPressTriggered && e.cancelable) e.preventDefault();
+                    }));
                 }
 
+                const shouldStickToBottom = isNearChatBottom();
                 thread.appendChild(row);
-
-                thread.scrollTop =
-                    thread.scrollHeight;
-
+                if (shouldStickToBottom) scrollChatToBottom(false);
+                updateChatBottomButton();
                 return row;
             }
 
             // =====================================================
-            // SWIPE-TO-REPLY
+            // SWIPE-TO-REPLY (mobile) — pointer-event drag, same
+            // threshold pattern used by the existing orb-drag.js
             // =====================================================
-
-            function attachSwipeToReply(
-                row,
-                bubble,
-                msg
-            ) {
-
-                if (!msg.id) return;
-
+            function attachSwipeToReply(row, bubble, msg) {
+                if (!msg.id) return; // can't reply to a message that isn't persisted yet
                 const THRESHOLD = 56;
+                let dragging = false, startX = 0, dx = 0;
 
-                let dragging = false;
-                let startX = 0;
-                let dx = 0;
-
-                bubble.addEventListener(
-                    "pointerdown",
-                    (e) => {
-
-                        if (e.pointerType === "mouse") {
-                            return;
-                        }
-
-                        dragging = true;
-
-                        startX = e.clientX;
-
-                        bubble.setPointerCapture(
-                            e.pointerId
-                        );
-                    }
-                );
-
-                bubble.addEventListener(
-                    "pointermove",
-                    (e) => {
-
-                        if (!dragging) return;
-
-                        dx =
-                            e.clientX -
-                            startX;
-
-                        const clamped =
-                            Math.max(
-                                -THRESHOLD - 20,
-                                Math.min(
-                                    THRESHOLD + 20,
-                                    dx
-                                )
-                            );
-
-                        bubble.style.transform =
-                            `translateX(${clamped}px)`;
-
-                        row.classList.toggle(
-                            "swiping",
-                            Math.abs(clamped) > 12
-                        );
-                    }
-                );
-
-                function endSwipe() {
-
+                bubble.addEventListener("pointerdown", (e) => {
+                    if (e.pointerType === "mouse") return; // desktop uses the hover menu instead
+                    dragging = true;
+                    startX = e.clientX;
+                    bubble.setPointerCapture(e.pointerId);
+                });
+                bubble.addEventListener("pointermove", (e) => {
                     if (!dragging) return;
-
+                    dx = e.clientX - startX;
+                    const clamped = Math.max(-THRESHOLD - 20, Math.min(THRESHOLD + 20, dx));
+                    bubble.style.transform = `translateX(${clamped}px)`;
+                    row.classList.toggle("swiping", Math.abs(clamped) > 12);
+                });
+                function endSwipe() {
+                    if (!dragging) return;
                     dragging = false;
-
                     bubble.style.transform = "";
-
-                    row.classList.remove(
-                        "swiping"
-                    );
-
-                    if (Math.abs(dx) > THRESHOLD) {
-                        startReply(msg);
-                    }
-
+                    row.classList.remove("swiping");
+                    if (Math.abs(dx) > THRESHOLD) startReply(msg);
                     dx = 0;
                 }
-
-                bubble.addEventListener(
-                    "pointerup",
-                    endSwipe
-                );
-
-                bubble.addEventListener(
-                    "pointercancel",
-                    endSwipe
-                );
+                bubble.addEventListener("pointerup", endSwipe);
+                bubble.addEventListener("pointercancel", endSwipe);
             }
 
             // =====================================================
             // REPLY COMPOSER STATE
             // =====================================================
-
             let replyingTo = null;
-
-            const replyPreviewBox =
-                document.getElementById(
-                    "composer-reply-preview"
-                );
-
-            const replyPreviewText =
-                document.getElementById(
-                    "reply-preview-text"
-                );
-
-            const replyPreviewLabel =
-                document.getElementById(
-                    "reply-preview-label"
-                );
+            const replyPreviewBox = document.getElementById("composer-reply-preview");
+            const replyPreviewText = document.getElementById("reply-preview-text");
+            const replyPreviewLabel = document.getElementById("reply-preview-label");
 
             function startReply(msg) {
-
                 if (msg.deleted) return;
-
                 replyingTo = msg;
-
-                replyPreviewLabel.textContent =
-                    "Replying to " +
-                    (
-                        msg.senderId === myUserId
-                            ? "yourself"
-                            : friendName
-                    );
-
-                replyPreviewText.textContent =
-                    msg.content ||
-                    (
-                        msg.attachmentUrl
-                            ? attachmentLabel(
-                                msg.attachmentUrl
-                            )
-                            : ""
-                    );
-
-                replyPreviewBox.classList.add(
-                    "show"
-                );
-
-                const textarea =
-                    document.getElementById(
-                        "chat-message-box"
-                    );
-
-                if (textarea) {
-                    textarea.focus();
-                }
+                replyPreviewLabel.textContent = "Replying to " + (msg.senderId === myUserId ? "yourself" : friendName);
+                replyPreviewText.textContent = msg.content || (msg.attachmentUrl ? attachmentLabel(msg.attachmentUrl) : "");
+                replyPreviewBox.classList.add("show");
+                const textarea = document.getElementById("chat-message-box");
+                if (textarea) textarea.focus();
             }
-
             function cancelReply() {
-
                 replyingTo = null;
-
-                replyPreviewBox.classList.remove(
-                    "show"
-                );
+                replyPreviewBox.classList.remove("show");
             }
-
-            document
-                .getElementById(
-                    "reply-preview-cancel"
-                )
-                .addEventListener(
-                    "click",
-                    cancelReply
-                );
+            document.getElementById("reply-preview-cancel").addEventListener("click", cancelReply);
 
             // =====================================================
-            // MESSAGE ACTIONS MENU
+            // MESSAGE ACTIONS MENU (reply / react / delete)
             // =====================================================
-
-            const actionsMenu =
-                document.getElementById(
-                    "message-actions"
-                );
-
-            const reactionPicker =
-                document.getElementById(
-                    "reaction-picker"
-                );
+            const actionsMenu = document.getElementById("message-actions");
+            const reactionPicker = document.getElementById("reaction-picker");
 
             function closeMenus() {
-
-                actionsMenu.classList.remove(
-                    "show"
-                );
-
-                reactionPicker.classList.remove(
-                    "show"
-                );
+                actionsMenu.classList.remove("show");
+                reactionPicker.classList.remove("show");
             }
-
-            document.addEventListener(
-                "click",
-                (e) => {
-
-                    if (
-                        !actionsMenu.contains(e.target) &&
-                        !reactionPicker.contains(e.target) &&
-                        !e.target.closest(
-                            ".hover-actions-trigger"
-                        )
-                    ) {
-                        closeMenus();
-                    }
+            document.addEventListener("click", (e) => {
+                if (!actionsMenu.contains(e.target) && !reactionPicker.contains(e.target) &&
+                    !e.target.closest(".hover-actions-trigger")) {
+                    closeMenus();
                 }
-            );
+            });
 
-            function positionNear(
-                el,
-                target
-            ) {
-
-                const rect =
-                    target.getBoundingClientRect();
-
-                el.style.left =
-                    Math.min(
-                        rect.left,
-                        window.innerWidth - 180
-                    ) + "px";
-
-                el.style.top =
-                    (
-                        rect.top -
-                        8 +
-                        window.scrollY -
-                        el.offsetHeight
-                    ) + "px";
+            function positionNear(el, target) {
+                const rect = target.getBoundingClientRect();
+                el.style.left = Math.min(rect.left, window.innerWidth - 180) + "px";
+                el.style.top = (rect.top - 8 + window.scrollY - el.offsetHeight) + "px";
             }
 
-            function openMessageActions(
-                e,
-                row,
-                msg,
-                mine
-            ) {
-
+            function openMessageActions(e, row, msg, mine) {
                 e.stopPropagation();
-
                 if (!msg.id) return;
-
                 actionsMenu.innerHTML = "";
-
                 if (!msg.deleted) {
+                    const replyBtn = document.createElement("button");
+                    replyBtn.textContent = "\u21a9\ufe0f Reply";
+                    replyBtn.addEventListener("click", () => { startReply(msg); closeMenus(); });
+                    actionsMenu.appendChild(replyBtn);
 
-                    const replyBtn =
-                        document.createElement("button");
+                    const reactBtn = document.createElement("button");
+                    reactBtn.textContent = "\ud83d\ude42 React";
+                    reactBtn.addEventListener("click", () => { closeMenus(); openReactionPicker(e, row, msg); });
+                    actionsMenu.appendChild(reactBtn);
 
-                    replyBtn.textContent =
-                        "↩️ Reply";
-
-                    replyBtn.addEventListener(
-                        "click",
-                        () => {
-
-                            startReply(msg);
-                            closeMenus();
-
-                        }
-                    );
-
-                    actionsMenu.appendChild(
-                        replyBtn
-                    );
-
-                    const reactBtn =
-                        document.createElement("button");
-
-                    reactBtn.textContent =
-                        "🙂 React";
-
-                    reactBtn.addEventListener(
-                        "click",
-                        () => {
-
-                            closeMenus();
-
-                            openReactionPicker(
-                                e,
-                                row,
-                                msg
-                            );
-                        }
-                    );
-
-                    actionsMenu.appendChild(
-                        reactBtn
-                    );
-
-                    const hideBtn =
-                        document.createElement("button");
-
-                    hideBtn.textContent =
-                        "🙈 Delete for me";
-
-                    hideBtn.addEventListener(
-                        "click",
-                        () => {
-
-                            hideForMe(
-                                row,
-                                msg
-                            );
-
-                            closeMenus();
-                        }
-                    );
-
-                    actionsMenu.appendChild(
-                        hideBtn
-                    );
+                    // Available to either participant — hides this one user's own copy only.
+                    const hideBtn = document.createElement("button");
+                    hideBtn.textContent = "\ud83d\ude48 Delete for me";
+                    hideBtn.addEventListener("click", () => { hideForMe(row, msg); closeMenus(); });
+                    actionsMenu.appendChild(hideBtn);
 
                     if (mine) {
-
-                        const delBtn =
-                            document.createElement(
-                                "button"
-                            );
-
-                        delBtn.className =
-                            "danger";
-
-                        delBtn.textContent =
-                            "🗑️ Delete for everyone";
-
-                        delBtn.addEventListener(
-                            "click",
-                            () => {
-
-                                deleteForEveryone(
-                                    row,
-                                    msg
-                                );
-
-                                closeMenus();
-                            }
-                        );
-
-                        actionsMenu.appendChild(
-                            delBtn
-                        );
+                        const delBtn = document.createElement("button");
+                        delBtn.className = "danger";
+                        delBtn.textContent = "\ud83d\uddd1\ufe0f Delete for everyone";
+                        delBtn.addEventListener("click", () => { deleteForEveryone(row, msg); closeMenus(); });
+                        actionsMenu.appendChild(delBtn);
                     }
                 }
-
-                if (!actionsMenu.children.length) {
-                    return;
-                }
-
-                actionsMenu.classList.add(
-                    "show"
-                );
-
-                positionNear(
-                    actionsMenu,
-                    e.currentTarget
-                );
+                if (!actionsMenu.children.length) return;
+                actionsMenu.classList.add("show");
+                positionNear(actionsMenu, e.currentTarget);
             }
 
-            function openReactionPicker(
-                e,
-                row,
-                msg
-            ) {
-
-                reactionPicker.innerHTML =
-                    REACTION_SET
-                        .map(
-                            (r) =>
-                                `<button data-r="${r}">${r}</button>`
-                        )
-                        .join("") +
-                    `
-                        <button
-                            class="more-emoji-btn"
-                            id="more-emoji-btn"
-                            aria-label="More emoji">
-                            +
-                        </button>
-                    `;
-
-                reactionPicker
-                    .querySelectorAll(
-                        "button[data-r]"
-                    )
-                    .forEach((btn) => {
-
-                        btn.addEventListener(
-                            "click",
-                            () => {
-
-                                toggleReaction(
-                                    row,
-                                    btn.dataset.r
-                                );
-
-                                closeMenus();
-                            }
-                        );
-
-                    });
-
-                document
-                    .getElementById(
-                        "more-emoji-btn"
-                    )
-                    .addEventListener(
-                        "click",
-                        () => {
-
-                            closeMenus();
-
-                            openFullEmojiPicker(
-                                row
-                            );
-                        }
-                    );
-
-                reactionPicker.classList.add(
-                    "show"
-                );
-
-                positionNear(
-                    reactionPicker,
-                    row
-                );
+            function openReactionPicker(e, row, msg) {
+                reactionPicker.innerHTML = REACTION_SET.map((r) => `<button data-r="${r}">${r}</button>`).join("")
+                    + `<button class="more-emoji-btn" id="more-emoji-btn" aria-label="More emoji">+</button>`;
+                reactionPicker.querySelectorAll("button[data-r]").forEach((btn) => {
+                    btn.addEventListener("click", () => { toggleReaction(row, btn.dataset.r); closeMenus(); });
+                });
+                document.getElementById("more-emoji-btn").addEventListener("click", () => {
+                    closeMenus();
+                    openFullEmojiPicker(row);
+                });
+                reactionPicker.classList.add("show");
+                positionNear(reactionPicker, row);
             }
 
             // =====================================================
-            // FULL EMOJI PICKER
+            // FULL EMOJI PICKER — the "+" next to the quick reactions.
+            // No browser API exposes the OS's native emoji picker to a
+            // web page, so this is the standard substitute used by
+            // WhatsApp Web/Slack/Discord: a searchable in-app grid
+            // covering the common emoji ranges, categorized.
             // =====================================================
-
             const EMOJI_CATEGORIES = {
-
-                "Smileys":
-                    "😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 🤨 🧐 🤓 😎 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🤭 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕".split(" "),
-
-                "Gestures":
-                    "👋 🤚 🖐️ ✋ 🖖 👌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💪 🖐️".split(" "),
-
-                "Hearts":
-                    "❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟".split(" "),
-
-                "Animals":
-                    "🐶 🐱 🐭 🐹 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐒 🦄 🐔 🐧 🐦 🦅 🦆 🦉 🐝 🐛 🦋 🐌 🐞 🐜 🐢 🐍 🐠 🐟 🐬 🐳".split(" "),
-
-                "Food":
-                    "🍎 🍌 🍉 🍇 🍓 🍒 🍑 🍍 🥭 🍊 🍋 🍐 🍏 🍅 🍕 🍔 🌭 🌮 🌯 🍟 🍳 🥞 🍪 🍩 🍫 🍬 🍰 🎂 🍺 ☕".split(" "),
-
-                "Objects":
-                    "🔥 ✨ 🎉 🎈 🏆 ⭐ 🌟 💥 💫 💨 💦 💯 🔔 🔕 🎵 🎶 🎮 🎯 🎲 ⚽ 🏀 🏈 🥎 🏆 🎁 📷 📱 💻 ⏰ 🔑 💰 💎".split(" ")
-
+                "Smileys": "\ud83d\ude00 \ud83d\ude03 \ud83d\ude04 \ud83d\ude01 \ud83d\ude06 \ud83d\ude05 \ud83e\udd23 \ud83d\ude02 \ud83d\ude42 \ud83d\ude43 \ud83d\ude09 \ud83d\ude0a \ud83d\ude07 \ud83d\ude0d \ud83e\udd70 \ud83d\ude18 \ud83d\ude17 \ud83d\ude19 \ud83d\ude1a \ud83d\ude0b \ud83d\ude1b \ud83d\ude1c \ud83e\udd2a \ud83d\ude1d \ud83e\udd11 \ud83e\udd17 \ud83e\udd2d \ud83e\udd2b \ud83e\udd14 \ud83e\udd10 \ud83e\udd28 \ud83d\ude10 \ud83d\ude11 \ud83d\ude36 \ud83d\ude0f \ud83d\ude12 \ud83d\ude44 \ud83d\ude2c \ud83d\ude44 \ud83d\ude2e \ud83e\udd25 \ud83d\ude2f \ud83d\ude32 \ud83d\ude33 \ud83e\udd7a \ud83d\ude26 \ud83d\ude27 \ud83d\ude28 \ud83d\ude30 \ud83d\ude25 \ud83d\ude22 \ud83d\ude2d \ud83d\ude1e \ud83d\ude23 \ud83d\ude16 \ud83d\ude2b \ud83d\ude29 \ud83e\udd2f \ud83d\ude31 \ud83d\ude20 \ud83d\ude21 \ud83e\udd2c \ud83d\ude08 \ud83d\udc7f \ud83d\udca9 \ud83d\udc7b \ud83d\udc80".split(" "),
+                "Gestures": "\ud83d\udc4b \ud83e\udd1a \ud83d\udd90\ufe0f \u270b \ud83d\udd96 \ud83d\udc4c \ud83e\udd0c \ud83e\udd0f \u270c\ufe0f \ud83e\udd1e \ud83e\udd1f \ud83e\udd18 \ud83e\udd19 \ud83d\udc48 \ud83d\udc49 \ud83d\udc46 \ud83d\udd95 \ud83d\udc47 \u261d\ufe0f \ud83d\udc4d \ud83d\udc4e \u270a \ud83d\udc4a \ud83e\udd1b \ud83e\udd1c \ud83d\udc4f \ud83d\ude4c \ud83d\udc50 \ud83e\udd32 \ud83e\udd1d \ud83d\ude4f \u270d\ufe0f \ud83d\udcaa \ud83e\uddb5 \ud83e\uddb6 \ud83d\udc42 \ud83d\udc43".split(" "),
+                "Hearts": "\u2764\ufe0f \ud83e\udde1 \ud83d\udc9b \ud83d\udc9a \ud83d\udc99 \ud83d\udc9c \ud83e\udd0e \ud83d\udda4 \ud83e\udd0d \ud83d\udc94 \u2763\ufe0f \ud83d\udc95 \ud83d\udc9e \ud83d\udc93 \ud83d\udc97 \ud83d\udc96 \ud83d\udc98 \ud83d\udc9d \ud83d\udc9f".split(" "),
+                "Animals": "\ud83d\udc36 \ud83d\udc31 \ud83d\udc2d \ud83d\udc39 \ud83d\udc30 \ud83e\udd8a \ud83d\udc3b \ud83d\udc3c \ud83d\udc28 \ud83d\udc2f \ud83e\udd81 \ud83d\udc2e \ud83d\udc37 \ud83d\udc38 \ud83d\udc19 \ud83d\udc14 \ud83d\udc27 \ud83d\udc26 \ud83e\udd85 \ud83e\udd86 \ud83e\udd89 \ud83e\udd87 \ud83d\udc1d \ud83d\udc1b \ud83e\udd8b \ud83d\udc0c \ud83d\udc22 \ud83d\udc0d \ud83d\udc20 \ud83d\udc1f \ud83d\udc2c \ud83d\udc0b".split(" "),
+                "Food": "\ud83c\udf4e \ud83c\udf4c \ud83c\udf49 \ud83c\udf47 \ud83c\udf53 \ud83c\udf52 \ud83c\udf51 \ud83c\udf4d \ud83e\udd6d \ud83c\udf4a \ud83c\udf50 \ud83c\udf46 \ud83c\udf51 \ud83c\udf55 \ud83c\udf54 \ud83c\udf2d \ud83c\udf2e \ud83c\udf2f \ud83c\udf5f \ud83c\udf73 \ud83e\udd5e \ud83c\udf5e \ud83e\udd50 \ud83e\udd68 \ud83e\uddc0 \ud83c\udf70 \ud83c\udf82 \ud83c\udf6a \ud83c\udf69 \ud83c\udf6b \ud83c\udf6c \u2615 \ud83c\udf7a \ud83c\udf7b \ud83c\udf77".split(" "),
+                "Objects": "\ud83d\udd25 \u2728 \ud83c\udf89 \ud83c\udf88 \ud83c\udfc6 \u2b50 \ud83c\udf1f \ud83d\udca5 \ud83d\udca2 \ud83d\udca8 \ud83d\udca6 \ud83d\udcaf \ud83d\udd14 \ud83d\udd15 \ud83c\udfb5 \ud83c\udfb6 \ud83c\udfae \ud83c\udfaf \ud83c\udfb2 \ud83c\udfc0 \u26bd \ud83c\udfc0 \ud83c\udfc8 \ud83c\udfaa \ud83c\udf81 \ud83d\udcf7 \ud83d\udcf1 \ud83d\udcbb \u23f0 \ud83d\udd11 \ud83d\udcb0 \ud83d\udc8e".split(" ")
             };
-
             let emojiPickerRow = null;
 
             function openFullEmojiPicker(row) {
-
                 emojiPickerRow = row;
-
-                const overlay =
-                    document.getElementById(
-                        "full-emoji-overlay"
-                    );
-
-                const grid =
-                    document.getElementById(
-                        "full-emoji-grid"
-                    );
-
-                const searchInput =
-                    document.getElementById(
-                        "full-emoji-search"
-                    );
-
+                const overlay = document.getElementById("full-emoji-overlay");
+                const grid = document.getElementById("full-emoji-grid");
+                const searchInput = document.getElementById("full-emoji-search");
                 searchInput.value = "";
-
-                renderEmojiGrid(
-                    grid,
-                    ""
-                );
-
-                overlay.classList.add(
-                    "show"
-                );
-
-                setTimeout(
-                    () =>
-                        searchInput.focus(),
-                    50
-                );
+                renderEmojiGrid(grid, "");
+                overlay.classList.add("show");
+                setTimeout(() => searchInput.focus(), 50);
             }
 
             function closeFullEmojiPicker() {
-
-                document
-                    .getElementById(
-                        "full-emoji-overlay"
-                    )
-                    .classList.remove(
-                        "show"
-                    );
-
+                document.getElementById("full-emoji-overlay").classList.remove("show");
                 emojiPickerRow = null;
             }
 
-            function renderEmojiGrid(
-                grid,
-                query
-            ) {
-
+            function renderEmojiGrid(grid, query) {
                 grid.innerHTML = "";
-
-                const q =
-                    query
-                        .trim()
-                        .toLowerCase();
-
-                Object
-                    .entries(EMOJI_CATEGORIES)
-                    .forEach(
-                        ([category, emojis]) => {
-
-                            if (
-                                q &&
-                                !category
-                                    .toLowerCase()
-                                    .includes(q)
-                            ) {
-                                return;
-                            }
-
-                            const section =
-                                document.createElement(
-                                    "div"
-                                );
-
-                            section.className =
-                                "emoji-picker-section";
-
-                            section.innerHTML = `
-                                <div class="emoji-picker-category">
-                                    ${escapeHtml(category)}
-                                </div>
-                            `;
-
-                            const row =
-                                document.createElement(
-                                    "div"
-                                );
-
-                            row.className =
-                                "emoji-picker-row";
-
-                            emojis.forEach(
-                                (emoji) => {
-
-                                    const btn =
-                                        document.createElement(
-                                            "button"
-                                        );
-
-                                    btn.type =
-                                        "button";
-
-                                    btn.textContent =
-                                        emoji;
-
-                                    btn.addEventListener(
-                                        "click",
-                                        () => {
-
-                                            if (
-                                                emojiPickerRow
-                                            ) {
-
-                                                toggleReaction(
-                                                    emojiPickerRow,
-                                                    emoji
-                                                );
-                                            }
-
-                                            closeFullEmojiPicker();
-                                        }
-                                    );
-
-                                    row.appendChild(
-                                        btn
-                                    );
-                                }
-                            );
-
-                            section.appendChild(
-                                row
-                            );
-
-                            grid.appendChild(
-                                section
-                            );
-                        }
-                    );
-            }
-
-            document
-                .getElementById(
-                    "full-emoji-close"
-                )
-                .addEventListener(
-                    "click",
-                    closeFullEmojiPicker
-                );
-
-            document
-                .getElementById(
-                    "full-emoji-overlay"
-                )
-                .addEventListener(
-                    "click",
-                    (e) => {
-
-                        if (
-                            e.target.id ===
-                            "full-emoji-overlay"
-                        ) {
+                const q = query.trim().toLowerCase();
+                Object.entries(EMOJI_CATEGORIES).forEach(([category, emojis]) => {
+                    // No per-emoji keyword index is kept (would be a large data file for
+                    // marginal benefit here) — search instead filters by category name,
+                    // which is enough to jump to "Food", "Animals", etc. quickly.
+                    if (q && !category.toLowerCase().includes(q)) return;
+                    const section = document.createElement("div");
+                    section.className = "emoji-picker-section";
+                    section.innerHTML = `<div class="emoji-picker-category">${escapeHtml(category)}</div>`;
+                    const row = document.createElement("div");
+                    row.className = "emoji-picker-row";
+                    emojis.forEach((emoji) => {
+                        const btn = document.createElement("button");
+                        btn.type = "button";
+                        btn.textContent = emoji;
+                        btn.addEventListener("click", () => {
+                            if (emojiPickerRow) toggleReaction(emojiPickerRow, emoji);
                             closeFullEmojiPicker();
-                        }
-                    }
-                );
+                        });
+                        row.appendChild(btn);
+                    });
+                    section.appendChild(row);
+                    grid.appendChild(section);
+                });
+            }
 
-            document
-                .getElementById(
-                    "full-emoji-search"
-                )
-                .addEventListener(
-                    "input",
-                    (e) => {
-
-                        renderEmojiGrid(
-                            document.getElementById(
-                                "full-emoji-grid"
-                            ),
-                            e.target.value
-                        );
-                    }
-                );
+            document.getElementById("full-emoji-close").addEventListener("click", closeFullEmojiPicker);
+            document.getElementById("full-emoji-overlay").addEventListener("click", (e) => {
+                if (e.target.id === "full-emoji-overlay") closeFullEmojiPicker();
+            });
+            document.getElementById("full-emoji-search").addEventListener("input", (e) => {
+                renderEmojiGrid(document.getElementById("full-emoji-grid"), e.target.value);
+            });
 
             // =====================================================
-            // REACTIONS
+            // REACTIONS — REST calls, backend enforces authorization
+            // and the allowed reaction set.
             // =====================================================
-
-            async function toggleReaction(
-                row,
-                reactionType
-            ) {
-
-                const messageId =
-                    row.dataset.messageId;
-
+            async function toggleReaction(row, reactionType) {
+                const messageId = row.dataset.messageId;
                 if (!messageId) return;
-
-                const existingMine =
-                    row.querySelector(
-                        `.reaction-pill.mine[data-reaction="${CSS.escape(reactionType)}"]`
-                    );
-
+                const existingMine = row.querySelector(`.reaction-pill.mine[data-reaction="${CSS.escape(reactionType)}"]`);
                 try {
-
-                    const updated =
-                        existingMine
-
-                            ? await SChat.apiFetch(
-                                `/chat/messages/${messageId}/reactions`,
-                                {
-                                    method: "DELETE"
-                                }
-                            )
-
-                            : await SChat.apiFetch(
-                                `/chat/messages/${messageId}/reactions`,
-                                {
-                                    method: "POST",
-                                    body: JSON.stringify({
-                                        reactionType
-                                    })
-                                }
-                            );
-
-                    applyReactionUpdate(
-                        row,
-                        updated.reactions
-                    );
-
+                    const updated = existingMine
+                        ? await SChat.apiFetch(`/chat/messages/${messageId}/reactions`, { method: "DELETE" })
+                        : await SChat.apiFetch(`/chat/messages/${messageId}/reactions`, {
+                            method: "POST",
+                            body: JSON.stringify({ reactionType })
+                        });
+                    applyReactionUpdate(row, updated.reactions);
                 } catch (err) {
-
-                    SChat.showToast(
-                        err.message,
-                        "error"
-                    );
+                    SChat.showToast(err.message, "error");
                 }
             }
 
-            function applyReactionUpdate(
-                row,
-                reactions
-            ) {
-
-                let bar =
-                    row.querySelector(
-                        ".reaction-bar"
-                    );
-
-                const html =
-                    renderReactionBar(
-                        reactions
-                    );
-
-                if (!html) {
-
-                    if (bar) {
-                        bar.remove();
-                    }
-
-                    return;
-                }
-
-                const temp =
-                    document.createElement(
-                        "div"
-                    );
-
+            function applyReactionUpdate(row, reactions) {
+                let bar = row.querySelector(".reaction-bar");
+                const html = renderReactionBar(reactions);
+                if (!html) { if (bar) bar.remove(); return; }
+                const temp = document.createElement("div");
                 temp.innerHTML = html;
-
-                const newBar =
-                    temp.firstChild;
-
-                newBar
-                    .querySelectorAll(
-                        ".reaction-pill"
-                    )
-                    .forEach(
-                        (pill) => {
-
-                            pill.addEventListener(
-                                "click",
-                                () =>
-                                    toggleReaction(
-                                        row,
-                                        pill.dataset.reaction
-                                    )
-                            );
-                        }
-                    );
-
-                if (bar) {
-
-                    row.replaceChild(
-                        newBar,
-                        bar
-                    );
-
-                } else {
-
-                    row.appendChild(
-                        newBar
-                    );
-                }
+                const newBar = temp.firstElementChild;
+                newBar.querySelectorAll(".reaction-pill").forEach((pill) => {
+                    pill.addEventListener("click", () => toggleReaction(row, pill.dataset.reaction));
+                });
+                if (bar) row.replaceChild(newBar, bar);
+                else row.appendChild(newBar);
             }
 
             // =====================================================
-            // DELETE FOR EVERYONE
+            // DELETE FOR EVERYONE (sender-only, soft delete server-side)
             // =====================================================
-
-            async function deleteForEveryone(
-                row,
-                msg
-            ) {
-
-                if (
-                    !confirm(
-                        "Delete this message for everyone?"
-                    )
-                ) {
-                    return;
-                }
-
+            async function deleteForEveryone(row, msg) {
+                if (!confirm("Delete this message for everyone?")) return;
                 try {
-
-                    await SChat.apiFetch(
-                        `/chat/messages/${msg.id}`,
-                        {
-                            method: "DELETE"
-                        }
-                    );
-
+                    await SChat.apiFetch(`/chat/messages/${msg.id}`, { method: "DELETE" });
                     msg.deleted = true;
-                    msg.content =
-                        "This message was deleted";
+                    msg.content = "This message was deleted";
                     msg.attachmentUrl = null;
-
-                    const bubble =
-                        row.querySelector(
-                            ".chat-bubble"
-                        );
-
-                    const existingMeta =
-                        bubble.querySelector(
-                            ".meta"
-                        );
-
-                    bubble.className =
-                        "chat-bubble " +
-                        (
-                            msg.senderId === myUserId
-                                ? "mine"
-                                : "theirs"
-                        ) +
-                        " deleted-message";
-
-                    bubble.innerHTML = `
-                        <span class="bubble-text">
-                            This message was deleted
-                        </span>
-                    `;
-
-                    if (existingMeta) {
-                        bubble.appendChild(
-                            existingMeta
-                        );
-                    }
-
-                    const bar =
-                        row.querySelector(
-                            ".reaction-bar"
-                        );
-
-                    if (bar) {
-                        bar.remove();
-                    }
-
+                    const bubble = row.querySelector(".chat-bubble");
+                    const existingMeta = bubble.querySelector(".meta");
+                    bubble.className = "chat-bubble " + (msg.senderId === myUserId ? "mine" : "theirs") + " deleted-message";
+                    bubble.innerHTML = `<span class="bubble-text">This message was deleted</span>`;
+                    if (existingMeta) bubble.appendChild(existingMeta);
+                    const bar = row.querySelector(".reaction-bar");
+                    if (bar) bar.remove();
                 } catch (err) {
-
-                    SChat.showToast(
-                        err.message,
-                        "error"
-                    );
+                    SChat.showToast(err.message, "error");
                 }
             }
 
             // =====================================================
-            // DELETE FOR ME
+            // DELETE FOR ME (either participant, hides only my own copy —
+            // the row simply disappears, no placeholder, nothing sent to the other side)
             // =====================================================
-
-            async function hideForMe(
-                row,
-                msg
-            ) {
-
+            async function hideForMe(row, msg) {
                 try {
-
-                    await SChat.apiFetch(
-                        `/chat/messages/${msg.id}/mine`,
-                        {
-                            method: "DELETE"
-                        }
-                    );
-
+                    await SChat.apiFetch(`/chat/messages/${msg.id}/mine`, { method: "DELETE" });
                     row.remove();
-
                 } catch (err) {
-
-                    SChat.showToast(
-                        err.message,
-                        "error"
-                    );
+                    SChat.showToast(err.message, "error");
                 }
             }
 
-            // =====================================================
-            // STECH AI MODE
-            // =====================================================
-
+            /* =====================================================
+               AI ASSISTANT MODE — same chat UI, wired to the real
+               backend Gemini endpoint (POST /api/ai/chat). Reachable
+               only via the pinned "AI Assistant" row on S-chat-home.html
+               (S-chat-home.html?ai=1 -> here).
+               ===================================================== */
             if (isAI) {
+                renderMessage({ content: "Hey! \ud83d\udc4b I'm Gemini, your S-Chat AI assistant. How can I help you today?" }, false);
 
-                const fileBox =
-                    document.querySelector(
-                        ".chat-file-sender-box"
-                    );
+                const fileBox = document.querySelector(".chat-file-sender-box");
+                if (fileBox) fileBox.style.display = "none"; // no AI attachment support yet
+                const voiceBtnEl = document.getElementById("voice-note-btn");
+                if (voiceBtnEl) voiceBtnEl.style.display = "none"; // no AI voice-note support yet
+                const sendBtnEl = document.getElementById("send-chat-btn");
+                if (sendBtnEl) sendBtnEl.hidden = false; // send is always the visible action in AI mode
 
-                if (fileBox) {
-                    fileBox.style.display = "none";
-                }
+                // Conversation history kept client-side, per the backend's contract
+                // (POST /api/ai/chat takes the whole { role, content } list each turn —
+                // there's no server-side AI conversation storage in this phase).
+                const aiHistory = [];
 
-                const voiceBtnEl =
-                    document.getElementById(
-                        "voice-note-btn"
-                    );
+                document.getElementById("chat-send-form").addEventListener("submit", async () => {
+                    const textarea = document.getElementById("chat-message-box");
+                    const content = textarea.value.trim();
+                    if (!content) return;
 
-                if (voiceBtnEl) {
-                    voiceBtnEl.style.display = "none";
-                }
+                    renderMessage({ content }, true);
+                    textarea.value = "";
+                    aiHistory.push({ role: "user", content });
 
-                const sendBtnEl =
-                    document.getElementById(
-                        "send-chat-btn"
-                    );
+                    const typingRow = renderMessage({ content: "Gemini is typing..." }, false);
+                    const typingBubble = typingRow.querySelector(".chat-bubble");
+                    typingBubble.style.opacity = "0.6";
+                    typingBubble.style.fontStyle = "italic";
 
-                if (sendBtnEl) {
-                    sendBtnEl.hidden = false;
-                }
-
-                let aiHistory = [];
-
-                function renderAiHistory(messages) {
-
-                    thread.innerHTML = "";
-
-                    if (
-                        !messages ||
-                        !messages.length
-                    ) {
-
-                        renderMessage(
-                            {
-                                content:
-                                    "Hey! 👋 I'm STech AI, your S-Chat AI assistant. How can I help you today?"
-                            },
-                            false
-                        );
-
-                        return;
+                    try {
+                        const response = await SChat.apiFetch("/ai/chat", {
+                            method: "POST",
+                            body: JSON.stringify({ messages: aiHistory })
+                        });
+                        typingRow.remove();
+                        renderMessage({ content: response.text }, false);
+                        aiHistory.push({ role: "model", content: response.text });
+                    } catch (err) {
+                        typingRow.remove();
+                        // Don't push a "model" turn on failure — aiHistory still correctly
+                        // ends on the user's turn, so a retry just resends as-is.
+                        renderMessage({ content: "\u26a0\ufe0f " + err.message }, false);
                     }
+                });
 
-                    messages.forEach(
-                        (m) =>
-                            renderMessage(
-                                {
-                                    content:
-                                        m.content
-                                },
-                                m.role === "user"
-                            )
-                    );
-                }
+                // Gemini composer: Enter sends; Shift+Enter inserts a newline.
+                document.getElementById("chat-message-box").addEventListener("keydown", (event) => {
+                    if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+                    event.preventDefault();
+                    document.getElementById("chat-send-form")?.requestSubmit();
+                });
 
-                try {
-
-                    aiHistory =
-                        await SChat.apiFetch(
-                            "/ai/history"
-                        );
-
-                    renderAiHistory(
-                        aiHistory
-                    );
-
-                } catch (err) {
-
-                    renderAiHistory([]);
-
-                    SChat.showToast(
-                        "Could not load AI chat history: " +
-                        err.message,
-                        "error"
-                    );
-                }
-
-                document
-                    .getElementById(
-                        "chat-send-form"
-                    )
-                    .addEventListener(
-                        "submit",
-                        async () => {
-
-                            const textarea =
-                                document.getElementById(
-                                    "chat-message-box"
-                                );
-
-                            const content =
-                                textarea.value.trim();
-
-                            if (!content) return;
-
-                            renderMessage(
-                                {
-                                    content
-                                },
-                                true
-                            );
-
-                            textarea.value = "";
-
-                            const clientMessageId =
-                                (
-                                    window.crypto &&
-                                    window.crypto.randomUUID
-                                )
-                                    ? window.crypto.randomUUID()
-                                    : (
-                                        Date.now() +
-                                        "-" +
-                                        Math.random()
-                                            .toString(36)
-                                            .slice(2)
-                                    );
-
-                            const typingRow =
-                                renderMessage(
-                                    {
-                                        content:
-                                            "STech AI is typing..."
-                                    },
-                                    false
-                                );
-
-                            const typingBubble =
-                                typingRow.querySelector(
-                                    ".chat-bubble"
-                                );
-
-                            typingBubble.style.opacity =
-                                "0.6";
-
-                            typingBubble.style.fontStyle =
-                                "italic";
-
-                            try {
-
-                                const response =
-                                    await SChat.apiFetch(
-                                        "/ai/chat",
-                                        {
-                                            method: "POST",
-
-                                            body:
-                                                JSON.stringify({
-                                                    messages: [
-                                                        {
-                                                            role: "user",
-                                                            content
-                                                        }
-                                                    ],
-                                                    clientMessageId
-                                                })
-                                        }
-                                    );
-
-                                typingRow.remove();
-
-                                renderMessage(
-                                    {
-                                        content:
-                                            response.text
-                                    },
-                                    false
-                                );
-
-                                aiHistory =
-                                    response.history ||
-                                    aiHistory.concat([
-                                        {
-                                            role: "user",
-                                            content
-                                        },
-                                        {
-                                            role: "model",
-                                            content:
-                                                response.text
-                                        }
-                                    ]);
-
-                            } catch (err) {
-
-                                typingRow.remove();
-
-                                renderMessage(
-                                    {
-                                        content:
-                                            "⚠️ " +
-                                            err.message
-                                    },
-                                    false
-                                );
-                            }
-                        }
-                    );
-
-                return;
+                // Send is the only composer action in AI mode (no voice/file support yet),
+                // so the button stays fixed rather than swapping with text state.
+                return; // skip all the friend-chat wiring below
             }
 
-            // =====================================================
-            // FRIEND CHAT MODE
-            // =====================================================
-
+            /* =====================================================
+               FRIEND CHAT MODE — real history + WebSocket
+               ===================================================== */
             async function loadHistory() {
-
                 try {
-
-                    const messages =
-                        await SChat.apiFetch(
-                            `/chat/history/${friendId}?page=0&size=50`
-                        );
-
-                    messages
-                        .slice()
-                        .reverse()
-                        .forEach(
-                            (m) =>
-                                renderMessage(
-                                    m,
-                                    m.senderId !== friendId
-                                )
-                        );
-
+                    const messages = await SChat.apiFetch(`/chat/history/${friendId}?page=0&size=50`);
+                    messages.slice().reverse().forEach((m) => renderMessage(m, m.senderId !== friendId));
+                    requestAnimationFrame(() => scrollChatToBottom(false));
                 } catch (err) {
-
-                    SChat.showToast(
-                        err.message,
-                        "error"
-                    );
+                    SChat.showToast(err.message, "error");
                 }
-
                 markConversationRead();
             }
 
-            /*
-             * Tells the server everything from this friend is now read.
-             */
+            // Tells the server everything from this friend is now read — fires once after
+            // history loads, and again each time a new message arrives while this chat is
+            // open. Fire-and-forget: a failure here just means ticks catch up next time.
             function markConversationRead() {
-
-                SChat.apiFetch(
-                    `/chat/read/${friendId}`,
-                    {
-                        method: "POST"
-                    }
-                ).catch(() => {});
+                SChat.apiFetch(`/chat/read/${friendId}`, { method: "POST" }).catch(() => {});
             }
 
-            /*
-             * Pending rows for messages sent optimistically.
-             */
+            // The last row rendered optimistically for a message we just sent — used to
+            // attach the real message id once the server "ack" frame arrives, so reply/
+            // react/delete work on it immediately without a page reload.
             const pendingRows = new Map();
 
-            // =====================================================
-            // WEBSOCKET
-            // =====================================================
-
-            if (
-                typeof SChatWS !== "undefined"
-            ) {
-
+            if (typeof SChatWS !== "undefined") {
                 SChatWS.connect();
-
-                SChatWS.onMessage(
-                    (data) => {
-
-                        if (
-                            data.type === "chat" &&
-                            data.senderId === friendId
-                        ) {
-
-                            renderMessage(
-                                {
-                                    id: data.id,
-                                    content: data.content,
-                                    attachmentUrl:
-                                        data.attachmentUrl,
-                                    sentAt: data.sentAt,
-                                    senderId:
-                                        data.senderId,
-                                    replyTo:
-                                        data.replyTo || null,
-                                    reactions: []
-                                },
-                                false
-                            );
-
-                            if (
-                                !document.hidden &&
-                                document.hasFocus()
-                            ) {
-
-                                markConversationRead();
-
-                            } else if (
-                                typeof SChatNotify !==
-                                "undefined" &&
-                                SChatNotify.shouldNotify()
-                            ) {
-
-                                const preview =
-                                    data.content ||
-                                    (
-                                        data.attachmentUrl
-                                            ? attachmentLabel(
-                                                data.attachmentUrl
-                                            )
-                                            : "New message"
-                                    );
-
-                                SChatNotify.notify(
-                                    friendName,
-                                    preview,
-                                    {
-                                        tag:
-                                            "chat-" +
-                                            friendId,
-
-                                        data: {
-                                            url:
-                                                `S-chat-chatpage.html?friend=${encodeURIComponent(friendId)}&name=${encodeURIComponent(friendName)}`
-                                        }
-                                    }
-                                );
-                            }
-
-                        } else if (
-                            data.type === "ack"
-                        ) {
-
-                            const key =
-                                data.clientMessageId;
-
-                            const pending =
-                                key
-                                    ? pendingRows.get(key)
-                                    : null;
-
-                            if (pending) {
-
-                                pending.dataset.messageId =
-                                    data.id;
-
-                                pendingRows.delete(
-                                    key
-                                );
-                            }
-
-                        } else if (
-                            data.type === "reaction"
-                        ) {
-
-                            const row =
-                                thread.querySelector(
-                                    `[data-message-id="${CSS.escape(data.messageId)}"]`
-                                );
-
-                            if (row) {
-
-                                applyReactionUpdate(
-                                    row,
-                                    data.reactions
-                                );
-                            }
-
-                        } else if (
-                            data.type ===
-                            "message_deleted"
-                        ) {
-
-                            const row =
-                                thread.querySelector(
-                                    `[data-message-id="${CSS.escape(data.id)}"]`
-                                );
-
-                            if (row) {
-
-                                const bubble =
-                                    row.querySelector(
-                                        ".chat-bubble"
-                                    );
-
-                                if (bubble) {
-
-                                    bubble.classList.add(
-                                        "deleted-message"
-                                    );
-
-                                    const meta =
-                                        bubble.querySelector(
-                                            ".meta"
-                                        );
-
-                                    bubble.innerHTML = `
-                                        <span class="bubble-text">
-                                            This message was deleted
-                                        </span>
-                                    `;
-
-                                    if (meta) {
-                                        bubble.appendChild(
-                                            meta
-                                        );
-                                    }
-                                }
-
-                                const bar =
-                                    row.querySelector(
-                                        ".reaction-bar"
-                                    );
-
-                                if (bar) {
-                                    bar.remove();
-                                }
-                            }
-
-                        } else if (
-                            data.type === "read" &&
-                            data.conversationWith ===
-                                friendId
-                        ) {
-
-                            (
-                                data.messageIds || []
-                            ).forEach(
-                                (id) => {
-
-                                    const row =
-                                        thread.querySelector(
-                                            `[data-message-id="${CSS.escape(id)}"]`
-                                        );
-
-                                    if (row) {
-                                        markRowRead(
-                                            row
-                                        );
-                                    }
-                                }
-                            );
-
-                        } else if (
-                            data.type === "error"
-                        ) {
-
-                            SChat.showToast(
-                                data.message,
-                                "error"
-                            );
+                SChatWS.onMessage((data) => {
+                    if (data.type === "chat" && data.senderId === friendId) {
+                        renderMessage({
+                            id: data.id,
+                            content: data.content,
+                            attachmentUrl: data.attachmentUrl,
+                            sentAt: data.sentAt,
+                            senderId: data.senderId,
+                            replyTo: data.replyTo || null,
+                            replyToStatus: data.replyToStatus || null,
+                            reactions: []
+                        }, false);
+                        if (!document.hidden && document.hasFocus()) {
+                            markConversationRead();
+                        } else if (typeof SChatNotify !== "undefined" && SChatNotify.shouldNotify()) {
+                            const preview = data.content || (data.attachmentUrl ? attachmentLabel(data.attachmentUrl) : "New message");
+                            SChatNotify.notify(friendName, preview, {
+                                tag: "chat-" + friendId,
+                                data: { url: `S-chat-chatpage.html?friend=${encodeURIComponent(friendId)}&name=${encodeURIComponent(friendName)}` }
+                            });
                         }
+                    } else if (data.type === "ack") {
+                        const key = data.clientMessageId;
+                        const pending = key ? pendingRows.get(key) : null;
+                        if (pending) {
+                            pending.dataset.messageId = data.id;
+                            pendingRows.delete(key);
+                        }
+                    } else if (data.type === "reaction") {
+                        const row = thread.querySelector(`[data-message-id="${CSS.escape(data.messageId)}"]`);
+                        if (row) applyReactionUpdate(row, data.reactions);
+                    } else if (data.type === "message_deleted") {
+                        const row = thread.querySelector(`[data-message-id="${CSS.escape(data.id)}"]`);
+                        if (row) {
+                            const bubble = row.querySelector(".chat-bubble");
+                            if (bubble) {
+                                bubble.classList.add("deleted-message");
+                                const meta = bubble.querySelector(".meta");
+                                bubble.innerHTML = `<span class="bubble-text">This message was deleted</span>`;
+                                if (meta) bubble.appendChild(meta);
+                            }
+                            const bar = row.querySelector(".reaction-bar");
+                            if (bar) bar.remove();
+                        }
+                    } else if (data.type === "read" && data.conversationWith === friendId) {
+                        (data.messageIds || []).forEach((id) => {
+                            const row = thread.querySelector(`[data-message-id="${CSS.escape(id)}"]`);
+                            if (row) markRowRead(row);
+                        });
+                    } else if (data.type === "error") {
+                        SChat.showToast(data.message, "error");
                     }
-                );
+                });
             }
 
-            // =====================================================
-            // VISIBILITY / READ
-            // =====================================================
+            // If the user comes back to this chat tab (e.g. switches back from another
+            // app/tab), catch up on anything that arrived while it was unfocused.
+            document.addEventListener("visibilitychange", () => {
+                if (!document.hidden && !isAI && friendId) markConversationRead();
+            });
 
-            document.addEventListener(
-                "visibilitychange",
-                () => {
+            const chatForm = document.getElementById("chat-send-form");
+            const textarea = document.getElementById("chat-message-box");
+            const fileInput = document.getElementById("chat-file-sender");
 
-                    if (
-                        !document.hidden &&
-                        !isAI &&
-                        friendId
-                    ) {
-
-                        markConversationRead();
-                    }
-                }
-            );
-
-            // =====================================================
-            // FILES / ATTACHMENTS
-            // =====================================================
-
-            const chatForm =
-                document.getElementById(
-                    "chat-send-form"
-                );
-
-            const textarea =
-                document.getElementById(
-                    "chat-message-box"
-                );
-
-            const fileInput =
-                document.getElementById(
-                    "chat-file-sender"
-                );
-
-            if (
-                chatForm &&
-                textarea &&
-                fileInput &&
-                typeof SChatWS !== "undefined"
-            ) {
-
+            if (chatForm && textarea && fileInput && typeof SChatWS !== "undefined") {
                 const selectedFiles = [];
-
-                const previewChip =
-                    document.getElementById(
-                        "file-preview-chip"
-                    );
-
-                const previewList =
-                    document.getElementById(
-                        "file-preview-list"
-                    );
+                const previewChip = document.getElementById("file-preview-chip");
+                const previewList = document.getElementById("file-preview-list");
 
                 function formatBytes(bytes) {
-
-                    if (!bytes) {
-                        return "0 B";
-                    }
-
-                    const units = [
-                        "B",
-                        "KB",
-                        "MB",
-                        "GB"
-                    ];
-
-                    const i =
-                        Math.min(
-                            Math.floor(
-                                Math.log(bytes) /
-                                Math.log(1024)
-                            ),
-                            units.length - 1
-                        );
-
-                    return (
-                        bytes /
-                        Math.pow(1024, i)
-                    ).toFixed(
-                        i ? 1 : 0
-                    ) +
-                    " " +
-                    units[i];
+                    if (!bytes) return "0 B";
+                    const units = ["B", "KB", "MB", "GB"];
+                    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+                    return (bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0) + " " + units[i];
                 }
-
                 function renderAttachmentTray() {
-
                     previewList.innerHTML = "";
-
-                    selectedFiles.forEach(
-                        (file, index) => {
-
-                            const item =
-                                document.createElement(
-                                    "div"
-                                );
-
-                            item.className =
-                                "file-preview-item";
-
-                            const thumb =
-                                file.type.startsWith(
-                                    "image/"
-                                )
-
-                                    ? `
-                                        <img
-                                            src="${URL.createObjectURL(file)}"
-                                            alt="">
-                                      `
-
-                                    : `
-                                        <span class="file-preview-glyph">
-                                            ${
-                                                file.type.startsWith(
-                                                    "video/"
-                                                )
-                                                    ? "🎬"
-                                                    : file.type.startsWith(
-                                                        "audio/"
-                                                    )
-                                                        ? "🎙️"
-                                                        : "📎"
-                                            }
-                                        </span>
-                                      `;
-
-                            item.innerHTML = `
-                                ${thumb}
-
-                                <span class="file-preview-meta">
-
-                                    <strong>
-                                        ${escapeHtml(file.name)}
-                                    </strong>
-
-                                    <small>
-                                        ${formatBytes(file.size)}
-                                    </small>
-
-                                    <span class="file-upload-progress">
-                                        <i></i>
-                                    </span>
-
-                                </span>
-
-                                <button
-                                    type="button"
-                                    aria-label="Remove ${escapeHtml(file.name)}">
-                                    ×
-                                </button>
-                            `;
-
-                            item
-                                .querySelector("button")
-                                .addEventListener(
-                                    "click",
-                                    () => {
-
-                                        selectedFiles.splice(
-                                            index,
-                                            1
-                                        );
-
-                                        renderAttachmentTray();
-
-                                        updateComposerButtons();
-                                    }
-                                );
-
-                            previewList.appendChild(
-                                item
-                            );
-                        }
-                    );
-
-                    previewChip.classList.toggle(
-                        "show",
-                        selectedFiles.length > 0
-                    );
+                    selectedFiles.forEach((file, index) => {
+                        const item = document.createElement("div");
+                        item.className = "file-preview-item";
+                        const thumb = file.type.startsWith("image/") ? `<img src="${URL.createObjectURL(file)}" alt="">` : `<span class="file-preview-glyph">${file.type.startsWith("video/") ? "🎬" : file.type.startsWith("audio/") ? "🎙️" : "📎"}</span>`;
+                        item.innerHTML = `${thumb}<span class="file-preview-meta"><strong>${escapeHtml(file.name)}</strong><small>${formatBytes(file.size)}</small><span class="file-upload-progress"><i></i></span></span><button type="button" aria-label="Remove ${escapeHtml(file.name)}">×</button>`;
+                        item.querySelector("button").addEventListener("click", () => { selectedFiles.splice(index, 1); renderAttachmentTray(); updateComposerButtons(); });
+                        previewList.appendChild(item);
+                    });
+                    previewChip.classList.toggle("show", selectedFiles.length > 0);
                 }
-
                 function setFiles(fileList) {
-
-                    const maxBytes =
-                        50 * 1024 * 1024;
-
-                    for (
-                        const file of
-                        Array.from(fileList || [])
-                    ) {
-
-                        if (
-                            file.size >
-                            maxBytes
-                        ) {
-
-                            SChat.showToast(
-                                `${file.name} is larger than 50 MB.`,
-                                "error"
-                            );
-
-                            continue;
-                        }
-
-                        if (
-                            !selectedFiles.some(
-                                f =>
-                                    f.name === file.name &&
-                                    f.size === file.size &&
-                                    f.lastModified ===
-                                        file.lastModified
-                            )
-                        ) {
-
-                            selectedFiles.push(
-                                file
-                            );
-                        }
+                    const maxBytes = 50 * 1024 * 1024;
+                    for (const file of Array.from(fileList || [])) {
+                        if (file.size > maxBytes) { SChat.showToast(`${file.name} is larger than 50 MB.`, "error"); continue; }
+                        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) selectedFiles.push(file);
                     }
-
                     renderAttachmentTray();
-
                     updateComposerButtons();
                 }
+                fileInput.addEventListener("change", () => { setFiles(fileInput.files); fileInput.value = ""; });
 
-                fileInput.addEventListener(
-                    "change",
-                    () => {
+                ["dragenter", "dragover"].forEach(type => chatForm.addEventListener(type, e => { e.preventDefault(); chatForm.classList.add("drag-over"); }));
+                ["dragleave", "drop"].forEach(type => chatForm.addEventListener(type, e => { e.preventDefault(); chatForm.classList.remove("drag-over"); }));
+                chatForm.addEventListener("drop", e => setFiles(e.dataTransfer.files));
+                textarea.addEventListener("paste", e => {
+                    const files = Array.from(e.clipboardData?.files || []);
+                    if (files.length) setFiles(files);
+                });
 
-                        setFiles(
-                            fileInput.files
-                        );
+                document.getElementById("file-preview-remove").addEventListener("click", () => { selectedFiles.length = 0; renderAttachmentTray(); updateComposerButtons(); });
 
-                        fileInput.value = "";
-                    }
-                );
-
-                [
-                    "dragenter",
-                    "dragover"
-                ].forEach(
-                    type =>
-                        chatForm.addEventListener(
-                            type,
-                            e => {
-
-                                e.preventDefault();
-
-                                chatForm.classList.add(
-                                    "drag-over"
-                                );
-                            }
-                        )
-                );
-
-                [
-                    "dragleave",
-                    "drop"
-                ].forEach(
-                    type =>
-                        chatForm.addEventListener(
-                            type,
-                            e => {
-
-                                e.preventDefault();
-
-                                chatForm.classList.remove(
-                                    "drag-over"
-                                );
-                            }
-                        )
-                );
-
-                chatForm.addEventListener(
-                    "drop",
-                    e =>
-                        setFiles(
-                            e.dataTransfer.files
-                        )
-                );
-
-                textarea.addEventListener(
-                    "paste",
-                    e => {
-
-                        const files =
-                            Array.from(
-                                e.clipboardData?.files ||
-                                []
-                            );
-
-                        if (files.length) {
-                            setFiles(files);
-                        }
-                    }
-                );
-
-                document
-                    .getElementById(
-                        "file-preview-remove"
-                    )
-                    .addEventListener(
-                        "click",
-                        () => {
-
-                            selectedFiles.length = 0;
-
-                            renderAttachmentTray();
-
-                            updateComposerButtons();
-                        }
-                    );
-
-                let uploadingAttachments =
-                    false;
-
-                chatForm.addEventListener(
-                    "submit",
-                    async (event) => {
-
-                        event.preventDefault();
-
-                        if (
-                            uploadingAttachments
-                        ) {
-                            return;
-                        }
-
-                        const content =
-                            textarea.value.trim();
-
-                        if (
-                            !content &&
-                            !selectedFiles.length
-                        ) {
-                            return;
-                        }
-
-                        const filesToSend =
-                            selectedFiles.slice();
-
-                        const replyToMessageId =
-                            replyingTo
-                                ? replyingTo.id
-                                : null;
-
-                        uploadingAttachments =
-                            filesToSend.length > 0;
-
-                        for (
-                            let i = 0;
-                            i < filesToSend.length;
-                            i++
-                        ) {
-
-                            const file =
-                                filesToSend[i];
-
-                            try {
-
-                                const fd =
-                                    new FormData();
-
-                                fd.append(
-                                    "file",
-                                    file,
-                                    file.name
-                                );
-
-                                const item =
-                                    previewList
-                                        .children[i];
-
-                                const bar =
-                                    item?.querySelector(
-                                        ".file-upload-progress i"
-                                    );
-
-                                const result =
-                                    await SChat.apiUploadWithProgress(
-                                        "/chat/attachment",
-                                        fd,
-                                        p => {
-
-                                            if (bar) {
-
-                                                bar.style.width =
-                                                    `${Math.round(p * 100)}%`;
-                                            }
-                                        }
-                                    );
-
-                                const clientMessageId =
-                                    crypto.randomUUID
-                                        ? crypto.randomUUID()
-                                        : (
-                                            Date.now()
-                                                .toString(36) +
-                                            "-" +
-                                            Math.random()
-                                                .toString(36)
-                                                .slice(2)
-                                        );
-
-                                const sent =
-                                    SChatWS.send(
-                                        friendId,
-                                        i === 0
-                                            ? content
-                                            : "",
-                                        result.url,
-                                        replyToMessageId,
-                                        clientMessageId
-                                    );
-
-                                if (sent) {
-
-                                    const replyToSnapshot =
-                                        replyingTo
-                                            ? {
-                                                messageId:
-                                                    replyingTo.id,
-                                                senderId:
-                                                    replyingTo.senderId,
-                                                snippet:
-                                                    replyingTo.content,
-                                                attachmentUrl:
-                                                    replyingTo.attachmentUrl ||
-                                                    null,
-                                                deleted:
-                                                    false
-                                            }
-                                            : null;
-
-                                    pendingRows.set(
-                                        clientMessageId,
-                                        renderMessage(
-                                            {
-                                                content:
-                                                    i === 0
-                                                        ? content
-                                                        : "",
-                                                attachmentUrl:
-                                                    result.url,
-                                                sentAt:
-                                                    new Date()
-                                                        .toISOString(),
-                                                senderId:
-                                                    myUserId,
-                                                replyTo:
-                                                    replyToSnapshot,
-                                                reactions: []
-                                            },
-                                            true
-                                        )
-                                    );
-                                }
-
-                            } catch (err) {
-
-                                SChat.showToast(
-                                    `Could not send ${file.name}: ${err.message}`,
-                                    "error"
-                                );
-                            }
-                        }
-
-                        if (
-                            content &&
-                            !filesToSend.length
-                        ) {
-
-                            const clientMessageId =
-                                crypto.randomUUID
-                                    ? crypto.randomUUID()
-                                    : (
-                                        Date.now()
-                                            .toString(36) +
-                                        "-" +
-                                        Math.random()
-                                            .toString(36)
-                                            .slice(2)
-                                    );
-
-                            const sent =
-                                SChatWS.send(
-                                    friendId,
-                                    content,
-                                    null,
-                                    replyToMessageId,
-                                    clientMessageId
-                                );
-
+                let uploadingAttachments = false;
+                chatForm.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    if (uploadingAttachments) return;
+                    const content = textarea.value.trim();
+                    if (!content && !selectedFiles.length) return;
+                    const filesToSend = selectedFiles.slice();
+                    const replyToMessageId = replyingTo ? replyingTo.id : null;
+                    uploadingAttachments = filesToSend.length > 0;
+                    for (let i = 0; i < filesToSend.length; i++) {
+                        const file = filesToSend[i];
+                        try {
+                            const fd = new FormData();
+                            fd.append("file", file, file.name);
+                            const item = previewList.children[i];
+                            const bar = item?.querySelector(".file-upload-progress i");
+                            const result = await SChat.apiUploadWithProgress("/chat/attachment", fd, p => { if (bar) bar.style.width = `${Math.round(p * 100)}%`; });
+                            const clientMessageId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+                            const sent = SChatWS.send(friendId, i === 0 ? content : "", result.url, replyToMessageId, clientMessageId);
                             if (sent) {
-
-                                const replyToSnapshot =
-                                    replyingTo
-                                        ? {
-                                            messageId:
-                                                replyingTo.id,
-                                            senderId:
-                                                replyingTo.senderId,
-                                            snippet:
-                                                replyingTo.content,
-                                            attachmentUrl:
-                                                replyingTo.attachmentUrl ||
-                                                null,
-                                            deleted:
-                                                false
-                                        }
-                                        : null;
-
-                                pendingRows.set(
-                                    clientMessageId,
-                                    renderMessage(
-                                        {
-                                            content,
-                                            attachmentUrl:
-                                                null,
-                                            sentAt:
-                                                new Date()
-                                                    .toISOString(),
-                                            senderId:
-                                                myUserId,
-                                            replyTo:
-                                                replyToSnapshot,
-                                            reactions: []
-                                        },
-                                        true
-                                    )
-                                );
+                                const replyToSnapshot = replyingTo ? { messageId: replyingTo.id, senderId: replyingTo.senderId, snippet: replyingTo.content, attachmentUrl: replyingTo.attachmentUrl || null, deleted: false } : null;
+                                pendingRows.set(clientMessageId, renderMessage({ content: i === 0 ? content : "", attachmentUrl: result.url, sentAt: new Date().toISOString(), senderId: myUserId, replyTo: replyToSnapshot, reactions: [] }, true));
                             }
+                        } catch (err) { SChat.showToast(`Could not send ${file.name}: ${err.message}`, "error"); }
+                    }
+                    if (content && !filesToSend.length) {
+                        const clientMessageId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+                        const sent = SChatWS.send(friendId, content, null, replyToMessageId, clientMessageId);
+                        if (sent) {
+                            const replyToSnapshot = replyingTo ? { messageId: replyingTo.id, senderId: replyingTo.senderId, snippet: replyingTo.content, attachmentUrl: replyingTo.attachmentUrl || null, deleted: false } : null;
+                            pendingRows.set(clientMessageId, renderMessage({ content, attachmentUrl: null, sentAt: new Date().toISOString(), senderId: myUserId, replyTo: replyToSnapshot, reactions: [] }, true));
                         }
-
-                        selectedFiles.length = 0;
-
-                        uploadingAttachments = false;
-
-                        renderAttachmentTray();
-
-                        textarea.value = "";
-
-                        cancelReply();
-
-                        updateComposerButtons();
                     }
-                );
+                    selectedFiles.length = 0;
+                    uploadingAttachments = false;
+                    renderAttachmentTray();
+                    textarea.value = "";
+                    cancelReply();
+                    updateComposerButtons();
+                });
             }
 
-            // =====================================================
-            // COMPOSER BUTTONS
-            //
-            // ENTER = SEND
-            // SHIFT + ENTER = NEW LINE
-            // =====================================================
-
-            const textareaForButtons =
-                document.getElementById(
-                    "chat-message-box"
-                );
-
-            /*
-             * ENTER = SUBMIT/SEND
-             *
-             * SHIFT + ENTER = browser's normal
-             * newline behavior.
-             */
-            textareaForButtons?.addEventListener(
-                "keydown",
-                (e) => {
-
-                    if (e.key !== "Enter") {
-                        return;
-                    }
-
-                    /*
-                     * Shift + Enter:
-                     * Do NOT preventDefault().
-                     * The textarea will insert a newline.
-                     */
-                    if (e.shiftKey) {
-                        return;
-                    }
-
-                    /*
-                     * Enter alone:
-                     * Stop the textarea from inserting
-                     * a newline and submit the form.
-                     */
-                    e.preventDefault();
-
-                    const form =
-                        document.getElementById(
-                            "chat-send-form"
-                        );
-
-                    if (form) {
-                        form.requestSubmit();
-                    }
-                }
-            );
-
+            // COMPOSER BUTTONS — text/attachments switch to Send.
+            const textareaForButtons = document.getElementById("chat-message-box");
             function updateComposerButtons() {
-
-                const voiceBtn =
-                    document.getElementById(
-                        "voice-note-btn"
-                    );
-
-                const sendBtn =
-                    document.getElementById(
-                        "send-chat-btn"
-                    );
-
-                const hasText =
-                    !!textareaForButtons?.value.trim();
-
-                const hasFiles =
-                    !!document.getElementById(
-                        "file-preview-list"
-                    )?.children.length;
-
-                if (sendBtn) {
-
-                    sendBtn.hidden =
-                        !(hasText || hasFiles);
-                }
-
-                if (voiceBtn) {
-
-                    voiceBtn.hidden =
-                        hasText || hasFiles;
-                }
+                const voiceBtn = document.getElementById("voice-note-btn");
+                const sendBtn = document.getElementById("send-chat-btn");
+                const hasText = !!textareaForButtons?.value.trim();
+                const hasFiles = !!document.getElementById("file-preview-list")?.children.length;
+                if (sendBtn) sendBtn.hidden = !(hasText || hasFiles);
+                if (voiceBtn) voiceBtn.hidden = hasText || hasFiles;
             }
-
-            textareaForButtons?.addEventListener(
-                "input",
-                updateComposerButtons
-            );
-
+            textareaForButtons?.addEventListener("input", updateComposerButtons);
             updateComposerButtons();
 
+            // VOICE NOTES — MediaRecorder -> upload via the same
+            // /chat/attachment endpoint as files -> sent as a file-only
+            // message (no text required, reuses Feature Group B's path).
             // =====================================================
-            // VOICE NOTES
-            // =====================================================
-
             let mediaRecorder = null;
             let recordedChunks = [];
-
             let recordingStartedAt = 0;
             let recordingTimer = null;
 
-            const recordingChip =
-                document.getElementById(
-                    "voice-recording-chip"
-                );
-
-            const recordingTimeEl =
-                document.getElementById(
-                    "voice-recording-time"
-                );
+            const recordingChip = document.getElementById("voice-recording-chip");
+            const recordingTimeEl = document.getElementById("voice-recording-time");
 
             function pickAudioMimeType() {
-
-                const candidates = [
-                    "audio/webm;codecs=opus",
-                    "audio/webm",
-                    "audio/mp4",
-                    "audio/ogg;codecs=opus"
-                ];
-
-                for (
-                    const type of candidates
-                ) {
-
-                    if (
-                        window.MediaRecorder &&
-                        MediaRecorder.isTypeSupported &&
-                        MediaRecorder.isTypeSupported(
-                            type
-                        )
-                    ) {
-
+                const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+                for (const type of candidates) {
+                    if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
                         return type;
                     }
                 }
-
-                return "";
+                return ""; // let the browser pick a default
             }
 
             function formatDuration(ms) {
-
-                const totalSeconds =
-                    Math.floor(ms / 1000);
-
-                const m =
-                    Math.floor(
-                        totalSeconds / 60
-                    );
-
-                const s =
-                    totalSeconds % 60;
-
-                return (
-                    m +
-                    ":" +
-                    String(s).padStart(
-                        2,
-                        "0"
-                    )
-                );
+                const totalSeconds = Math.floor(ms / 1000);
+                const m = Math.floor(totalSeconds / 60);
+                const s = totalSeconds % 60;
+                return m + ":" + String(s).padStart(2, "0");
             }
 
             async function startRecording() {
-
-                if (
-                    !navigator.mediaDevices ||
-                    !navigator.mediaDevices.getUserMedia ||
-                    !window.MediaRecorder
-                ) {
-
-                    SChat.showToast(
-                        "Voice notes aren't supported on this browser.",
-                        "error"
-                    );
-
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+                    SChat.showToast("Voice notes aren't supported on this browser.", "error");
                     return;
                 }
-
                 let stream;
-
                 try {
-
-                    stream =
-                        await navigator.mediaDevices.getUserMedia(
-                            {
-                                audio: true
-                            }
-                        );
-
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 } catch {
-
-                    SChat.showToast(
-                        "Microphone permission was denied.",
-                        "error"
-                    );
-
+                    SChat.showToast("Microphone permission was denied.", "error");
                     return;
                 }
 
-                const mimeType =
-                    pickAudioMimeType();
-
+                const mimeType = pickAudioMimeType();
                 recordedChunks = [];
-
                 try {
-
-                    mediaRecorder =
-                        mimeType
-                            ? new MediaRecorder(
-                                stream,
-                                {
-                                    mimeType
-                                }
-                            )
-                            : new MediaRecorder(
-                                stream
-                            );
-
+                    mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
                 } catch {
-
-                    SChat.showToast(
-                        "Could not start recording on this device.",
-                        "error"
-                    );
-
-                    stream
-                        .getTracks()
-                        .forEach(
-                            t => t.stop()
-                        );
-
+                    SChat.showToast("Could not start recording on this device.", "error");
+                    stream.getTracks().forEach((t) => t.stop());
                     return;
                 }
 
-                mediaRecorder.addEventListener(
-                    "dataavailable",
-                    (e) => {
-
-                        if (
-                            e.data &&
-                            e.data.size > 0
-                        ) {
-
-                            recordedChunks.push(
-                                e.data
-                            );
-                        }
-                    }
-                );
-
-                mediaRecorder.addEventListener(
-                    "stop",
-                    () => {
-
-                        stream
-                            .getTracks()
-                            .forEach(
-                                t => t.stop()
-                            );
-                    }
-                );
+                mediaRecorder.addEventListener("dataavailable", (e) => {
+                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+                });
+                mediaRecorder.addEventListener("stop", () => {
+                    stream.getTracks().forEach((t) => t.stop());
+                });
 
                 mediaRecorder.start();
-
-                recordingStartedAt =
-                    Date.now();
-
-                recordingTimeEl.textContent =
-                    "0:00";
-
-                recordingChip.classList.add(
-                    "show"
-                );
-
-                recordingTimer =
-                    setInterval(
-                        () => {
-
-                            recordingTimeEl.textContent =
-                                formatDuration(
-                                    Date.now() -
-                                    recordingStartedAt
-                                );
-
-                        },
-                        250
-                    );
+                recordingStartedAt = Date.now();
+                recordingTimeEl.textContent = "0:00";
+                recordingChip.classList.add("show");
+                recordingTimer = setInterval(() => {
+                    recordingTimeEl.textContent = formatDuration(Date.now() - recordingStartedAt);
+                }, 250);
             }
 
             function stopRecordingUI() {
-
-                clearInterval(
-                    recordingTimer
-                );
-
+                clearInterval(recordingTimer);
                 recordingTimer = null;
-
-                recordingChip.classList.remove(
-                    "show"
-                );
+                recordingChip.classList.remove("show");
             }
 
             function cancelRecording() {
-
-                if (
-                    mediaRecorder &&
-                    mediaRecorder.state !==
-                        "inactive"
-                ) {
-
+                if (mediaRecorder && mediaRecorder.state !== "inactive") {
                     recordedChunks = [];
-
-                    mediaRecorder.addEventListener(
-                        "stop",
-                        () => {
-                            recordedChunks = [];
-                        },
-                        {
-                            once: true
-                        }
-                    );
-
+                    mediaRecorder.addEventListener("stop", () => { recordedChunks = []; }, { once: true });
                     mediaRecorder.stop();
                 }
-
                 stopRecordingUI();
             }
 
             async function finishAndSendRecording() {
-
-                if (
-                    !mediaRecorder ||
-                    mediaRecorder.state ===
-                        "inactive"
-                ) {
-                    return;
-                }
-
-                const finished =
-                    new Promise(
-                        (resolve) => {
-
-                            mediaRecorder.addEventListener(
-                                "stop",
-                                resolve,
-                                {
-                                    once: true
-                                }
-                            );
-                        }
-                    );
-
+                if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+                const finished = new Promise((resolve) => {
+                    mediaRecorder.addEventListener("stop", resolve, { once: true });
+                });
                 mediaRecorder.stop();
-
                 stopRecordingUI();
-
                 await finished;
 
-                if (!recordedChunks.length) {
-                    return;
-                }
-
-                const mimeType =
-                    mediaRecorder.mimeType ||
-                    "audio/webm";
-
-                const blob =
-                    new Blob(
-                        recordedChunks,
-                        {
-                            type: mimeType
-                        }
-                    );
-
+                if (!recordedChunks.length) return;
+                const mimeType = mediaRecorder.mimeType || "audio/webm";
+                const blob = new Blob(recordedChunks, { type: mimeType });
                 recordedChunks = [];
 
                 if (blob.size < 500) {
-
-                    SChat.showToast(
-                        "Recording was too short.",
-                        "error"
-                    );
-
+                    SChat.showToast("Recording was too short.", "error");
                     return;
                 }
 
-                const extension =
-                    mimeType.includes("mp4")
-                        ? "m4a"
-                        : mimeType.includes("ogg")
-                            ? "ogg"
-                            : "webm";
-
-                const fd =
-                    new FormData();
-
-                fd.append(
-                    "file",
-                    blob,
-                    `voice-note.${extension}`
-                );
+                const extension = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+                const fd = new FormData();
+                fd.append("file", blob, `voice-note.${extension}`);
 
                 try {
-
-                    const result =
-                        await SChat.apiUpload(
-                            "/chat/attachment",
-                            fd
-                        );
-
-                    const replyToMessageId =
-                        replyingTo
-                            ? replyingTo.id
-                            : null;
-
-                    const clientMessageId =
-                        crypto.randomUUID
-                            ? crypto.randomUUID()
-                            : (
-                                Date.now()
-                                    .toString(36) +
-                                "-" +
-                                Math.random()
-                                    .toString(36)
-                                    .slice(2)
-                            );
-
-                    const sent =
-                        SChatWS.send(
-                            friendId,
-                            "",
-                            result.url,
-                            replyToMessageId,
-                            clientMessageId
-                        );
-
+                    const result = await SChat.apiUpload("/chat/attachment", fd);
+                    const replyToMessageId = replyingTo ? replyingTo.id : null;
+                    const clientMessageId = crypto.randomUUID ? crypto.randomUUID() : (
+                        Date.now().toString(36) + "-" + Math.random().toString(36).slice(2)
+                    );
+                    const sent = SChatWS.send(friendId, "", result.url, replyToMessageId, clientMessageId);
                     if (sent) {
-
-                        const replyToSnapshot =
-                            replyingTo
-                                ? {
-                                    messageId:
-                                        replyingTo.id,
-                                    senderId:
-                                        replyingTo.senderId,
-                                    snippet:
-                                        replyingTo.content,
-                                    attachmentUrl:
-                                        replyingTo.attachmentUrl ||
-                                        null,
-                                    deleted:
-                                        false
-                                }
-                                : null;
-
-                        const pendingRow =
-                            renderMessage(
-                                {
-                                    content: "",
-                                    attachmentUrl:
-                                        result.url,
-                                    sentAt:
-                                        new Date()
-                                            .toISOString(),
-                                    senderId:
-                                        myUserId,
-                                    replyTo:
-                                        replyToSnapshot,
-                                    reactions: []
-                                },
-                                true
-                            );
-
-                        pendingRows.set(
-                            clientMessageId,
-                            pendingRow
-                        );
-
+                        const replyToSnapshot = replyingTo
+                            ? { messageId: replyingTo.id, senderId: replyingTo.senderId, snippet: replyingTo.content, attachmentUrl: replyingTo.attachmentUrl || null, deleted: false }
+                            : null;
+                        const pendingRow = renderMessage({
+                            content: "", attachmentUrl: result.url, sentAt: new Date().toISOString(),
+                            senderId: myUserId, replyTo: replyToSnapshot, reactions: []
+                        }, true);
+                        pendingRows.set(clientMessageId, pendingRow);
                         cancelReply();
                     }
-
                 } catch (err) {
-
-                    SChat.showToast(
-                        err.message,
-                        "error"
-                    );
+                    SChat.showToast(err.message, "error");
                 }
             }
 
-            document
-                .getElementById(
-                    "voice-note-btn"
-                )
-                .addEventListener(
-                    "click",
-                    startRecording
-                );
-
-            document
-                .getElementById(
-                    "voice-recording-cancel"
-                )
-                .addEventListener(
-                    "click",
-                    cancelRecording
-                );
-
-            document
-                .getElementById(
-                    "voice-recording-send"
-                )
-                .addEventListener(
-                    "click",
-                    finishAndSendRecording
-                );
-
-            /*
-             * Kept from the original project.
-             * If this function exists in your other JS files,
-             * it will still be called.
-             */
-            if (typeof wireComposerButtonSwap === "function") {
-                wireComposerButtonSwap();
-            }
-
-            // =====================================================
-            // LOAD CHAT HISTORY
-            // =====================================================
+            document.getElementById("voice-note-btn").addEventListener("click", startRecording);
+            document.getElementById("voice-recording-cancel").addEventListener("click", cancelRecording);
+            document.getElementById("voice-recording-send").addEventListener("click", finishAndSendRecording);
 
             loadHistory();
-
         });
-
     </script>
-
 </body>
-
 </html>

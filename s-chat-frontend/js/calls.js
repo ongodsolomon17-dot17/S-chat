@@ -85,9 +85,17 @@
   function setMode(type) {
     activeCallType = type;
     const overlay = document.getElementById("schat-call-overlay");
+    const cameraBtn = document.getElementById("schat-call-camera");
     if (overlay) {
       overlay.classList.toggle("video-mode", type === "VIDEO");
       overlay.classList.toggle("voice-mode", type === "VOICE");
+    }
+    // Camera is not meaningful in a voice call; keep the button present for a
+    // consistent interface but disable it instead of allowing a no-op click.
+    if (cameraBtn) {
+      cameraBtn.disabled = type !== "VIDEO";
+      cameraBtn.setAttribute("aria-disabled", type !== "VIDEO" ? "true" : "false");
+      cameraBtn.classList.toggle("disabled", type !== "VIDEO");
     }
   }
 
@@ -318,6 +326,7 @@
   }
 
   function toggleCamera() {
+    if (activeCallType !== "VIDEO") return;
     const track = localStream?.getVideoTracks()[0];
     if (!track) return;
     track.enabled = !track.enabled;

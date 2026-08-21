@@ -5,6 +5,7 @@ import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.dto.FriendRequestDto;
 import com.stech.schat.dto.ReactionSummaryDto;
 import com.stech.schat.dto.ReplyPreviewDto;
+import com.stech.schat.dto.StatusReplyPreviewDto;
 import com.stech.schat.exception.ForbiddenActionException;
 import com.stech.schat.exception.ResourceNotFoundException;
 import com.stech.schat.model.ChatMessage;
@@ -13,6 +14,8 @@ import com.stech.schat.model.MessageReaction;
 import com.stech.schat.repository.ChatMessageRepository;
 import com.stech.schat.repository.MessageHiddenForRepository;
 import com.stech.schat.repository.MessageReactionRepository;
+import com.stech.schat.repository.StatusPostRepository;
+import com.stech.schat.repository.UserRepository;
 import com.stech.schat.websocket.WebSocketSessionRegistry;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -50,6 +53,8 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final MessageReactionRepository messageReactionRepository;
     private final MessageHiddenForRepository messageHiddenForRepository;
+    private final StatusPostRepository statusPostRepository;
+    private final UserRepository userRepository;
     private final FriendService friendService;
     private final WebSocketSessionRegistry sessionRegistry;
     private final StorageService storageService;
@@ -57,12 +62,16 @@ public class ChatService {
     public ChatService(ChatMessageRepository chatMessageRepository,
                         MessageReactionRepository messageReactionRepository,
                         MessageHiddenForRepository messageHiddenForRepository,
+                        StatusPostRepository statusPostRepository,
+                        UserRepository userRepository,
                         FriendService friendService,
                         WebSocketSessionRegistry sessionRegistry,
                         StorageService storageService) {
         this.chatMessageRepository = chatMessageRepository;
         this.messageReactionRepository = messageReactionRepository;
         this.messageHiddenForRepository = messageHiddenForRepository;
+        this.statusPostRepository = statusPostRepository;
+        this.userRepository = userRepository;
         this.friendService = friendService;
         this.sessionRegistry = sessionRegistry;
         this.storageService = storageService;
@@ -139,7 +148,10 @@ public class ChatService {
         frame.put("attachmentUrl", dto.attachmentUrl() == null ? "" : dto.attachmentUrl());
         frame.put("sentAt", dto.sentAt().toString());
         if (dto.replyTo() != null) frame.put("replyTo", dto.replyTo());
-        if (dto.replyToStatusId() != null) frame.put("replyToStatusId", dto.replyToStatusId().toString());
+        if (dto.replyToStatusId() != null) {
+            frame.put("replyToStatusId", dto.replyToStatusId().toString());
+            if (dto.replyToStatus() != null) frame.put("replyToStatus", dto.replyToStatus());
+        }
         sessionRegistry.send(recipient, frame);
     }
 
@@ -371,6 +383,18 @@ public class ChatService {
             }
         }
 
+        StatusReplyPreviewDto statusReplyPreview = null;
+        if (m.getReplyToStatusId() != null) {
+            var status = statusPostRepository.findById(m.getReplyToStatusId()).orElse(null);
+            if (status != null) {
+                String authorName = userRepository.findById(status.getUserId())
+                        .map(user -> user.isDeleted() ? "Deleted User" : user.getUsername())
+                        .orElse("Status");
+                statusReplyPreview = new StatusReplyPreviewDto(
+                        status.getId(), status.getUserId(), authorName, status.getMediaUrl(),
+                        status.getTextContent(), status.getCaption(), status.getBackgroundColor());
+            }
+        }
         List<ReactionSummaryDto> reactionSummaries = reactions.stream()
                 .collect(Collectors.groupingBy(MessageReaction::getReactionType))
                 .entrySet().stream()
@@ -386,7 +410,7 @@ public class ChatService {
                 deleted ? DELETED_PLACEHOLDER : m.getContent(),
                 deleted ? null : m.getAttachmentUrl(),
                 m.getSentAt(), m.getDeliveredAt(), m.getReadAt(),
-                replyPreview, m.getReplyToStatusId(),
+                replyPreview, m.getReplyToStatusId(), statusReplyPreview,
                 new ArrayList<>(reactionSummaries),
                 deleted
         );
