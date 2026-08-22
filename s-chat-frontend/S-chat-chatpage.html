@@ -2414,6 +2414,14 @@
                 document.getElementById(
                     "chat-file-sender"
                 );
+                // Friend chat: Enter sends; Shift+Enter inserts a new line.
+            textarea.addEventListener("keydown", (event) => {
+                 if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+
+                    event.preventDefault();
+
+                     chatForm?.requestSubmit();
+            });
 
             if (
                 chatForm &&
