@@ -130,10 +130,18 @@ public class GroupChatService {
         requireMember(groupId, userId);
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(size, 1), 100);
-        List<ChatGroupMessage> messages = messageRepository.findByGroupIdOrderBySentAtDesc(
-                groupId, PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "sentAt"))).getContent();
+        List<ChatGroupMessage> messages = new ArrayList<>(
+            messageRepository.findByGroupIdOrderBySentAtDesc(
+                groupId,
+                PageRequest.of(
+                        safePage,
+                        safeSize,
+                        Sort.by(Sort.Direction.DESC, "sentAt")
+                )
+            ).getContent()
+        );
+
         Collections.reverse(messages);
-        return messages.stream().map(this::toDto).toList();
     }
 
     @Transactional
