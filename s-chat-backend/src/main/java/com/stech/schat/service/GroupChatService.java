@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.*;
 
 @Service
 public class GroupChatService {
@@ -133,13 +132,35 @@ public class GroupChatService {
         List<ChatGroupMessage> messages = messageRepository.findByGroupIdOrderBySentAtDesc(
                 groupId, PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "sentAt"))).getContent();
 
+        System.out.println("========== GROUP CHAT HISTORY DEBUG ==========");
+        System.out.println("User ID: " + userId);
+        System.out.println("Group ID: " + groupId);
+        System.out.println("Requested page: " + safePage);
+        System.out.println("Requested size: " + safeSize);
+        System.out.println("Messages returned from repository: " + messages.size());
+
+        for (ChatGroupMessage message : messages) {
+            System.out.println(
+                    "Message ID: " + message.getId()
+                            + " | Group ID: " + message.getGroupId()
+                            + " | Sender ID: " + message.getSenderId()
+                            + " | Content: " + message.getContent()
+                            + " | Sent At: " + message.getSentAt()
+            );
+        }
+
         // Fix: Page.getContent() may return an unmodifiable list, and Collections.reverse()
         // mutates via set() internally -> UnsupportedOperationException. Copy into a mutable
         // ArrayList before reversing.
         List<ChatGroupMessage> orderedMessages = new ArrayList<>(messages);
         Collections.reverse(orderedMessages);
 
-        return orderedMessages.stream().map(this::toDto).toList();
+        List<GroupMessageDto> result = orderedMessages.stream().map(this::toDto).toList();
+
+        System.out.println("DTO messages returned: " + result.size());
+        System.out.println("==============================================");
+
+        return result;
     }
 
     @Transactional
