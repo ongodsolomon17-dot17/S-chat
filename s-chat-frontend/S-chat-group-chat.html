@@ -73,8 +73,14 @@
             group=await SChatGroups.details(groupId);
             nameEl.textContent=group.name; avatar.src=group.avatarUrl||'images/MY S.png'; meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;
             document.getElementById('manage-btn').style.display='block';
-            const msgs=await SChatGroups.messages(groupId,0,100); messagesEl.innerHTML=''; if(!msgs.length)messagesEl.innerHTML='<div class="empty">No messages yet. Start the conversation.</div>'; else msgs.forEach(renderMessage); scrollBottom();
-            SChatGroupWS.connect();
+            const msgs=await SChatGroups.messages(groupId,0,100);
+            messagesEl.innerHTML='';
+            if(!msgs.length) {
+                messagesEl.innerHTML='<div class="empty">No messages yet. Start the conversation.</div>';
+            } else {
+                msgs.forEach(renderMessage);
+            }
+            scrollBottom();
         }catch(e){messagesEl.innerHTML='<div class="empty">Could not load this group.</div>';toast(e.message)}
     }
     async function reloadGroup(){try{group=await SChatGroups.details(groupId);nameEl.textContent=group.name;avatar.src=group.avatarUrl||'images/MY S.png';meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;document.getElementById('manage-btn').style.display='block';renderMembers();loadAddMemberOptions();}catch(e){toast(e.message)}}
@@ -155,6 +161,9 @@
     document.addEventListener('DOMContentLoaded',()=>{
         setupWebSocketHandler();
         load();
+        // WebSocket is realtime-only and must never be allowed to replace
+        // successfully loaded REST history if connection setup changes later.
+        SChatWS.connect();
     });
 })();
 </script>
