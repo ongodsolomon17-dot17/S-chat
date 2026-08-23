@@ -1,6 +1,10 @@
-// Group-chat WebSocket helpers. The shared SChatWS connection carries both 1:1 and group frames.
+// Group-chat WebSocket helpers.
+// Uses the shared SChatWS connection for both 1:1 and group frames.
+
 window.SChatGroupWS = {
+
   send(groupId, content, attachmentUrl, clientMessageId) {
+
     return SChatWS.sendFrame({
       type: "group_chat",
       groupId,
@@ -8,5 +12,13 @@ window.SChatGroupWS = {
       attachmentUrl: attachmentUrl || null,
       clientMessageId: clientMessageId || null
     });
+
+  },
+
+  onMessage(handler) {
+
+    return SChatWS.onMessage(handler);
+
   }
+
 };

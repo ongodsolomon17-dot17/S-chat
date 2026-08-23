@@ -1889,6 +1889,7 @@ fieldset.custom-size-log-in-page {
   background: linear-gradient(135deg, #0aa89a, #067a8f);
   border: none;
   height: 44px;
+  padding: 5px;
   width: 50px;
   border-radius: 50%;
   cursor: pointer;
