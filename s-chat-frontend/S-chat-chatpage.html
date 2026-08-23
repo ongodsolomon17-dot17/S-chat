@@ -515,6 +515,26 @@
                 `;
             }
 
+            function renderStatusReplyQuote(replyToStatus) {
+                if (!replyToStatus) return "";
+
+                const author = escapeHtml(replyToStatus.authorName || "Status");
+                const text = replyToStatus.textContent || replyToStatus.caption ||
+                    (replyToStatus.mediaUrl
+                        ? (isVideoUrl(replyToStatus.mediaUrl) ? "🎬 Video status"
+                            : isAudioUrl(replyToStatus.mediaUrl) ? "🎙️ Voice status"
+                                : "📷 Photo status")
+                        : "Status update");
+
+                const bg = escapeHtml(replyToStatus.backgroundColor || "#0aa89a");
+                return `
+                    <div class="status-reply-backdrop" style="--status-reply-bg:${bg}">
+                        <span class="status-reply-kicker">Replying to ${author}'s status</span>
+                        <span class="status-reply-text">${escapeHtml(text)}</span>
+                    </div>
+                `;
+            }
+
             function renderMessage(msg, mine) {
 
                 if (!thread) return;
@@ -552,6 +572,7 @@
                 let html = "";
 
                 html += renderReplyQuote(msg.replyTo);
+                html += renderStatusReplyQuote(msg.replyToStatus);
 
                 if (
                     hasMedia &&

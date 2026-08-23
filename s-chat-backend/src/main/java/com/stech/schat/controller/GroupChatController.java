@@ -84,6 +84,14 @@ public class GroupChatController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{groupId}/ownership/{userId}")
+    public ResponseEntity<Void> transferOwnership(Authentication auth,
+                                                   @PathVariable UUID groupId,
+                                                   @PathVariable UUID userId) {
+        groupChatService.transferOwnership(currentUserId(auth), groupId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{groupId}/me")
     public ResponseEntity<Void> leave(Authentication auth, @PathVariable UUID groupId) {
         groupChatService.leave(currentUserId(auth), groupId);

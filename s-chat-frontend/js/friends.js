@@ -50,5 +50,6 @@ window.SChatGroups = {
   async removeMember(groupId, userId) { return SChat.apiFetch(`/chat/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}`, { method: "DELETE" }); },
   async promote(groupId, userId) { return SChat.apiFetch(`/chat/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}/admin`, { method: "POST" }); },
   async demote(groupId, userId) { return SChat.apiFetch(`/chat/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}/admin`, { method: "DELETE" }); },
-  async leave(groupId) { return SChat.apiFetch(`/chat/groups/${encodeURIComponent(groupId)}/me`, { method: "DELETE" }); }
+  async leave(groupId) { return SChat.apiFetch(`/chat/groups/${encodeURIComponent(groupId)}/me`, { method: "DELETE" }); },
+  async transferOwnership(groupId, userId) { return SChat.apiFetch(`/chat/groups/${encodeURIComponent(groupId)}/ownership/${encodeURIComponent(userId)}`, { method: "POST" }); }
 };

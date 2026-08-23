@@ -213,6 +213,28 @@ public class GroupChatService {
     }
 
     @Transactional
+    public void transferOwnership(UUID actorId, UUID groupId, UUID newOwnerId) {
+        ChatGroup group = requireGroup(groupId);
+        if (!actorId.equals(group.getCreatedBy())) {
+            throw new ForbiddenActionException("Only the group creator can transfer ownership");
+        }
+        if (actorId.equals(newOwnerId)) return;
+
+        ChatGroupMember target = requireMember(groupId, newOwnerId);
+        target.setRole(ChatGroupMember.MemberRole.ADMIN);
+        memberRepository.save(target);
+
+        group.setCreatedBy(newOwnerId);
+        groupRepository.save(group);
+
+        Map<String, Object> frame = new HashMap<>();
+        frame.put("type", "group_ownership_transferred");
+        frame.put("groupId", groupId.toString());
+        frame.put("userId", newOwnerId.toString());
+        broadcastGroupEvent(groupId, frame);
+    }
+
+    @Transactional
     public void leave(UUID userId, UUID groupId) {
         ChatGroup group = requireGroup(groupId);
         ChatGroupMember me = requireMember(groupId, userId);

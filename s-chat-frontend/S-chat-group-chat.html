@@ -34,6 +34,14 @@
     <div class="card">
         <h2>Group members</h2>
         <div id="members-list"></div>
+        <div id="group-member-tools" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--group-border)">
+            <div style="font-size:12px;color:var(--group-dim);margin-bottom:7px">Add a friend</div>
+            <div style="display:flex;gap:7px">
+                <select id="add-member-select" style="flex:1;min-width:0;border:1px solid var(--group-border);border-radius:9px;padding:8px;background:#102638;color:var(--group-text)"></select>
+                <button class="close-btn" id="add-member-btn" type="button" style="width:auto;margin:0">Add</button>
+            </div>
+        </div>
+        <button class="close-btn" id="leave-group-btn" type="button" style="margin-top:8px">Leave group</button>
         <button class="close-btn" id="close-members" type="button">Close</button>
     </div>
 </div>
@@ -69,13 +77,31 @@
             SChatWS.connect();
         }catch(e){messagesEl.innerHTML='<div class="empty">Could not load this group.</div>';toast(e.message)}
     }
-    async function reloadGroup(){try{group=await SChatGroups.details(groupId);nameEl.textContent=group.name;avatar.src=group.avatarUrl||'images/MY S.png';meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;document.getElementById('manage-btn').style.display='block';renderMembers();}catch(e){toast(e.message)}}
+    async function reloadGroup(){try{group=await SChatGroups.details(groupId);nameEl.textContent=group.name;avatar.src=group.avatarUrl||'images/MY S.png';meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;document.getElementById('manage-btn').style.display='block';renderMembers();loadAddMemberOptions();}catch(e){toast(e.message)}}
+    async function loadAddMemberOptions(){
+        const tools=document.getElementById('group-member-tools');
+        const select=document.getElementById('add-member-select');
+        if(group?.myRole!=='ADMIN'){tools.style.display='none';return}
+        tools.style.display='block';
+        select.innerHTML='<option value="">Loading friends…</option>';
+        try{
+            const friends=await SChatFriends.myFriends();
+            const existing=new Set((group.members||[]).map(m=>m.userId));
+            const available=friends.map(f=>f.otherUser).filter(u=>u&&!existing.has(u.id));
+            select.innerHTML=available.length?'':'<option value="">No friends available to add</option>';
+            available.forEach(u=>{
+                const opt=document.createElement('option'); opt.value=u.id; opt.textContent=u.username; select.appendChild(opt);
+            });
+        }catch(e){select.innerHTML='<option value="">Could not load friends</option>';toast(e.message)}
+    }
+
     function renderMembers(){
         const list=document.getElementById('members-list');list.innerHTML='';
         if(!group?.members?.length){list.innerHTML='<div class="empty">No members.</div>';return}
         group.members.forEach(m=>{
             const row=document.createElement('div');row.className='member';
-            const isMe=m.userId===me.id, isCreator=m.userId===group.createdBy, canManage=group.myRole==='ADMIN'&&!isMe&&!isCreator;
+            const isMe=m.userId===me.id, isCreator=m.userId===group.createdBy;
+            const canManage=group.myRole==='ADMIN'&&!isMe&&!isCreator;
             row.innerHTML=`<img src="${esc(m.profilePictureUrl||'images/MY S.png')}" alt=""><div class="member-main"><div class="member-name">${esc(m.username)}${isMe?' (you)':''}</div><div class="member-role">${esc(m.role)}${isCreator?' · Creator':''}</div></div><div class="member-actions"></div>`;
             const actions=row.querySelector('.member-actions');
             if(canManage){
@@ -83,30 +109,53 @@
                 const remove=document.createElement('button');remove.className='danger';remove.textContent='Remove';remove.onclick=async()=>{if(!confirm(`Remove ${m.username} from this group?`))return;try{await SChatGroups.removeMember(groupId,m.userId);await reloadGroup()}catch(e){toast(e.message)}};
                 actions.append(admin,remove);
             }
+            if(isMe && isCreator){
+                const note=document.createElement('span');note.style.cssText='font-size:10px;color:var(--group-dim)';note.textContent='Transfer ownership to leave';actions.append(note);
+            }
+            if(group.myRole==='ADMIN' && !isMe && !isCreator && me.id===group.createdBy){
+                const transfer=document.createElement('button');transfer.textContent='Make creator';transfer.onclick=async()=>{if(!confirm(`Transfer group ownership to ${m.username}?`))return;try{await SChatGroups.transferOwnership(groupId,m.userId);await reloadGroup();toast('Group ownership transferred','success')}catch(e){toast(e.message)}};
+                actions.append(transfer);
+            }
             list.appendChild(row);
         });
     }
-    function openMembers(){document.getElementById('members-modal').classList.add('show');document.getElementById('members-modal').setAttribute('aria-hidden','false');renderMembers()}
+
+    function openMembers(){document.getElementById('members-modal').classList.add('show');document.getElementById('members-modal').setAttribute('aria-hidden','false');renderMembers();loadAddMemberOptions()}
     function closeMembers(){document.getElementById('members-modal').classList.remove('show');document.getElementById('members-modal').setAttribute('aria-hidden','true')}
     document.getElementById('back-btn').onclick=()=>history.length>1?history.back():location.href='S-chat-home.html';
     document.getElementById('manage-btn').onclick=openMembers; document.getElementById('close-members').onclick=closeMembers;
     document.getElementById('members-modal').onclick=e=>{if(e.target.id==='members-modal')closeMembers()};
+    document.getElementById('add-member-btn').onclick=async()=>{
+        const userId=document.getElementById('add-member-select').value;
+        if(!userId)return toast('Select a friend to add');
+        try{await SChatGroups.addMember(groupId,userId);await reloadGroup();toast('Member added','success')}catch(e){toast(e.message)}
+    };
+    document.getElementById('leave-group-btn').onclick=async()=>{
+        if(me?.id===group?.createdBy){toast('Transfer ownership to another member before leaving');return}
+        if(!confirm('Leave this group?'))return;
+        try{await SChatGroups.leave(groupId);location.href='S-chat-home.html'}catch(e){toast(e.message)}
+    };
     document.getElementById('composer').addEventListener('submit',async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;sendBtn.disabled=true;const clientMessageId=crypto.randomUUID?crypto.randomUUID():String(Date.now());const sent=SChatGroupWS.send(groupId,content,null,clientMessageId);if(!sent){try{const m=await SChatGroups.send(groupId,content);const existing=messagesEl.querySelector(`[data-message-id="${CSS.escape(m.id)}"]`);if(!existing)renderMessage(m);scrollBottom();input.value=''}catch(err){toast(err.message)}}else input.value='';sendBtn.disabled=false;input.focus()});
     input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('composer').requestSubmit()}});
-    SChatWS.onMessage(async data=>{
-        if(!data)return;
-        if(data.type==='group_chat'&&data.groupId===groupId){
-            if(!messagesEl.querySelector(`[data-message-id="${CSS.escape(data.id)}"]`)){renderMessage({id:data.id,groupId:data.groupId,senderId:data.senderId,senderName:data.senderName,senderAvatarUrl:data.senderAvatarUrl,content:data.content,attachmentUrl:data.attachmentUrl,sentAt:data.sentAt,deleted:false});scrollBottom()}
-        } else if(['group_member_added','group_member_removed','group_member_left','group_admin_promoted','group_admin_demoted'].includes(data.type)&&data.groupId===groupId){
-            if((data.type==='group_member_removed'||data.type==='group_member_left')&&data.userId===me?.id){
-                toast('You are no longer a member of this group');
-                location.href='S-chat-home.html';
-                return;
+    function setupWebSocketHandler(){
+        SChatWS.onMessage(async data=>{
+            if(!data)return;
+            if(data.type==='group_chat'&&data.groupId===groupId){
+                if(!messagesEl.querySelector(`[data-message-id="${CSS.escape(data.id)}"]`)){renderMessage({id:data.id,groupId:data.groupId,senderId:data.senderId,senderName:data.senderName,senderAvatarUrl:data.senderAvatarUrl,content:data.content,attachmentUrl:data.attachmentUrl,sentAt:data.sentAt,deleted:false});scrollBottom()}
+            } else if(['group_member_added','group_member_removed','group_member_left','group_admin_promoted','group_admin_demoted','group_ownership_transferred'].includes(data.type)&&data.groupId===groupId){
+                if((data.type==='group_member_removed'||data.type==='group_member_left')&&data.userId===me?.id){
+                    toast('You are no longer a member of this group');
+                    location.href='S-chat-home.html';
+                    return;
+                }
+                await reloadGroup();
             }
-            await reloadGroup();
-        }
+        });
+    }
+    document.addEventListener('DOMContentLoaded',()=>{
+        setupWebSocketHandler();
+        load();
     });
-    document.addEventListener('DOMContentLoaded',load);
 })();
 </script>
 </body>
