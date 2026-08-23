@@ -25,7 +25,7 @@
     </header>
     <main id="messages"><div class="empty">Loading messages…</div></main>
     <form class="composer" id="composer">
-        <textarea id="message-input" maxlength="5000" placeholder="Type a message…" rows="1"></textarea>
+        <textarea id="message-input" maxlength="5000" placeholder="Type a message…" rows="1" autocomplete="on" autocorrect="on" autofocus></textarea>
         <button class="send-btn" id="send-btn" type="submit">Send</button>
     </form>
 </div>
@@ -74,7 +74,7 @@
             nameEl.textContent=group.name; avatar.src=group.avatarUrl||'images/MY S.png'; meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;
             document.getElementById('manage-btn').style.display='block';
             const msgs=await SChatGroups.messages(groupId,0,100); messagesEl.innerHTML=''; if(!msgs.length)messagesEl.innerHTML='<div class="empty">No messages yet. Start the conversation.</div>'; else msgs.forEach(renderMessage); scrollBottom();
-            SChatWS.connect();
+            SChatGroupWS.connect();
         }catch(e){messagesEl.innerHTML='<div class="empty">Could not load this group.</div>';toast(e.message)}
     }
     async function reloadGroup(){try{group=await SChatGroups.details(groupId);nameEl.textContent=group.name;avatar.src=group.avatarUrl||'images/MY S.png';meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;document.getElementById('manage-btn').style.display='block';renderMembers();loadAddMemberOptions();}catch(e){toast(e.message)}}
@@ -138,7 +138,7 @@
     document.getElementById('composer').addEventListener('submit',async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;sendBtn.disabled=true;const clientMessageId=crypto.randomUUID?crypto.randomUUID():String(Date.now());const sent=SChatGroupWS.send(groupId,content,null,clientMessageId);if(!sent){try{const m=await SChatGroups.send(groupId,content);const existing=messagesEl.querySelector(`[data-message-id="${CSS.escape(m.id)}"]`);if(!existing)renderMessage(m);scrollBottom();input.value=''}catch(err){toast(err.message)}}else input.value='';sendBtn.disabled=false;input.focus()});
     input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('composer').requestSubmit()}});
     function setupWebSocketHandler(){
-        SChatWS.onMessage(async data=>{
+    SChatGroupWS.onMessage(async data=>{
             if(!data)return;
             if(data.type==='group_chat'&&data.groupId===groupId){
                 if(!messagesEl.querySelector(`[data-message-id="${CSS.escape(data.id)}"]`)){renderMessage({id:data.id,groupId:data.groupId,senderId:data.senderId,senderName:data.senderName,senderAvatarUrl:data.senderAvatarUrl,content:data.content,attachmentUrl:data.attachmentUrl,sentAt:data.sentAt,deleted:false});scrollBottom()}
