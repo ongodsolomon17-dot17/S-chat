@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-Chat Group</title>
+    <script src="js/config.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <style>
+        :root{--group-bg:#06111b;--group-panel:#0b1b29;--group-border:rgba(255,255,255,.09);--group-text:#eef8ff;--group-dim:#91a7b7;--group-accent:#28d7ff}
+        *{box-sizing:border-box}body{margin:0;background:var(--group-bg);color:var(--group-text);font-family:Arial,sans-serif;height:100vh;overflow:hidden}.group-page{height:100vh;display:flex;flex-direction:column;max-width:900px;margin:auto;background:linear-gradient(180deg,#071522,#06111b)}
+        .group-header{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--group-border);background:rgba(11,27,41,.96);backdrop-filter:blur(12px)}.back{border:0;background:transparent;color:var(--group-text);font-size:24px;cursor:pointer}.group-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover}.group-title{min-width:0;flex:1}.group-title h1{font-size:16px;margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.group-title div{font-size:11px;color:var(--group-dim)}.manage-btn{border:1px solid var(--group-border);background:rgba(255,255,255,.05);color:var(--group-text);border-radius:9px;padding:8px 10px;cursor:pointer}
+        #messages{flex:1;overflow-y:auto;padding:16px 12px 20px}.message{display:flex;margin:5px 0}.message.mine{justify-content:flex-end}.bubble{max-width:min(76%,600px);padding:9px 11px;border-radius:14px;background:#102638;border:1px solid var(--group-border)}.mine .bubble{background:#0d4d60}.sender{font-size:10px;color:var(--group-accent);font-weight:700;margin-bottom:4px}.body{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}.time{font-size:9px;color:var(--group-dim);text-align:right;margin-top:4px}.deleted{font-style:italic;color:var(--group-dim)}
+        .composer{display:flex;gap:8px;padding:10px;border-top:1px solid var(--group-border);background:var(--group-panel)}#message-input{flex:1;resize:none;min-height:42px;max-height:130px;border:1px solid var(--group-border);border-radius:12px;padding:11px;background:rgba(0,0,0,.22);color:var(--group-text);outline:none}.send-btn{border:0;border-radius:12px;padding:0 16px;background:var(--group-accent);color:#00202b;font-weight:800;cursor:pointer}.send-btn:disabled{opacity:.55;cursor:not-allowed}
+        .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);z-index:50}.modal.show{display:flex}.card{width:min(520px,100%);max-height:88vh;overflow:auto;background:var(--group-panel);border:1px solid var(--group-border);border-radius:18px;padding:18px}.card h2{margin:0 0 14px;font-size:19px}.member{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)}.member:last-child{border-bottom:0}.member img{width:40px;height:40px;border-radius:50%;object-fit:cover}.member-main{flex:1;min-width:0}.member-name{font-weight:700}.member-role{font-size:10px;color:var(--group-dim);margin-top:2px}.member-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.member-actions button{border:1px solid var(--group-border);background:rgba(255,255,255,.05);color:var(--group-text);border-radius:8px;padding:6px 8px;font-size:11px;cursor:pointer}.member-actions .danger{color:#ffabab}.close-btn{margin-top:14px;width:100%;padding:10px;border:0;border-radius:9px;background:rgba(255,255,255,.08);color:var(--group-text);cursor:pointer}.empty{text-align:center;color:var(--group-dim);padding:30px 10px}
+    </style>
+</head>
+<body>
+<div class="group-page">
+    <header class="group-header">
+        <button class="back" id="back-btn" aria-label="Back">‹</button>
+        <img class="group-avatar" id="group-avatar" src="images/MY S.png" alt="">
+        <div class="group-title"><h1 id="group-name">Group</h1><div id="group-meta">Loading…</div></div>
+        <button class="manage-btn" id="manage-btn" type="button">Members</button>
+    </header>
+    <main id="messages"><div class="empty">Loading messages…</div></main>
+    <form class="composer" id="composer">
+        <textarea id="message-input" maxlength="5000" placeholder="Type a message…" rows="1"></textarea>
+        <button class="send-btn" id="send-btn" type="submit">Send</button>
+    </form>
+</div>
+
+<div class="modal" id="members-modal" aria-hidden="true">
+    <div class="card">
+        <h2>Group members</h2>
+        <div id="members-list"></div>
+        <button class="close-btn" id="close-members" type="button">Close</button>
+    </div>
+</div>
+
+<script src="js/auth.js" defer></script>
+<script src="js/friends.js" defer></script>
+<script src="js/ws-chat.js" defer></script>
+<script src="js/group-chat.js" defer></script>
+<script>
+(function(){
+    const params=new URLSearchParams(location.search); const groupId=params.get('group');
+    let me=null, group=null;
+    const messagesEl=document.getElementById('messages'); const input=document.getElementById('message-input'); const sendBtn=document.getElementById('send-btn');
+    const avatar=document.getElementById('group-avatar'), nameEl=document.getElementById('group-name'), meta=document.getElementById('group-meta');
+    const esc=v=>{const d=document.createElement('div');d.textContent=v==null?'':String(v);return d.innerHTML};
+    const fmt=v=>{const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});};
+    function toast(msg,type='error'){if(window.SChat&&SChat.showToast)SChat.showToast(msg,type);else alert(msg)}
+    function renderMessage(m){
+        const row=document.createElement('div'); row.className='message'+(me&&m.senderId===me.id?' mine':'');
+        row.dataset.messageId=m.id;
+        row.innerHTML=`<div class="bubble"><div class="sender">${esc(m.senderId===me?.id?'You':m.senderName)}</div><div class="body${m.deleted?' deleted':''}">${esc(m.content||'')}${m.attachmentUrl?`<div style="margin-top:6px"><a href="${esc(m.attachmentUrl)}" target="_blank" rel="noopener" style="color:var(--group-accent)">Attachment</a></div>`:''}</div><div class="time">${esc(fmt(m.sentAt))}</div></div>`;
+        messagesEl.appendChild(row);
+    }
+    function scrollBottom(){messagesEl.scrollTop=messagesEl.scrollHeight}
+    async function load(){
+        if(!groupId){toast('Group not found');return}
+        try{
+            me=await SChat.apiFetch('/users/me');
+            group=await SChatGroups.details(groupId);
+            nameEl.textContent=group.name; avatar.src=group.avatarUrl||'images/MY S.png'; meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;
+            document.getElementById('manage-btn').style.display='block';
+            const msgs=await SChatGroups.messages(groupId,0,100); messagesEl.innerHTML=''; if(!msgs.length)messagesEl.innerHTML='<div class="empty">No messages yet. Start the conversation.</div>'; else msgs.forEach(renderMessage); scrollBottom();
+            SChatWS.connect();
+        }catch(e){messagesEl.innerHTML='<div class="empty">Could not load this group.</div>';toast(e.message)}
+    }
+    async function reloadGroup(){try{group=await SChatGroups.details(groupId);nameEl.textContent=group.name;avatar.src=group.avatarUrl||'images/MY S.png';meta.textContent=`${group.members.length} members · ${group.myRole==='ADMIN'?'Admin':'Member'}`;document.getElementById('manage-btn').style.display='block';renderMembers();}catch(e){toast(e.message)}}
+    function renderMembers(){
+        const list=document.getElementById('members-list');list.innerHTML='';
+        if(!group?.members?.length){list.innerHTML='<div class="empty">No members.</div>';return}
+        group.members.forEach(m=>{
+            const row=document.createElement('div');row.className='member';
+            const isMe=m.userId===me.id, isCreator=m.userId===group.createdBy, canManage=group.myRole==='ADMIN'&&!isMe&&!isCreator;
+            row.innerHTML=`<img src="${esc(m.profilePictureUrl||'images/MY S.png')}" alt=""><div class="member-main"><div class="member-name">${esc(m.username)}${isMe?' (you)':''}</div><div class="member-role">${esc(m.role)}${isCreator?' · Creator':''}</div></div><div class="member-actions"></div>`;
+            const actions=row.querySelector('.member-actions');
+            if(canManage){
+                const admin=document.createElement('button');admin.textContent=m.role==='ADMIN'?'Remove admin':'Make admin';admin.onclick=async()=>{try{if(m.role==='ADMIN')await SChatGroups.demote(groupId,m.userId);else await SChatGroups.promote(groupId,m.userId);await reloadGroup()}catch(e){toast(e.message)}};
+                const remove=document.createElement('button');remove.className='danger';remove.textContent='Remove';remove.onclick=async()=>{if(!confirm(`Remove ${m.username} from this group?`))return;try{await SChatGroups.removeMember(groupId,m.userId);await reloadGroup()}catch(e){toast(e.message)}};
+                actions.append(admin,remove);
+            }
+            list.appendChild(row);
+        });
+    }
+    function openMembers(){document.getElementById('members-modal').classList.add('show');document.getElementById('members-modal').setAttribute('aria-hidden','false');renderMembers()}
+    function closeMembers(){document.getElementById('members-modal').classList.remove('show');document.getElementById('members-modal').setAttribute('aria-hidden','true')}
+    document.getElementById('back-btn').onclick=()=>history.length>1?history.back():location.href='S-chat-home.html';
+    document.getElementById('manage-btn').onclick=openMembers; document.getElementById('close-members').onclick=closeMembers;
+    document.getElementById('members-modal').onclick=e=>{if(e.target.id==='members-modal')closeMembers()};
+    document.getElementById('composer').addEventListener('submit',async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;sendBtn.disabled=true;const clientMessageId=crypto.randomUUID?crypto.randomUUID():String(Date.now());const sent=SChatGroupWS.send(groupId,content,null,clientMessageId);if(!sent){try{const m=await SChatGroups.send(groupId,content);const existing=messagesEl.querySelector(`[data-message-id="${CSS.escape(m.id)}"]`);if(!existing)renderMessage(m);scrollBottom();input.value=''}catch(err){toast(err.message)}}else input.value='';sendBtn.disabled=false;input.focus()});
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('composer').requestSubmit()}});
+    SChatWS.onMessage(async data=>{
+        if(!data)return;
+        if(data.type==='group_chat'&&data.groupId===groupId){
+            if(!messagesEl.querySelector(`[data-message-id="${CSS.escape(data.id)}"]`)){renderMessage({id:data.id,groupId:data.groupId,senderId:data.senderId,senderName:data.senderName,senderAvatarUrl:data.senderAvatarUrl,content:data.content,attachmentUrl:data.attachmentUrl,sentAt:data.sentAt,deleted:false});scrollBottom()}
+        } else if(['group_member_added','group_member_removed','group_member_left','group_admin_promoted','group_admin_demoted'].includes(data.type)&&data.groupId===groupId){
+            if((data.type==='group_member_removed'||data.type==='group_member_left')&&data.userId===me?.id){
+                toast('You are no longer a member of this group');
+                location.href='S-chat-home.html';
+                return;
+            }
+            await reloadGroup();
+        }
+    });
+    document.addEventListener('DOMContentLoaded',load);
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package com.stech.schat.controller;
 
 import com.stech.schat.dto.FriendRequestDto;
+import com.stech.schat.dto.FriendProfileDto;
 import com.stech.schat.dto.SendFriendRequestRequest;
 import com.stech.schat.service.FriendService;
 import jakarta.validation.Valid;
@@ -46,5 +47,28 @@ public class FriendController {
     @GetMapping
     public ResponseEntity<List<FriendRequestDto>> myFriends(Authentication auth) {
         return ResponseEntity.ok(friendService.listFriends(currentUserId(auth)));
+    }
+
+    @GetMapping("/{friendId}/profile")
+    public ResponseEntity<FriendProfileDto> friendProfile(Authentication auth, @PathVariable UUID friendId) {
+        return ResponseEntity.ok(friendService.getFriendProfile(currentUserId(auth), friendId));
+    }
+
+    @DeleteMapping("/{friendId}")
+    public ResponseEntity<Void> removeFriend(Authentication auth, @PathVariable UUID friendId) {
+        friendService.removeFriend(currentUserId(auth), friendId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{friendId}/block")
+    public ResponseEntity<Void> block(Authentication auth, @PathVariable UUID friendId) {
+        friendService.block(currentUserId(auth), friendId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{friendId}/block")
+    public ResponseEntity<Void> unblock(Authentication auth, @PathVariable UUID friendId) {
+        friendService.unblock(currentUserId(auth), friendId);
+        return ResponseEntity.noContent().build();
     }
 }

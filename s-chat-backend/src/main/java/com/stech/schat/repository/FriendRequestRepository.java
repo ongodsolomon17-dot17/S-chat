@@ -30,4 +30,12 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, UU
             OR (fr.requesterId = :userB AND fr.addresseeId = :userA))
         """)
     boolean areFriends(@Param("userA") UUID userA, @Param("userB") UUID userB);
+
+    @Query("""
+        SELECT fr FROM FriendRequest fr
+        WHERE fr.status = com.stech.schat.model.FriendRequestStatus.ACCEPTED
+          AND ((fr.requesterId = :userA AND fr.addresseeId = :userB)
+            OR (fr.requesterId = :userB AND fr.addresseeId = :userA))
+        """)
+    Optional<FriendRequest> findAcceptedFriendshipBetween(@Param("userA") UUID userA, @Param("userB") UUID userB);
 }

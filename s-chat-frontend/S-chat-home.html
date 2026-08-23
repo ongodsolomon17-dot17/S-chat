@@ -8,6 +8,32 @@
     <script src="js/config.js" defer></script>
     <script src="js/api.js" defer></script>
     <style>
+
+        .friend-row { position: relative; }
+        .friend-row-menu {
+            flex-shrink: 0; border: 0; background: transparent; color: var(--s-text-dim);
+            font-size: 22px; line-height: 1; padding: 6px; cursor: pointer; border-radius: 8px;
+        }
+        .friend-row-menu:hover { background: rgba(255,255,255,.08); color: var(--s-text); }
+        .friend-profile-modal {
+            position: fixed; inset: 0; z-index: 5000; display: none; align-items: center; justify-content: center;
+            padding: 20px; background: rgba(0,0,0,.68); backdrop-filter: blur(6px);
+        }
+        .friend-profile-modal.show { display: flex; }
+        .friend-profile-card {
+            position: relative; width: min(360px, 100%); padding: 26px 22px 22px; text-align: center;
+            border-radius: 18px; background: var(--s-panel); border: 1px solid var(--s-accent-cyan-dim);
+            box-shadow: 0 18px 60px rgba(0,0,0,.45);
+        }
+        .friend-profile-card > img { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
+        .friend-profile-card h2 { margin: 4px 0; }
+        .friend-profile-id { color: var(--s-text-dim); font-size: 12px; margin-bottom: 18px; }
+        .friend-profile-close { position:absolute; right:10px; top:8px; border:0; background:transparent; color:var(--s-text-dim); font-size:26px; cursor:pointer; }
+        .friend-profile-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+        .friend-profile-actions button { border:0; border-radius:9px; padding:9px 13px; cursor:pointer; background:rgba(255,255,255,.08); color:var(--s-text); }
+        .friend-profile-actions button:first-child { background:var(--s-accent-cyan); color:#01192d; font-weight:700; }
+        .friend-profile-actions button.danger { color:#ff9f9f; }
+
         .friend-row {
             display: flex;
             align-items: center;
@@ -77,7 +103,7 @@
             align-items: center;
             justify-content: center;
         }
-        .friend-row.has-unread .name { font-weight: 800; }
+        .friend-row.has-unread .name { font-weight: 800; }        .group-section{max-width:640px;margin:0 auto;padding:0 8px 8px}.group-section-head{display:flex;align-items:center;justify-content:space-between;padding:8px 4px;color:var(--s-text-dim);font-size:12px}.group-create-btn{border:0;border-radius:9px;padding:8px 12px;background:var(--s-accent-cyan);color:#01192d;font-weight:700;cursor:pointer}.group-row{display:flex;align-items:center;gap:12px;padding:11px 10px;margin-bottom:4px;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04)}.group-row:hover{background:rgba(255,255,255,.07)}.group-row img{width:44px;height:44px;border-radius:50%;object-fit:cover}.group-row .group-main{min-width:0;flex:1}.group-row .group-name{font-weight:700}.group-row .group-sub{font-size:11px;color:var(--s-text-dim);margin-top:3px}.group-modal{position:fixed;inset:0;z-index:6000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(6px)}.group-modal.show{display:flex}.group-card{width:min(430px,100%);max-height:85vh;overflow:auto;background:var(--s-panel);border:1px solid var(--s-accent-cyan-dim);border-radius:18px;padding:20px}.group-card h2{margin:0 0 14px}.group-card input{width:100%;box-sizing:border-box;padding:11px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.2);color:var(--s-text);margin-bottom:12px}.group-friends{max-height:330px;overflow:auto}.group-friend-option{display:flex;align-items:center;gap:10px;padding:9px 4px}.group-friend-option img{width:38px;height:38px;border-radius:50%;object-fit:cover}.group-friend-option label{display:flex;align-items:center;gap:10px;width:100%;cursor:pointer}.group-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.group-modal-actions button{border:0;border-radius:9px;padding:9px 13px;cursor:pointer}.group-cancel{background:rgba(255,255,255,.08);color:var(--s-text)}.group-submit{background:var(--s-accent-cyan);color:#01192d;font-weight:700}
         .friend-row.has-unread .sub { color: var(--s-text); }
 
         .notif-banner {
@@ -173,8 +199,36 @@
             </div>
         </div>
 
+        <div class="group-section">
+            <div class="group-section-head"><span>GROUPS</span><button type="button" class="group-create-btn" id="create-group-btn">+ Create group</button></div>
+            <div id="group-list"></div>
+        </div>
         <div id="friend-list" style="padding: 8px 8px 140px; max-width: 640px; margin: 0 auto;"></div>
+
+        <div class="group-modal" id="group-create-modal" aria-hidden="true">
+            <div class="group-card" role="dialog" aria-modal="true" aria-labelledby="group-create-title">
+                <h2 id="group-create-title">Create group</h2>
+                <input id="group-name-input" type="text" maxlength="80" placeholder="Group name" autocomplete="off">
+                <div class="group-friends" id="group-friends-list"></div>
+                <div class="group-modal-actions"><button class="group-cancel" type="button" id="group-cancel-btn">Cancel</button><button class="group-submit" type="button" id="group-submit-btn">Create group</button></div>
+            </div>
+        </div>
     </div>
+
+
+        <div class="friend-profile-modal" id="friend-profile-modal" aria-hidden="true">
+            <div class="friend-profile-card" role="dialog" aria-modal="true" aria-labelledby="friend-profile-name">
+                <button type="button" class="friend-profile-close" id="friend-profile-close" aria-label="Close">&times;</button>
+                <img id="friend-profile-avatar" src="images/MY S.png" alt="Friend profile picture">
+                <h2 id="friend-profile-name">Friend</h2>
+                <div class="friend-profile-id" id="friend-profile-id"></div>
+                <div class="friend-profile-actions">
+                    <button type="button" id="friend-profile-chat">Chat</button>
+                    <button type="button" id="friend-profile-block">Block</button>
+                    <button type="button" id="friend-profile-remove" class="danger">Delete friend</button>
+                </div>
+            </div>
+        </div>
 
     <div class="pages-btn-container">
         <nav><a href="S-chat-home.html"><button class="primary-btn"><img src="my icons/chats-icon.png" alt="" width="20" height="20">Chats</button></a></nav>
@@ -185,6 +239,7 @@
 
     <script src="js/nav.js" defer></script>
     <script src="js/friends.js" defer></script>
+    <script src="js/group-chat.js" defer></script>
     <script src="js/ws-chat.js" defer></script>
     <script src="js/notifications.js" defer></script>
     <script>
@@ -262,13 +317,20 @@
                                 ${unread > 0 ? `<span class="unread-badge">${unread > 99 ? "99+" : unread}</span>` : ""}
                             </div>
                         </div>
+                        <button type="button" class="friend-row-menu" aria-label="Friend options" title="Friend options">⋮</button>
                     `;
 
                     const open = () => {
                         window.location.href = `S-chat-chatpage.html?friend=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.username)}`;
                     };
+                    const menuBtn = row.querySelector(".friend-row-menu");
+                    menuBtn.addEventListener("click", async (e) => {
+                        e.stopPropagation();
+                        await openFriendProfile(user);
+                    });
                     row.addEventListener("click", open);
                     row.addEventListener("keydown", (e) => {
+                        if (e.target === menuBtn) return;
                         if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             open();
@@ -277,6 +339,66 @@
                     list.appendChild(row);
                 });
             }
+
+            const profileModal = document.getElementById("friend-profile-modal");
+            const profileAvatar = document.getElementById("friend-profile-avatar");
+            const profileName = document.getElementById("friend-profile-name");
+            const profileId = document.getElementById("friend-profile-id");
+            let profileFriend = null;
+
+            function closeFriendProfile() {
+                profileModal.classList.remove("show");
+                profileModal.setAttribute("aria-hidden", "true");
+                profileFriend = null;
+            }
+
+            async function openFriendProfile(user) {
+                profileFriend = user;
+                profileAvatar.src = user.profilePictureUrl || "images/MY S.png";
+                profileName.textContent = user.username || "Friend";
+                profileId.textContent = "Loading profile…";
+                profileModal.classList.add("show");
+                profileModal.setAttribute("aria-hidden", "false");
+                try {
+                    const profile = await SChatFriends.profile(user.id);
+                    if (!profileFriend || profileFriend.id !== user.id) return;
+                    profileAvatar.src = profile.profilePictureUrl || "images/MY S.png";
+                    profileName.textContent = profile.username || user.username || "Friend";
+                    profileId.textContent = profile.publicId ? "S-Chat ID: " + profile.publicId : "";
+                } catch (err) {
+                    closeFriendProfile();
+                    SChat.showToast(err.message, "error");
+                }
+            }
+
+            document.getElementById("friend-profile-close").addEventListener("click", closeFriendProfile);
+            profileModal.addEventListener("click", (e) => { if (e.target === profileModal) closeFriendProfile(); });
+            document.getElementById("friend-profile-chat").addEventListener("click", () => {
+                if (!profileFriend) return;
+                window.location.href = `S-chat-chatpage.html?friend=${encodeURIComponent(profileFriend.id)}&name=${encodeURIComponent(profileFriend.username)}`;
+            });
+            document.getElementById("friend-profile-remove").addEventListener("click", async () => {
+                if (!profileFriend || !confirm(`Delete ${profileFriend.username} from your friends/chat list? Your existing messages will remain stored.`)) return;
+                try {
+                    await SChatFriends.remove(profileFriend.id);
+                    const removedId = profileFriend.id;
+                    allChats = allChats.filter(c => c.otherUser?.id !== removedId);
+                    renderFriends(allChats);
+                    closeFriendProfile();
+                    SChat.showToast("Friend removed", "success");
+                } catch (err) { SChat.showToast(err.message, "error"); }
+            });
+            document.getElementById("friend-profile-block").addEventListener("click", async () => {
+                if (!profileFriend || !confirm(`Block ${profileFriend.username}? They will no longer be able to message you.`)) return;
+                try {
+                    await SChatFriends.block(profileFriend.id);
+                    const blockedId = profileFriend.id;
+                    allChats = allChats.filter(c => c.otherUser?.id !== blockedId);
+                    renderFriends(allChats);
+                    closeFriendProfile();
+                    SChat.showToast("Friend blocked", "success");
+                } catch (err) { SChat.showToast(err.message, "error"); }
+            });
 
             async function loadChats() {
                 if (reloadInProgress) return;
@@ -359,12 +481,76 @@
                 });
             }
 
+            async function loadGroups() {
+                const list = document.getElementById("group-list");
+                if (!list) return;
+                try {
+                    const groups = await SChatGroups.list();
+                    list.innerHTML = groups.length ? "" : '<div style="padding:6px 4px 10px;color:var(--s-text-dim);font-size:11px">No groups yet.</div>';
+                    groups.forEach((g) => {
+                        const row = document.createElement("div");
+                        row.className = "group-row";
+                        row.tabIndex = 0;
+                        row.innerHTML = `<img src="${escapeHtml(g.avatarUrl || 'images/MY S.png')}" alt=""><div class="group-main"><div class="group-name">${escapeHtml(g.name)}</div><div class="group-sub">${g.memberCount} members · ${escapeHtml(g.myRole === 'ADMIN' ? 'Admin' : 'Member')}</div></div>`;
+                        const open = () => { window.location.href = `S-chat-group-chat.html?group=${encodeURIComponent(g.id)}`; };
+                        row.addEventListener("click", open);
+                        row.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+                        list.appendChild(row);
+                    });
+                } catch (err) { SChat.showToast(err.message, "error"); }
+            }
+
+            async function openCreateGroup() {
+                const modal = document.getElementById("group-create-modal");
+                const list = document.getElementById("group-friends-list");
+                const name = document.getElementById("group-name-input");
+                try {
+                    const friends = await SChatFriends.myFriends();
+                    list.innerHTML = friends.length ? "" : '<div style="padding:10px;color:var(--s-text-dim);font-size:12px">Add friends first before creating a group.</div>';
+                    friends.forEach((f) => {
+                        const u = f.otherUser;
+                        const row = document.createElement("div");
+                        row.className = "group-friend-option";
+                        row.innerHTML = `<label><input type="checkbox" value="${escapeHtml(u.id)}"><img src="${escapeHtml(u.profilePictureUrl || 'images/MY S.png')}" alt=""><span>${escapeHtml(u.username)}</span></label>`;
+                        list.appendChild(row);
+                    });
+                    name.value = "";
+                    modal.classList.add("show");
+                    modal.setAttribute("aria-hidden", "false");
+                    name.focus();
+                } catch (err) { SChat.showToast(err.message, "error"); }
+            }
+
+            function closeCreateGroup() {
+                const modal = document.getElementById("group-create-modal");
+                modal.classList.remove("show");
+                modal.setAttribute("aria-hidden", "true");
+            }
+
+            async function createGroup() {
+                const name = document.getElementById("group-name-input").value.trim();
+                const memberIds = [...document.querySelectorAll("#group-friends-list input[type=checkbox]:checked")].map((x) => x.value);
+                if (!name) { SChat.showToast("Enter a group name", "error"); return; }
+                if (!memberIds.length) { SChat.showToast("Select at least one friend", "error"); return; }
+                if (memberIds.length > 49) { SChat.showToast("A group can have at most 50 members", "error"); return; }
+                try {
+                    const group = await SChatGroups.create(name, memberIds);
+                    closeCreateGroup();
+                    window.location.href = `S-chat-group-chat.html?group=${encodeURIComponent(group.id)}`;
+                } catch (err) { SChat.showToast(err.message, "error"); }
+            }
+
             document.addEventListener("DOMContentLoaded", () => {
                 const searchInput = document.getElementById("chat-search-input");
                 searchInput.addEventListener("input", (e) => {
                     searchQuery = e.target.value.trim().toLowerCase();
                     renderFriends(allChats);
                 });
+
+                document.getElementById("create-group-btn").addEventListener("click", openCreateGroup);
+                document.getElementById("group-cancel-btn").addEventListener("click", closeCreateGroup);
+                document.getElementById("group-submit-btn").addEventListener("click", createGroup);
+                document.getElementById("group-create-modal").addEventListener("click", (e) => { if (e.target.id === "group-create-modal") closeCreateGroup(); });
 
                 document.getElementById("ai-assistant-row").addEventListener("click", openAIAssistant);
                 document.getElementById("ai-assistant-row").addEventListener("keydown", (e) => {
@@ -375,12 +561,13 @@
                 });
 
                 loadChats();
+                loadGroups();
                 loadMyAvatar();
                 setupNotifications();
 
                 if (typeof SChatWS !== "undefined") {
                     SChatWS.connect();
-                    SChatWS.onMessage(updateFromIncomingMessage);
+                    SChatWS.onMessage((data) => { updateFromIncomingMessage(data); if (data && String(data.type || "").startsWith("group_")) loadGroups(); });
                 }
 
                 // Re-check when returning to this page/tab so a message sent from

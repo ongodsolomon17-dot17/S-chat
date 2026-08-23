@@ -6,6 +6,8 @@ import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.model.CallRecord;
 import com.stech.schat.service.CallService;
 import com.stech.schat.service.ChatService;
+import com.stech.schat.service.GroupChatService;
+import com.stech.schat.dto.GroupMessageDto;
 import com.stech.schat.repository.UserRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
@@ -28,17 +30,20 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final WebSocketSessionRegistry sessionRegistry;
     private final UserRepository userRepository;
+    private final GroupChatService groupChatService;
     private static final int MAX_FRAME_CHARS = 64 * 1024;
     private static final int MAX_MESSAGES_PER_10S = 80;
     private final ConcurrentMap<String, Deque<Long>> rateWindows = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(ChatService chatService, CallService callService,
-                                ObjectMapper objectMapper, WebSocketSessionRegistry sessionRegistry, UserRepository userRepository) {
+                                ObjectMapper objectMapper, WebSocketSessionRegistry sessionRegistry, UserRepository userRepository,
+                                GroupChatService groupChatService) {
         this.chatService = chatService;
         this.callService = callService;
         this.objectMapper = objectMapper;
         this.sessionRegistry = sessionRegistry;
         this.userRepository = userRepository;
+        this.groupChatService = groupChatService;
     }
 
     @Override
@@ -76,6 +81,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             String type = String.valueOf(payload.get("type"));
             switch (type) {
                 case "chat" -> handleChat(session, senderId, payload);
+                case "group_chat" -> handleGroupChat(session, senderId, payload);
                 case "call_invite" -> handleCallInvite(session, senderId, payload);
                 case "call_accept" -> handleCallAccept(senderId, payload);
                 case "call_reject" -> handleCallReject(senderId, payload);
@@ -111,6 +117,23 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
         sendJson(session, ack);
         chatService.pushToOtherParticipant(saved, senderId);
+    }
+
+    private void handleGroupChat(WebSocketSession session, UUID senderId, Map<String, Object> p) throws IOException {
+        UUID groupId = UUID.fromString(String.valueOf(p.get("groupId")));
+        String content = String.valueOf(p.getOrDefault("content", ""));
+        String attachmentUrl = p.get("attachmentUrl") == null ? null : String.valueOf(p.get("attachmentUrl"));
+        if (content.length() > 5000) { sendError(session, "Message is too long"); return; }
+        if (attachmentUrl != null && attachmentUrl.length() > 2048) { sendError(session, "Attachment URL is too long"); return; }
+        if (content.isBlank() && attachmentUrl == null) { sendError(session, "Message cannot be empty"); return; }
+
+        GroupMessageDto saved = groupChatService.sendMessage(senderId, groupId, content, attachmentUrl);
+        Map<String, Object> ack = new HashMap<>();
+        ack.put("type", "group_ack");
+        ack.put("id", saved.id().toString());
+        ack.put("groupId", groupId.toString());
+        if (p.get("clientMessageId") != null) ack.put("clientMessageId", String.valueOf(p.get("clientMessageId")));
+        sendJson(session, ack);
     }
 
     private void handleCallInvite(WebSocketSession session, UUID callerId, Map<String, Object> p) throws IOException {

@@ -1,6 +1,7 @@
 package com.stech.schat.service;
 
 import com.stech.schat.dto.FriendRequestDto;
+import com.stech.schat.dto.FriendProfileDto;
 import com.stech.schat.dto.SendFriendRequestRequest;
 import com.stech.schat.dto.UserSummaryDto;
 import com.stech.schat.exception.ForbiddenActionException;
@@ -10,6 +11,8 @@ import com.stech.schat.model.FriendRequestStatus;
 import com.stech.schat.model.User;
 import com.stech.schat.repository.FriendRequestRepository;
 import com.stech.schat.repository.UserRepository;
+import com.stech.schat.repository.UserBlockRepository;
+import com.stech.schat.model.UserBlock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +28,12 @@ public class FriendService {
 
     private final FriendRequestRepository friendRequestRepository;
     private final UserRepository userRepository;
+    private final UserBlockRepository userBlockRepository;
 
-    public FriendService(FriendRequestRepository friendRequestRepository, UserRepository userRepository) {
+    public FriendService(FriendRequestRepository friendRequestRepository, UserRepository userRepository, UserBlockRepository userBlockRepository) {
         this.friendRequestRepository = friendRequestRepository;
         this.userRepository = userRepository;
+        this.userBlockRepository = userBlockRepository;
     }
 
     @Transactional
@@ -104,11 +109,51 @@ public class FriendService {
     }
 
     public List<FriendRequestDto> listFriends(UUID currentUserId) {
-        return toDtoList(friendRequestRepository.findAcceptedFriendships(currentUserId), currentUserId);
+        return toDtoList(friendRequestRepository.findAcceptedFriendships(currentUserId), currentUserId).stream()
+                .filter(f -> !isBlockedEitherWay(currentUserId, f.otherUser().id()))
+                .toList();
     }
 
     public boolean areFriends(UUID userA, UUID userB) {
-        return friendRequestRepository.areFriends(userA, userB);
+        return friendRequestRepository.areFriends(userA, userB) && !isBlockedEitherWay(userA, userB);
+    }
+
+    public boolean isBlockedEitherWay(UUID userA, UUID userB) {
+        return userBlockRepository.existsByBlockerIdAndBlockedIdOrBlockerIdAndBlockedId(userA, userB, userB, userA);
+    }
+
+    @Transactional
+    public FriendProfileDto getFriendProfile(UUID viewerId, UUID friendId) {
+        if (viewerId.equals(friendId) || !friendRequestRepository.areFriends(viewerId, friendId)) {
+            throw new ForbiddenActionException("You can only view profiles of your friends");
+        }
+        User other = getActive(friendId);
+        return new FriendProfileDto(other.getId(), other.getUsername(), other.getPublicId(), other.getProfilePictureUrl());
+    }
+
+    @Transactional
+    public void removeFriend(UUID currentUserId, UUID friendId) {
+        if (currentUserId.equals(friendId)) throw new ForbiddenActionException("Invalid friend");
+        FriendRequest friendship = friendRequestRepository.findAcceptedFriendshipBetween(currentUserId, friendId)
+                .orElseThrow(() -> new ResourceNotFoundException("Friendship not found"));
+        friendRequestRepository.delete(friendship);
+    }
+
+    @Transactional
+    public void block(UUID currentUserId, UUID friendId) {
+        if (currentUserId.equals(friendId)) throw new ForbiddenActionException("You can't block yourself");
+        getActive(friendId);
+        if (!friendRequestRepository.areFriends(currentUserId, friendId)) {
+            throw new ForbiddenActionException("You can only block a friend");
+        }
+        if (!userBlockRepository.existsByBlockerIdAndBlockedId(currentUserId, friendId)) {
+            userBlockRepository.save(UserBlock.builder().blockerId(currentUserId).blockedId(friendId).build());
+        }
+    }
+
+    @Transactional
+    public void unblock(UUID currentUserId, UUID friendId) {
+        userBlockRepository.deleteByBlockerIdAndBlockedId(currentUserId, friendId);
     }
 
     private User resolveTarget(String identifier, boolean viaId) {

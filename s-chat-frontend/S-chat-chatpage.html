@@ -7,6 +7,14 @@
     <link rel="stylesheet" href="css/S-Chat-Style.css">
     <script src="js/config.js" defer></script>
     <script src="js/api.js" defer></script>
+
+    <style>
+        .friend-profile-modal{position:fixed;inset:0;z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.68);backdrop-filter:blur(6px)}
+        .friend-profile-modal.show{display:flex}.friend-profile-card{position:relative;width:min(360px,100%);padding:26px 22px 22px;text-align:center;border-radius:18px;background:var(--s-panel);border:1px solid var(--s-accent-cyan-dim);box-shadow:0 18px 60px rgba(0,0,0,.45)}
+        .friend-profile-card>img{width:92px;height:92px;border-radius:50%;object-fit:cover;margin-bottom:10px}.friend-profile-card h2{margin:4px 0}.friend-profile-id{color:var(--s-text-dim);font-size:12px;margin-bottom:18px}.friend-profile-close{position:absolute;right:10px;top:8px;border:0;background:transparent;color:var(--s-text-dim);font-size:26px;cursor:pointer}.friend-profile-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.friend-profile-actions button{border:0;border-radius:9px;padding:9px 13px;cursor:pointer;background:rgba(255,255,255,.08);color:var(--s-text)}.friend-profile-actions button:first-child{background:var(--s-accent-cyan);color:#01192d;font-weight:700}.friend-profile-actions button.danger{color:#ff9f9f}
+        #peer-avatar,#peer-name{cursor:pointer}
+    </style>
+
 </head>
 
 <body>
@@ -30,6 +38,21 @@
     </div>
 
     <!-- Reply preview shown above the composer while replying to a message -->
+
+    <div class="friend-profile-modal" id="friend-profile-modal" aria-hidden="true">
+        <div class="friend-profile-card" role="dialog" aria-modal="true" aria-labelledby="friend-profile-name">
+            <button type="button" class="friend-profile-close" id="friend-profile-close" aria-label="Close">&times;</button>
+            <img id="friend-profile-avatar" src="images/MY S.png" alt="Friend profile picture">
+            <h2 id="friend-profile-name">Friend</h2>
+            <div class="friend-profile-id" id="friend-profile-id"></div>
+            <div class="friend-profile-actions">
+                <button type="button" id="friend-profile-chat">Chat</button>
+                <button type="button" id="friend-profile-block">Block</button>
+                <button type="button" id="friend-profile-remove" class="danger">Delete friend</button>
+            </div>
+        </div>
+    </div>
+
     <div class="composer-reply-preview" id="composer-reply-preview">
         <div class="reply-info">
             <div class="reply-label" id="reply-preview-label">Replying to</div>
@@ -86,7 +109,6 @@
                 class="chat-message-box"
                 placeholder="Message..."
                 rows="1"
-                autofocus
                 spellcheck="true"
             ></textarea>
 
@@ -199,6 +221,48 @@
             if (peerName) {
                 peerName.textContent = friendName;
             }
+
+            const profileModal = document.getElementById("friend-profile-modal");
+            const profileAvatar = document.getElementById("friend-profile-avatar");
+            const profileName = document.getElementById("friend-profile-name");
+            const profileIdEl = document.getElementById("friend-profile-id");
+            let profileFriend = null;
+            function closeFriendProfile() {
+                profileModal.classList.remove("show");
+                profileModal.setAttribute("aria-hidden", "true");
+                profileFriend = null;
+            }
+            async function openFriendProfile() {
+                if (isAI || !friendId) return;
+                profileFriend = { id: friendId, username: friendName };
+                profileAvatar.src = document.getElementById("peer-avatar")?.src || "images/MY S.png";
+                profileName.textContent = friendName;
+                profileIdEl.textContent = "Loading profile…";
+                profileModal.classList.add("show");
+                profileModal.setAttribute("aria-hidden", "false");
+                try {
+                    const profile = await SChatFriends.profile(friendId);
+                    profileAvatar.src = profile.profilePictureUrl || "images/MY S.png";
+                    profileName.textContent = profile.username || friendName;
+                    profileIdEl.textContent = profile.publicId ? "S-Chat ID: " + profile.publicId : "";
+                    profileFriend = profile;
+                } catch (err) { closeFriendProfile(); SChat.showToast(err.message, "error"); }
+            }
+            document.getElementById("friend-profile-close").addEventListener("click", closeFriendProfile);
+            profileModal.addEventListener("click", e => { if (e.target === profileModal) closeFriendProfile(); });
+            document.getElementById("peer-avatar")?.addEventListener("click", openFriendProfile);
+            document.getElementById("peer-name")?.addEventListener("click", openFriendProfile);
+            document.getElementById("friend-profile-chat").addEventListener("click", closeFriendProfile);
+            document.getElementById("friend-profile-remove").addEventListener("click", async () => {
+                if (!profileFriend || !confirm(`Delete ${profileFriend.username} from your friends/chat list? Existing messages will remain stored.`)) return;
+                try { await SChatFriends.remove(profileFriend.id); window.location.href = "S-chat-home.html"; }
+                catch (err) { SChat.showToast(err.message, "error"); }
+            });
+            document.getElementById("friend-profile-block").addEventListener("click", async () => {
+                if (!profileFriend || !confirm(`Block ${profileFriend.username}? They will no longer be able to message you.`)) return;
+                try { await SChatFriends.block(profileFriend.id); window.location.href = "S-chat-home.html"; }
+                catch (err) { SChat.showToast(err.message, "error"); }
+            });
 
             const thread = document.getElementById("chat-thread");
             const scrollBottomBtn =
@@ -451,26 +515,6 @@
                 `;
             }
 
-            function renderStatusReplyQuote(replyToStatus) {
-                if (!replyToStatus) return "";
-
-                const author = escapeHtml(replyToStatus.authorName || "Status");
-                const text = replyToStatus.textContent || replyToStatus.caption ||
-                    (replyToStatus.mediaUrl
-                        ? (isVideoUrl(replyToStatus.mediaUrl) ? "🎬 Video status"
-                            : isAudioUrl(replyToStatus.mediaUrl) ? "🎙️ Voice status"
-                                : "📷 Photo status")
-                        : "Status update");
-
-                const bg = escapeHtml(replyToStatus.backgroundColor || "#0aa89a");
-                return `
-                    <div class="status-reply-backdrop" style="--status-reply-bg:${bg}">
-                        <span class="status-reply-kicker">Replying to ${author}'s status</span>
-                        <span class="status-reply-text">${escapeHtml(text)}</span>
-                    </div>
-                `;
-            }
-
             function renderMessage(msg, mine) {
 
                 if (!thread) return;
@@ -508,7 +552,6 @@
                 let html = "";
 
                 html += renderReplyQuote(msg.replyTo);
-                html += renderStatusReplyQuote(msg.replyToStatus);
 
                 if (
                     hasMedia &&
@@ -2232,9 +2275,6 @@
                                         data.senderId,
                                     replyTo:
                                         data.replyTo ||
-                                        null,
-                                    replyToStatusId:
-                                        data.replyToStatusId ||
                                         null,
                                     replyToStatus:
                                         data.replyToStatus ||

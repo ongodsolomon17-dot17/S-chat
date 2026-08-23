@@ -208,6 +208,7 @@
             <div class="status-nav-zone next" id="status-nav-next"></div>
 
             <div class="status-viewer-reply-row" id="status-viewer-reply-row">
+                <div class="status-reply-context" id="status-reply-context"></div>
                 <input type="text" id="status-reply-input" placeholder="Reply to status..." maxlength="1000">
                 <button type="button" id="status-reply-send" aria-label="Send reply">&#10148;</button>
             </div>
@@ -357,6 +358,7 @@
             const svTime = document.getElementById("sv-time");
             const replyInput = document.getElementById("status-reply-input");
             const replyRow = document.getElementById("status-viewer-reply-row");
+            const replyContext = document.getElementById("status-reply-context");
             const deleteBtn = document.getElementById("status-viewer-delete");
 
             function currentStatus() {
@@ -398,6 +400,15 @@
 
                 replyRow.style.display = viewingOwn ? "none" : "flex";
                 deleteBtn.style.display = viewingOwn ? "flex" : "none";
+                if (!viewingOwn && replyContext) {
+                    const contextText = status.textContent || status.caption || (status.mediaUrl ? (kind === "video" ? "🎬 Video status" : kind === "audio" ? "🎙️ Voice status" : "📷 Photo status") : "Status update");
+                    replyContext.style.setProperty("--status-context-bg", status.backgroundColor || "#0aa89a");
+                    replyContext.innerHTML = `<span class="kicker">Replying to ${escapeHtml(group.author.username || "status")}</span><span class="text">${escapeHtml(contextText)}</span>`;
+                    replyContext.classList.add("show");
+                } else if (replyContext) {
+                    replyContext.classList.remove("show");
+                }
+
                 renderProgress();
                 replyInput.value = "";
             }
