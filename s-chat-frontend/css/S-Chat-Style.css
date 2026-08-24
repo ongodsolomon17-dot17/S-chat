@@ -182,11 +182,12 @@ iii
 }
 
 .profilepicture {
-  border-radius: 40%;
-  border: 3px solid #08355c;
-  display: inline;
   width: clamp(48px, 12vw, 80px);
-  height: auto;
+  height: clamp(48px, 12vw, 80px);
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #08355c;
+  display: block;
   flex-shrink: 0;
 }
 
