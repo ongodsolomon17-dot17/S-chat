@@ -978,8 +978,47 @@
 
                 updateChatBottomButton();
 
+                            return row;
+            }
+
+            function renderTypingOrb() {
+
+                if (!thread) return;
+
+                const row = document.createElement("div");
+                row.className = "chat-bubble-row theirs typing-orb-row";
+
+                const bubbleLine = document.createElement("div");
+                bubbleLine.className = "bubble-line";
+
+                const bubble = document.createElement("div");
+                bubble.className = "chat-bubble theirs typing-orb-bubble";
+
+                const video = document.createElement("video");
+                video.src = "images/ai-reply-orb.mp4";
+                video.autoplay = true;
+                video.loop = true;
+                video.muted = true;
+                video.playsInline = true;
+                video.className = "typing-orb-video";
+
+                bubble.appendChild(video);
+                bubbleLine.appendChild(bubble);
+                row.appendChild(bubbleLine);
+
+                const shouldStickToBottom = isNearChatBottom();
+                thread.appendChild(row);
+
+                if (shouldStickToBottom) {
+                    scrollChatToBottom(false);
+                }
+
+                updateChatBottomButton();
+
                 return row;
             }
+
+           
 
             /* =====================================================
                SWIPE-TO-REPLY
@@ -2071,25 +2110,8 @@
                              * only a temporary UI row and is NOT stored
                              * inside aiHistory.
                              */
-                            const typingRow =
-                                renderMessage(
-                                    {
-                                        content:
-                                            "Štêch is typing..."
-                                    },
-                                    false
-                                );
-
-                            const typingBubble =
-                                typingRow.querySelector(
-                                    ".chat-bubble"
-                                );
-
-                            typingBubble.style.opacity =
-                                "0.6";
-
-                            typingBubble.style.fontStyle =
-                                "italic";
+                                const typingRow = 
+                                    renderTypingOrb();
 
                             try {
 
