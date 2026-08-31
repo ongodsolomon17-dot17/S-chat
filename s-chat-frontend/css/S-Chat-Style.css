@@ -371,8 +371,10 @@ iii
 /* ======================
    AI-IS-TYPING... ORB
   =======================*/
-  .typing-orb-bubble{padding:6px !important;background:transparent !important;box-shadow:none !important}
-.typing-orb-video{width:52px;height:52px;border-radius:50%;object-fit:cover;display:block}
+  .typing-orb-bubble{padding:6px !important;
+  background:transparent !important;
+  box-shadow:none !important}
+.typing-orb-video{width:52px;height:52px;border-radius:50%;object-fit:cover;display:block; width: 100%;}
   /* ==========================================================================
    FLOATING AI ORB
    ========================================================================== */
