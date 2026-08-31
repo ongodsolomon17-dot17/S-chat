@@ -374,7 +374,10 @@ iii
   .typing-orb-bubble{padding:2px !important;
   background:transparent !important;
   box-shadow:none !important}
-.typing-orb-video{border-radius:50%;object-fit:cover;display:block; width:15%; height: 15%}
+.typing-or.typing-orb-video { border-radius: 50%; object-fit: cover;
+ display: block;
+ /* Responsive sizing: min 40px, preferred 15vw, max 100px */ 
+width: clamp(40px, 15vw, 100px);height: clamp(40px, 15vw, 100px); }b-video{border-radius:50%;object-fit:cover;display:block; width:15%; height: 15%}
   /* ==========================================================================
    FLOATING AI ORB
    ========================================================================== */
