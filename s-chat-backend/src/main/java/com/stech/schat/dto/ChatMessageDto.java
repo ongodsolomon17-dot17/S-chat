@@ -17,5 +17,6 @@ public record ChatMessageDto(
         UUID replyToStatusId,
         StatusReplyPreviewDto replyToStatus,
         List<ReactionSummaryDto> reactions,
-        boolean deleted
+        boolean deleted,
+        Instant editedAt
 ) {}

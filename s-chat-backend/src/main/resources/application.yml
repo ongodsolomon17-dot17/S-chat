@@ -1,34 +1,21 @@
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
+  shutdown: graceful
 
 spring:
   application:
     name: s-chat-backend
 
-  datasource:
-    # Supabase connection pooler URL, e.g.
-    # jdbc:postgresql://aws-0-region.pooler.supabase.com:6543/postgres
-    url: ${SUPABASE_DB_URL}
-    username: ${SUPABASE_DB_USER}
-    password: ${SUPABASE_DB_PASSWORD}
-    hikari:
-      maximum-pool-size: 5
-      connection-timeout: 10000
-      # Supabase's connection pooler (port 6543) runs PgBouncer in "transaction" mode,
-      # which does not preserve server-side prepared statements across transactions/
-      # connections. The pgjdbc driver defaults to switching a statement to a server-side
-      # prepared statement after 5 executions (prepareThreshold=5), which then intermittently
-      # fails against PgBouncer with "prepared statement ... does not exist" errors under
-      # real traffic. Setting prepareThreshold=0 keeps every statement as a simple query,
-      # which is what PgBouncer transaction mode requires.
-      data-source-properties:
-        prepareThreshold: 0
+  # The DataSource is built in code (config/DataSourceConfig.java) so it can fail over from the
+  # primary (Supabase) to the fallback (Neon). Connection details live under app.db.* below.
 
   jpa:
+    open-in-view: false
     hibernate:
-      # Keep update for the current live project so deployment does not break an existing
-      # database. After the full schema is baselined into Flyway, set JPA_DDL_AUTO=validate.
+      # "update" is safe for an existing database (Hibernate only adds what is missing and logs, but does not
+      # abort on, DDL it cannot run — e.g. while on the read-only fallback). Once the app has booted cleanly
+      # against Supabase, switch to "validate" so Flyway is the only schema owner.
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
@@ -37,28 +24,62 @@ spring:
         jdbc:
           time_zone: UTC
 
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    # Migrations always target the PRIMARY. Prefer Supabase's DIRECT host (db.<ref>.supabase.co:5432) or its
+    # session-mode pooler: Flyway uses advisory locks, which do not work through a transaction-mode pooler.
+    url: ${SUPABASE_DB_DIRECT_URL:${SUPABASE_DB_URL}}
+    user: ${SUPABASE_DB_USER}
+    password: ${SUPABASE_DB_PASSWORD}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    # Lets the V0_1 core-schema baseline apply on databases that already have V1-V7 recorded.
+    out-of-order: true
+
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
 
 app:
+  db:
+    pool-size: ${DB_POOL_SIZE:8}
+    probe-interval-seconds: ${DB_PROBE_INTERVAL_SECONDS:10}
+    primary:                                   # Supabase Postgres
+      url: ${SUPABASE_DB_URL}                  # jdbc:postgresql://<pooler-host>:6543/postgres?sslmode=require
+      username: ${SUPABASE_DB_USER}
+      password: ${SUPABASE_DB_PASSWORD}
+      connect-timeout-ms: ${DB_PRIMARY_TIMEOUT_MS:4000}   # how long to wait before declaring the primary down
+    fallback:                                  # Neon Postgres (leave NEON_DB_URL empty to disable failover)
+      url: ${NEON_DB_URL:}
+      username: ${NEON_DB_USER:}
+      password: ${NEON_DB_PASSWORD:}
+      read-only: ${DB_FALLBACK_READ_ONLY:true}
   jwt:
     secret: ${JWT_SECRET}
     access-ttl-minutes: ${JWT_ACCESS_TTL_MIN:15}
     refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:7}
   cors:
-    # Comma-separated, e.g. https://s-chat.vercel.app,https://www.s-chat.vercel.app
-    allowed-origins: ${FRONTEND_ORIGINS:https://s-chat-zeta.vercel.app}
+    # Comma-separated, no trailing slash, e.g. https://chat.example.com,https://my-app.vercel.app
+    allowed-origins: ${FRONTEND_ORIGINS:http://localhost:5173}
+  # Public base URL of the FRONTEND, used when building shareable chat links.
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
+  legal:
+    # Bump these when the documents change materially. Users are asked to re-accept.
+    terms-version: ${TERMS_VERSION:2026-11-19}
+    privacy-version: ${PRIVACY_VERSION:2026-11-19}
+  chat:
+    edit-window-minutes: ${MESSAGE_EDIT_WINDOW_MIN:15}
   resend:
     api-key: ${RESEND_API_KEY:}
     from-address: ${RESEND_FROM_ADDRESS:S-Chat <no-reply@yourdomain.com>}
   supabase:
+    # Supabase is still used for FILE STORAGE only (not the database).
     url: ${SUPABASE_URL}
     service-key: ${SUPABASE_SERVICE_KEY}
     storage-bucket: ${SUPABASE_STORAGE_BUCKET:s-chat-media}
   turn:
-    # Comma-separated TURN URLs. Keep the shared secret backend-only; never put it in frontend JS.
     urls: ${TURN_URLS:}
     shared-secret: ${TURN_SHARED_SECRET:}
     ttl-seconds: ${TURN_CREDENTIAL_TTL_SECONDS:3600}
@@ -80,9 +101,3 @@ logging:
     root: INFO
     com.stech.schat: INFO
     org.springframework.security: WARN
-
-  flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:db/migration

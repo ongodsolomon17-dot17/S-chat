@@ -29,6 +29,11 @@ public class FriendController {
         return ResponseEntity.ok(friendService.sendRequest(currentUserId(auth), request));
     }
 
+    @GetMapping("/blocked")
+    public ResponseEntity<java.util.List<com.stech.schat.dto.UserSummaryDto>> blocked(Authentication auth) {
+        return ResponseEntity.ok(friendService.listBlocked(currentUserId(auth)));
+    }
+
     @PostMapping("/requests/{requestId}/accept")
     public ResponseEntity<FriendRequestDto> accept(Authentication auth, @PathVariable UUID requestId) {
         return ResponseEntity.ok(friendService.respond(currentUserId(auth), requestId, true));

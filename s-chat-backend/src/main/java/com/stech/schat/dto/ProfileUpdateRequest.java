@@ -13,5 +13,8 @@ public record ProfileUpdateRequest(
 
         Boolean addByIdOnly,
 
-        Boolean approvalRequired
+        Boolean approvalRequired,
+        @Size(max = 160, message = "Bio can be at most 160 characters")
+        String bio,
+        Boolean chatLinkEnabled
 ) {}

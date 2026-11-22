@@ -91,6 +91,26 @@ public class User {
     @Builder.Default
     private long refreshTokenVersion = 0L;
 
+    @Column(length = 160)
+    private String bio;
+
+    // When false, /chat/{username} is hidden from everyone who is not already a friend.
+    @Column(name = "chat_link_enabled", nullable = false)
+    @Builder.Default
+    private boolean chatLinkEnabled = true;
+
+    @Column(name = "terms_version", length = 32)
+    private String termsVersion;
+
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "privacy_version", length = 32)
+    private String privacyVersion;
+
+    @Column(name = "privacy_accepted_at")
+    private Instant privacyAcceptedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

@@ -3,6 +3,9 @@ package com.stech.schat.service;
 import com.stech.schat.dto.ChatListItemDto;
 import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.dto.FriendRequestDto;
+import com.stech.schat.dto.MessageSearchResultDto;
+import com.stech.schat.dto.UserSummaryDto;
+import com.stech.schat.model.User;
 import com.stech.schat.dto.ReactionSummaryDto;
 import com.stech.schat.dto.ReplyPreviewDto;
 import com.stech.schat.dto.StatusReplyPreviewDto;
@@ -17,11 +20,13 @@ import com.stech.schat.repository.MessageReactionRepository;
 import com.stech.schat.repository.StatusPostRepository;
 import com.stech.schat.repository.UserRepository;
 import com.stech.schat.websocket.WebSocketSessionRegistry;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -57,6 +62,9 @@ public class ChatService {
     private final UserRepository userRepository;
     private final FriendService friendService;
     private final WebSocketSessionRegistry sessionRegistry;
+
+    @Value("${app.chat.edit-window-minutes:15}")
+    private long editWindowMinutes;
     private final StorageService storageService;
 
     public ChatService(ChatMessageRepository chatMessageRepository,
@@ -139,6 +147,14 @@ public class ChatService {
         UUID recipient = dto.senderId().equals(actingUserId) ? dto.receiverId() : dto.senderId();
         if (!sessionRegistry.isOnline(recipient)) return;
         markDelivered(dto.id());
+        if (dto.senderId().equals(actingUserId)) {
+            Map<String, Object> receipt = new HashMap<>();
+            receipt.put("type", "delivered");
+            receipt.put("conversationWith", recipient.toString());
+            receipt.put("messageIds", List.of(dto.id().toString()));
+            receipt.put("deliveredAt", Instant.now().toString());
+            sessionRegistry.send(actingUserId, receipt);
+        }
         Map<String, Object> frame = new HashMap<>();
         frame.put("type", "chat");
         frame.put("id", dto.id().toString());
@@ -307,6 +323,111 @@ public class ChatService {
         messageHiddenForRepository.save(MessageHiddenFor.builder().messageId(messageId).userId(userId).build());
     }
 
+
+    /**
+     * Called when a user's WebSocket connects: everything sent to them while they were
+     * offline becomes "delivered", and each online sender is told so their ticks update.
+     */
+    @Transactional
+    public void markPendingDeliveredOnConnect(UUID userId) {
+        List<ChatMessage> pending = chatMessageRepository.findUndeliveredFor(userId);
+        if (pending.isEmpty()) return;
+        Instant now = Instant.now();
+        chatMessageRepository.markDeliveredByIds(pending.stream().map(ChatMessage::getId).toList(), now);
+        Map<UUID, List<String>> bySender = pending.stream().collect(Collectors.groupingBy(
+                ChatMessage::getSenderId,
+                Collectors.mapping(m -> m.getId().toString(), Collectors.toList())));
+        bySender.forEach((senderId, ids) -> {
+            if (!sessionRegistry.isOnline(senderId)) return;
+            Map<String, Object> receipt = new HashMap<>();
+            receipt.put("type", "delivered");
+            receipt.put("conversationWith", userId.toString());
+            receipt.put("messageIds", ids);
+            receipt.put("deliveredAt", now.toString());
+            sessionRegistry.send(senderId, receipt);
+        });
+    }
+
+    @Transactional
+    public ChatMessageDto editMessage(UUID userId, UUID messageId, String newContent) {
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found"));
+        if (!message.getSenderId().equals(userId)) {
+            throw new ForbiddenActionException("You can only edit your own message");
+        }
+        if (message.isDeleted()) {
+            throw new IllegalArgumentException("A deleted message can't be edited");
+        }
+        UUID otherParty = message.getReceiverId();
+        if (!friendService.areFriends(userId, otherParty)) {
+            throw new ForbiddenActionException("You can only edit messages in an active conversation");
+        }
+        String safe = newContent == null ? "" : newContent.trim();
+        if (safe.isEmpty()) throw new IllegalArgumentException("Message cannot be empty");
+        if (safe.length() > 5000) throw new IllegalArgumentException("Message is too long");
+        if (Instant.now().isAfter(message.getSentAt().plus(Duration.ofMinutes(editWindowMinutes)))) {
+            throw new ForbiddenActionException("Messages can only be edited for " + editWindowMinutes + " minutes after sending");
+        }
+        message.setContent(safe);
+        message.setEditedAt(Instant.now());
+        chatMessageRepository.save(message);
+
+        ChatMessageDto dto = toDtoWithFreshState(message, userId);
+        if (sessionRegistry.isOnline(otherParty)) {
+            Map<String, Object> frame = new HashMap<>();
+            frame.put("type", "message_edited");
+            frame.put("id", message.getId().toString());
+            frame.put("conversationWith", userId.toString());
+            frame.put("content", safe);
+            frame.put("editedAt", message.getEditedAt().toString());
+            sessionRegistry.send(otherParty, frame);
+        }
+        return dto;
+    }
+
+    /** Searches the caller's own messages. Optionally limited to one conversation. */
+    @Transactional(readOnly = true)
+    public List<MessageSearchResultDto> searchMessages(UUID userId, String query, UUID friendId) {
+        String term = query == null ? "" : query.trim();
+        if (term.length() < 2) throw new IllegalArgumentException("Type at least 2 characters to search");
+        if (term.length() > 100) throw new IllegalArgumentException("Search text is too long");
+        // Escape LIKE wildcards so user input is matched literally (escape char is '!').
+        String escaped = term.toLowerCase().replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        String pattern = "%" + escaped + "%";
+
+        List<ChatMessage> hits;
+        if (friendId != null) {
+            if (!friendService.areFriends(userId, friendId)) {
+                throw new ForbiddenActionException("You can only search conversations with your friends");
+            }
+            hits = chatMessageRepository.searchInConversation(userId, friendId, pattern, PageRequest.of(0, 50));
+        } else {
+            hits = chatMessageRepository.searchAll(userId, pattern, PageRequest.of(0, 50));
+        }
+        if (hits.isEmpty()) return List.of();
+
+        Map<UUID, Boolean> friendCache = new HashMap<>();
+        Map<UUID, User> userCache = new HashMap<>();
+        List<ChatMessage> visible = new ArrayList<>();
+        for (ChatMessage m : hits) {
+            UUID other = m.getSenderId().equals(userId) ? m.getReceiverId() : m.getSenderId();
+            boolean ok = friendCache.computeIfAbsent(other, o -> friendService.areFriends(userId, o));
+            if (ok) visible.add(m);
+        }
+        List<ChatMessageDto> dtos = hydrate(visible, userId);
+        List<MessageSearchResultDto> results = new ArrayList<>();
+        for (int i = 0; i < visible.size(); i++) {
+            ChatMessage m = visible.get(i);
+            UUID other = m.getSenderId().equals(userId) ? m.getReceiverId() : m.getSenderId();
+            User u = userCache.computeIfAbsent(other, id -> userRepository.findById(id).orElse(null));
+            if (u == null) continue;
+            results.add(new MessageSearchResultDto(dtos.get(i), new UserSummaryDto(
+                    u.getId(), u.isDeleted() ? "Deleted User" : u.getUsername(), u.getPublicId(),
+                    u.getProfilePictureUrl(), u.isDeleted())));
+        }
+        return results;
+    }
+
     @Transactional
     public ChatMessageDto deleteMessage(UUID userId, UUID messageId) {
         ChatMessage message = chatMessageRepository.findById(messageId)
@@ -412,7 +533,8 @@ public class ChatService {
                 m.getSentAt(), m.getDeliveredAt(), m.getReadAt(),
                 replyPreview, m.getReplyToStatusId(), statusReplyPreview,
                 new ArrayList<>(reactionSummaries),
-                deleted
+                deleted,
+                m.getEditedAt()
         );
     }
 }

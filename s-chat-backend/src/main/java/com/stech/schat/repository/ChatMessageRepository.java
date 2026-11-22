@@ -73,6 +73,39 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
     @Query("UPDATE ChatMessage m SET m.readAt = :readAt WHERE m.id IN :ids")
     void markReadByIds(@Param("ids") List<UUID> ids, @Param("readAt") java.time.Instant readAt);
 
+    @Query("""
+        SELECT m FROM ChatMessage m
+        WHERE m.receiverId = :userId AND m.deliveredAt IS NULL AND m.deletedAt IS NULL
+        """)
+    List<ChatMessage> findUndeliveredFor(@Param("userId") UUID userId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE ChatMessage m SET m.deliveredAt = :at WHERE m.id IN :ids")
+    void markDeliveredByIds(@Param("ids") List<UUID> ids, @Param("at") java.time.Instant at);
+
+    // Search: LIKE pattern is pre-escaped by the service with '!' as the escape character.
+    @Query("""
+        SELECT m FROM ChatMessage m
+        WHERE (m.senderId = :userId OR m.receiverId = :userId)
+          AND m.deletedAt IS NULL
+          AND LOWER(m.content) LIKE :pattern ESCAPE '!'
+          AND NOT EXISTS (SELECT 1 FROM MessageHiddenFor h WHERE h.messageId = m.id AND h.userId = :userId)
+        ORDER BY m.sentAt DESC
+        """)
+    List<ChatMessage> searchAll(@Param("userId") UUID userId, @Param("pattern") String pattern, Pageable pageable);
+
+    @Query("""
+        SELECT m FROM ChatMessage m
+        WHERE ((m.senderId = :userId AND m.receiverId = :friendId)
+            OR (m.senderId = :friendId AND m.receiverId = :userId))
+          AND m.deletedAt IS NULL
+          AND LOWER(m.content) LIKE :pattern ESCAPE '!'
+          AND NOT EXISTS (SELECT 1 FROM MessageHiddenFor h WHERE h.messageId = m.id AND h.userId = :userId)
+        ORDER BY m.sentAt DESC
+        """)
+    List<ChatMessage> searchInConversation(@Param("userId") UUID userId, @Param("friendId") UUID friendId,
+                                           @Param("pattern") String pattern, Pageable pageable);
+
     interface UnreadCount {
         UUID getSenderId();
         long getCount();

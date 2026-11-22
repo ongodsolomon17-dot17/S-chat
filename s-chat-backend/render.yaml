@@ -6,30 +6,48 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /actuator/health
     envVars:
-      - key: JWT_SECRET
-        sync: false        # set manually in Render dashboard — never commit this
+      # --- Primary database: Supabase (secrets: set in the Render dashboard) ---
       - key: SUPABASE_DB_URL
+        sync: false
+      - key: SUPABASE_DB_DIRECT_URL
         sync: false
       - key: SUPABASE_DB_USER
         sync: false
       - key: SUPABASE_DB_PASSWORD
         sync: false
+      # --- Fallback database: Neon (leave NEON_DB_URL empty to disable failover) ---
+      - key: NEON_DB_URL
+        sync: false
+      - key: NEON_DB_USER
+        sync: false
+      - key: NEON_DB_PASSWORD
+        sync: false
+      - key: DB_FALLBACK_READ_ONLY
+        value: "true"
+      - key: JPA_DDL_AUTO
+        value: update
+      - key: JWT_SECRET
+        generateValue: true
       - key: FRONTEND_ORIGINS
-        sync: false        # e.g. https://s-chat.vercel.app
-      - key: RESEND_API_KEY
         sync: false
-      - key: RESEND_FROM_ADDRESS
+      - key: PUBLIC_BASE_URL
         sync: false
+      - key: TERMS_VERSION
+        value: "2026-11-19"
+      - key: PRIVACY_VERSION
+        value: "2026-11-19"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: s-chat-media
-      - key: JPA_DDL_AUTO
-        value: update
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_ADDRESS
+        sync: false
       - key: GEMINI_API_KEY
-        sync: false        # set manually in Render dashboard — never commit this
+        sync: false
       - key: GEMINI_MODEL
         value: gemini-2.5-flash
       - key: TURN_URLS

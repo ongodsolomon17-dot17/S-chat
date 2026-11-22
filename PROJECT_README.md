@@ -35,7 +35,7 @@
 1. **Rename your video file.** `images/WhatsApp Video 2026-08-01 at 12.14.30 AM.mp4` has spaces, which breaks reliably as a URL on Vercel. Rename it to `images/s-tech-ai-orb.mp4` and re-upload.
 2. **Add your real image/icon assets** to `frontend/images/` and `frontend/my icons/` — I didn't have the binary files, only filenames.
 3. **Create a Supabase Storage bucket** named `s-chat-media` (or your own name, matching `SUPABASE_STORAGE_BUCKET`) and set it to public read.
-4. **Set environment variables on Render** (see `backend/.env.example`): `JWT_SECRET`, `SUPABASE_DB_URL`, `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`, `FRONTEND_ORIGINS`, `RESEND_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the **service_role** key — never expose this client-side).
+4. **Set environment variables on Render** (see `backend/.env.example`): `JWT_SECRET`, `NEON_DB_URL`, `NEON_DB_USER`, `NEON_DB_PASSWORD`, `FRONTEND_ORIGINS`, `RESEND_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the **service_role** key — never expose this client-side).
 5. **Update `frontend/js/config.js`** with your real Render backend URL and WebSocket URL (`wss://...`) once deployed.
 
 ## Deploy steps
@@ -129,3 +129,29 @@ Do not put `TURN_SHARED_SECRET` or generated TURN credentials into Vercel/fronte
   without deleting the existing index.
 - Added `spring-boot-starter-actuator` so Render's configured `/actuator/health` health check is backed
   by a real endpoint.
+
+
+## Current rebuild work (2026-11-19)
+
+- SQL connection configuration now supports Neon PostgreSQL through `NEON_DB_URL`,
+  `NEON_DB_USER` and `NEON_DB_PASSWORD`; legacy Supabase SQL variables are temporary
+  fallbacks only. This configuration change does not itself copy existing database data.
+- Signup now requires affirmative Terms and Conditions / Privacy Policy consent.
+  The backend records the server timestamp and terms version in `app_users`.
+- Signup includes a Terms popup with a summary, a See More full-text view and a Back
+  action. A separate `legal.html` page contains the Terms and Privacy Policy drafts.
+- Legal text is a product draft and requires owner/legal review before public launch.
+
+
+### Public chat links
+
+- Public profile endpoint: `GET /api/users/public/{username}` (public; exposes only username, public S-Chat ID and profile picture URL).
+- Frontend share page: `public-profile.html?username=<username>`.
+- Settings now builds a personal profile link and provides a Copy link action.
+- Visitors must sign in before sending a connection request. The target user's friend-request preferences remain in force.
+
+### Signup legal consent
+
+- New registrations must send `termsAccepted: true`; the backend rejects missing/false consent.
+- The server stores `terms_accepted_at` and the server-controlled `terms_version`.
+- Flyway migration `V8__add_terms_acceptance.sql` adds the nullable audit columns so existing accounts are not blocked by a non-null schema change.

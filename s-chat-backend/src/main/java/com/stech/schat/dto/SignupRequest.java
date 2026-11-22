@@ -1,7 +1,9 @@
 package com.stech.schat.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -28,5 +30,14 @@ public record SignupRequest(
 
         // Optional at signup — needed later for "add by contact"; users can add it in Settings.
         @Size(max = 32)
-        String phoneNumber
+        String phoneNumber,
+
+        // Explicit consent. The server also records WHICH version was accepted.
+        @NotNull(message = "You must accept the Terms and Conditions and Privacy Policy")
+        @AssertTrue(message = "You must accept the Terms and Conditions and Privacy Policy")
+        Boolean acceptedTerms,
+
+        @NotBlank(message = "Terms version is required")
+        @Size(max = 32)
+        String termsVersion
 ) {}

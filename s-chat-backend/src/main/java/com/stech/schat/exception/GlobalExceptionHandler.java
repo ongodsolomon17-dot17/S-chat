@@ -87,6 +87,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
+        if (ReadOnlyModeDetector.isReadOnlyViolation(ex)) {
+            log.warn("Write rejected: fallback database is read-only.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiError.of(503, "READ_ONLY_MODE", ReadOnlyModeDetector.USER_MESSAGE));
+        }
 
         // Log the complete exception and stack trace in Render logs
         log.error("Unhandled exception occurred:", ex);

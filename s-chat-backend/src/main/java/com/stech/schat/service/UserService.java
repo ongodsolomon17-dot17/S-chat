@@ -65,6 +65,13 @@ public class UserService {
             user.setApprovalRequired(request.approvalRequired());
         }
 
+        if (request.bio() != null) {
+            String bio = request.bio().trim();
+            user.setBio(bio.isEmpty() ? null : bio);
+        }
+        if (request.chatLinkEnabled() != null) {
+            user.setChatLinkEnabled(request.chatLinkEnabled());
+        }
         userRepository.save(user);
         return toProfileDto(user);
     }
@@ -91,6 +98,8 @@ public class UserService {
         user.setDeleted(true);
         user.setAccountEnabled(false);
         user.setDeletedAt(Instant.now());
+        // Invalidate any outstanding refresh token for the deleted account.
+        user.setRefreshTokenVersion(user.getRefreshTokenVersion() + 1);
         userRepository.save(user);
     }
 
@@ -113,7 +122,11 @@ public class UserService {
                 user.getProfilePictureUrl(),
                 user.isAddByIdOnly(),
                 user.isApprovalRequired(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getBio(),
+                user.isChatLinkEnabled(),
+                user.getTermsVersion(),
+                user.getPrivacyVersion()
         );
     }
 }

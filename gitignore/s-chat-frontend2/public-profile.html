@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="View a public S-Chat profile and start a conversation.">
+  <title>S-Chat Profile</title>
+  <link rel="stylesheet" href="css/S-Chat-Style.css">
+  <script src="js/config.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/friends.js" defer></script>
+  <script src="js/public-profile.js" defer></script>
+  <style>
+    .public-profile-shell{width:min(92vw,480px);margin:clamp(45px,12vh,110px) auto;padding:30px 24px;text-align:center;background:var(--s-panel);border:1px solid var(--s-panel-border);border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .public-profile-avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;border:3px solid var(--s-accent-cyan);background:var(--s-panel);margin:10px auto 18px}
+    .public-profile-name{font-size:clamp(24px,6vw,32px);margin:0 0 8px;overflow-wrap:anywhere}
+    .public-profile-id{color:var(--s-text-dim);font-size:13px;letter-spacing:1px}
+    .public-profile-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+    .public-profile-actions a,.public-profile-actions button{padding:12px 18px;border-radius:12px;border:1px solid var(--s-accent-cyan);background:rgba(7,255,243,.1);color:var(--s-text);font-weight:700;text-decoration:none;cursor:pointer}
+    #profile-message{min-height:24px;color:var(--s-text-dim);font-size:13px}
+  </style>
+</head>
+<body>
+  <main class="public-profile-shell">
+    <p class="legal-eyebrow">S-TECH / S-CHAT</p>
+    <img id="public-avatar" class="public-profile-avatar" src="images/MY S.png" alt="Profile picture">
+    <h1 id="public-username" class="public-profile-name">Loading profile…</h1>
+    <p id="public-id" class="public-profile-id"></p>
+    <p id="profile-message" role="status"></p>
+    <div class="public-profile-actions">
+      <button type="button" id="connect-user">Connect / Start Chat</button>
+      <a href="S-chat-log-in.html">Log in</a>
+      <a href="S-chat-signup.html">Create account</a>
+    </div>
+  </main>
+</body>
+</html>

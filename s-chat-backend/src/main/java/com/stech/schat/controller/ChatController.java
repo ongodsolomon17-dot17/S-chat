@@ -2,6 +2,8 @@ package com.stech.schat.controller;
 
 import com.stech.schat.dto.ChatListItemDto;
 import com.stech.schat.dto.ChatMessageDto;
+import com.stech.schat.dto.EditMessageRequest;
+import com.stech.schat.dto.MessageSearchResultDto;
 import com.stech.schat.dto.ReactionRequest;
 import com.stech.schat.service.ChatService;
 import com.stech.schat.service.StorageService;
@@ -69,6 +71,24 @@ public class ChatController {
     @DeleteMapping("/messages/{messageId}/reactions")
     public ResponseEntity<ChatMessageDto> removeReaction(Authentication auth, @PathVariable UUID messageId) {
         return ResponseEntity.ok(chatService.removeReaction(currentUserId(auth), messageId));
+    }
+
+    @PatchMapping("/messages/{messageId}")
+    public ResponseEntity<ChatMessageDto> editMessage(
+            Authentication auth,
+            @PathVariable UUID messageId,
+            @Valid @RequestBody EditMessageRequest request
+    ) {
+        return ResponseEntity.ok(chatService.editMessage(currentUserId(auth), messageId, request.content()));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<MessageSearchResultDto>> search(
+            Authentication auth,
+            @RequestParam("q") String q,
+            @RequestParam(value = "friendId", required = false) UUID friendId
+    ) {
+        return ResponseEntity.ok(chatService.searchMessages(currentUserId(auth), q, friendId));
     }
 
     @DeleteMapping("/messages/{messageId}/mine")

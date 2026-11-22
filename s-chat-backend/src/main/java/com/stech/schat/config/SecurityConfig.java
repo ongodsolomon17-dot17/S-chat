@@ -50,15 +50,8 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(jsonAuthenticationEntryPoint))
             .headers(headers -> headers
                     .contentSecurityPolicy(csp -> csp.policyDirectives(
-                            "default-src 'self'; " +
-                            "base-uri 'self'; " +
-                            "frame-ancestors 'none'; " +
-                            "form-action 'self'; " +
-                            "script-src 'self' 'unsafe-inline'; " +
-                            "style-src 'self' 'unsafe-inline'; " +
-                            "img-src 'self' data: blob: https:; " +
-                            "media-src 'self' data: blob: https:; " +
-                            "connect-src 'self' https://s-chat-u8fs.onrender.com wss://s-chat-u8fs.onrender.com https://*.supabase.co wss://*.supabase.co"))
+                            // This service only returns JSON; it never serves pages, so lock everything down.
+                            "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"))
                     .frameOptions(frame -> frame.deny())
                     .httpStrictTransportSecurity(hsts -> hsts
                             .includeSubDomains(true)
@@ -68,6 +61,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/api/auth/ws-ticket").authenticated()
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     // The WS handshake can't carry an Authorization header from a browser —
                     // JwtHandshakeInterceptor validates the token (passed as a query param) itself.

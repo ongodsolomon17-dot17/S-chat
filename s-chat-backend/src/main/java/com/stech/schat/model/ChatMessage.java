@@ -69,6 +69,9 @@ public class ChatMessage {
     // Soft delete. `deletedAt` is the source of truth for "is this message hidden";
     // `deletedBy` is retained for audit/debugging even though only the sender is
     // currently allowed to delete their own message.
+    @Column(name = "edited_at")
+    private Instant editedAt;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

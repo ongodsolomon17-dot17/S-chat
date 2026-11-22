@@ -22,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByPublicId(String publicId);
 
+    long countByCreatedAtAfter(java.time.Instant after);
+
     // Used by login: accepts either a username or an email in one field
     Optional<User> findByUsernameIgnoreCaseOrEmailIgnoreCase(String username, String email);
 }

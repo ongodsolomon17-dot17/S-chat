@@ -6,6 +6,7 @@ import com.stech.schat.dto.ChatMessageDto;
 import com.stech.schat.model.CallRecord;
 import com.stech.schat.service.CallService;
 import com.stech.schat.service.ChatService;
+import com.stech.schat.service.FriendService;
 import com.stech.schat.service.GroupChatService;
 import com.stech.schat.dto.GroupMessageDto;
 import com.stech.schat.repository.UserRepository;
@@ -15,6 +16,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,30 +33,47 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final WebSocketSessionRegistry sessionRegistry;
     private final UserRepository userRepository;
     private final GroupChatService groupChatService;
+    private final FriendService friendService;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ChatWebSocketHandler.class);
     private static final int MAX_FRAME_CHARS = 64 * 1024;
     private static final int MAX_MESSAGES_PER_10S = 80;
     private final ConcurrentMap<String, Deque<Long>> rateWindows = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(ChatService chatService, CallService callService,
                                 ObjectMapper objectMapper, WebSocketSessionRegistry sessionRegistry, UserRepository userRepository,
-                                GroupChatService groupChatService) {
+                                GroupChatService groupChatService,
+                                FriendService friendService) {
         this.chatService = chatService;
         this.callService = callService;
         this.objectMapper = objectMapper;
         this.sessionRegistry = sessionRegistry;
         this.userRepository = userRepository;
         this.groupChatService = groupChatService;
+        this.friendService = friendService;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        sessionRegistry.register(currentUserId(session), session);
+        UUID userId = currentUserId(session);
+        sessionRegistry.register(userId, session);
+        // Everything sent while this user was offline is now delivered; tell the senders.
+        try {
+            chatService.markPendingDeliveredOnConnect(userId);
+        } catch (Exception e) {
+            log.warn("Could not mark pending messages delivered for {}: {}", userId, e.toString());
+        }
+        announcePresence(userId, true);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        sessionRegistry.unregister(currentUserId(session), session);
+        UUID userId = currentUserId(session);
+        sessionRegistry.unregister(userId, session);
         rateWindows.remove(session.getId());
+        // A newer session for the same user may already have replaced this one.
+        if (!sessionRegistry.isOnline(userId)) {
+            announcePresence(userId, false);
+        }
     }
 
     @Override
@@ -82,6 +101,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             switch (type) {
                 case "chat" -> handleChat(session, senderId, payload);
                 case "group_chat" -> handleGroupChat(session, senderId, payload);
+                case "typing" -> handleTyping(senderId, payload);
+                case "ping" -> sendJson(session, Map.of("type", "pong"));
                 case "call_invite" -> handleCallInvite(session, senderId, payload);
                 case "call_accept" -> handleCallAccept(senderId, payload);
                 case "call_reject" -> handleCallReject(senderId, payload);
@@ -93,7 +114,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         } catch (IllegalArgumentException e) {
             sendError(session, "Invalid request");
         } catch (Exception e) {
-            sendError(session, e.getMessage() != null ? e.getMessage() : "Could not process request");
+            if (com.stech.schat.exception.ReadOnlyModeDetector.isReadOnlyViolation(e)) {
+                sendError(session, com.stech.schat.exception.ReadOnlyModeDetector.USER_MESSAGE);
+            } else {
+                sendError(session, e.getMessage() != null ? e.getMessage() : "Could not process request");
+            }
         }
     }
 
@@ -117,6 +142,35 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
         sendJson(session, ack);
         chatService.pushToOtherParticipant(saved, senderId);
+    }
+
+    /** Relays "X is typing" to the other participant only. Never persisted. */
+    private void handleTyping(UUID senderId, Map<String, Object> p) {
+        UUID to = UUID.fromString(String.valueOf(p.get("to")));
+        if (!sessionRegistry.isOnline(to) || !friendService.areFriends(senderId, to)) return;
+        boolean typing = Boolean.parseBoolean(String.valueOf(p.get("isTyping")));
+        sessionRegistry.send(to, Map.of("type", "typing", "from", senderId.toString(), "isTyping", typing));
+    }
+
+    /** Tells a user's friends they came online/offline; on connect also sends who is online right now. */
+    private void announcePresence(UUID userId, boolean online) {
+        try {
+            List<UUID> friendIds = friendService.listFriends(userId).stream()
+                    .map(f -> f.otherUser().id())
+                    .toList();
+            for (UUID friendId : friendIds) {
+                sessionRegistry.send(friendId, Map.of("type", "presence", "userId", userId.toString(), "online", online));
+            }
+            if (online) {
+                List<String> onlineFriends = friendIds.stream()
+                        .filter(sessionRegistry::isOnline)
+                        .map(UUID::toString)
+                        .toList();
+                sessionRegistry.send(userId, Map.of("type", "presence_snapshot", "online", onlineFriends));
+            }
+        } catch (Exception e) {
+            log.warn("Presence broadcast failed for {}: {}", userId, e.toString());
+        }
     }
 
     private void handleGroupChat(WebSocketSession session, UUID senderId, Map<String, Object> p) throws IOException {

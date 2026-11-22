@@ -114,6 +114,33 @@ public class FriendService {
                 .toList();
     }
 
+
+    public record RelationshipInfo(String status, UUID requestId) {}
+
+    /** How {@code viewerId} relates to {@code targetId}: FRIENDS, REQUEST_SENT, REQUEST_RECEIVED or NONE. */
+    public RelationshipInfo relationship(UUID viewerId, UUID targetId) {
+        if (areFriends(viewerId, targetId)) return new RelationshipInfo("FRIENDS", null);
+        Optional<FriendRequest> outgoing = friendRequestRepository.findByRequesterIdAndAddresseeId(viewerId, targetId);
+        if (outgoing.isPresent() && outgoing.get().getStatus() == FriendRequestStatus.PENDING) {
+            return new RelationshipInfo("REQUEST_SENT", outgoing.get().getId());
+        }
+        Optional<FriendRequest> incoming = friendRequestRepository.findByRequesterIdAndAddresseeId(targetId, viewerId);
+        if (incoming.isPresent() && incoming.get().getStatus() == FriendRequestStatus.PENDING) {
+            return new RelationshipInfo("REQUEST_RECEIVED", incoming.get().getId());
+        }
+        return new RelationshipInfo("NONE", null);
+    }
+
+    /** Users the caller has blocked, so the UI can offer "Unblock". */
+    public List<UserSummaryDto> listBlocked(UUID currentUserId) {
+        return userBlockRepository.findByBlockerId(currentUserId).stream()
+                .map(b -> userRepository.findById(b.getBlockedId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .map(u -> new UserSummaryDto(u.getId(), u.isDeleted() ? "Deleted User" : u.getUsername(),
+                        u.getPublicId(), u.getProfilePictureUrl(), u.isDeleted()))
+                .toList();
+    }
+
     public boolean areFriends(UUID userA, UUID userB) {
         return friendRequestRepository.areFriends(userA, userB) && !isBlockedEitherWay(userA, userB);
     }

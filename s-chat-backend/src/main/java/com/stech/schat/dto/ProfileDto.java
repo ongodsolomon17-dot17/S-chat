@@ -11,5 +11,9 @@ public record ProfileDto(
         String profilePictureUrl,
         boolean addByIdOnly,
         boolean approvalRequired,
-        String role
+        String role,
+        String bio,
+        boolean chatLinkEnabled,
+        String termsVersion,
+        String privacyVersion
 ) {}

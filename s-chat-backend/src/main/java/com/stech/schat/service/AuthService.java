@@ -34,17 +34,29 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserService userService;
+    private final LegalService legalService;
+
+    // Names that would collide with routes or impersonate the platform.
+    private static final java.util.Set<String> RESERVED_USERNAMES = java.util.Set.of(
+            "admin", "administrator", "root", "support", "help", "system", "staff", "moderator", "mod",
+            "api", "chat", "login", "logout", "signup", "register", "settings", "terms", "privacy",
+            "about", "contact", "calls", "status", "groups", "u", "me", "null", "undefined", "s-chat", "schat");
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                        JwtService jwtService, UserService userService) {
+                        JwtService jwtService, UserService userService, LegalService legalService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userService = userService;
+        this.legalService = legalService;
     }
 
     @Transactional
     public AuthResponse signup(SignupRequest request) {
+        legalService.requireCurrentTerms(request.termsVersion());
+        if (RESERVED_USERNAMES.contains(request.username().toLowerCase())) {
+            throw new DuplicateUserException("That username is not available");
+        }
         if (userRepository.existsByUsernameIgnoreCase(request.username())) {
             throw new DuplicateUserException("That username is already taken");
         }
@@ -62,7 +74,25 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+        legalService.recordAcceptance(user);
         return issueTokens(user);
+    }
+
+    /** Changes the password and revokes every refresh session (the user must sign in again). */
+    @Transactional
+    public void changePassword(java.util.UUID userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .filter(u -> !u.isDeleted())
+                .orElseThrow(() -> new com.stech.schat.exception.ResourceNotFoundException("User not found"));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Your current password is incorrect");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Choose a password you are not already using");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setRefreshTokenVersion(user.getRefreshTokenVersion() + 1);
+        userRepository.save(user);
     }
 
     @Transactional
