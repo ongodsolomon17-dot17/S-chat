@@ -203,3 +203,11 @@ body.has-banner #app { margin-top: 32px; height: calc(100% - 32px); }
 .call-overlay.compact .call-info .avatar-wrap { display: none; } .call-overlay.compact .call-info h2 { font-size: 18px; margin: 0; }
 @media (hover: none) { .msg-menu-btn { display: none !important; } .bubble { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; } .bubble .reply-preview, .bubble { touch-action: manipulation; } }
 .list-pane, .main-pane, .row .meta { min-width: 0; }
+
+.ai-avatar { background: linear-gradient(135deg, #6366f1, #a855f7 60%, #ec4899); } .ai-avatar svg { width: 55%; height: 55%; }
+.pill.ai-pill { background: var(--brand-soft); color: var(--brand); font-size: 10px; padding: 1px 6px; vertical-align: 1px; }
+.bubble.md { white-space: pre-wrap; } .bubble.md pre { white-space: pre; overflow-x: auto; background: rgba(127,127,160,.18); padding: 8px 10px; border-radius: 8px; margin: 6px 0; font-size: 13px; }
+.bubble.md code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(127,127,160,.18); padding: 0 4px; border-radius: 4px; font-size: .92em; } .bubble.md pre code { background: none; padding: 0; }
+.bubble.md ul { margin: 4px 0; padding-left: 20px; white-space: normal; } .bubble.md a { color: inherit; text-decoration: underline; word-break: break-all; }
+.phone-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 8px; }
+@media (max-width: 420px) { .phone-row { grid-template-columns: 1fr; } }

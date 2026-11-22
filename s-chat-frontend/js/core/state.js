@@ -16,6 +16,7 @@ export const state = {
   requests: [],             // incoming friend requests
   legal: null,              // { termsVersion, privacyVersion }
   wsConnected: false,
+  ai: { available: true, messages: null, busy: false, local: [] },  // STech AI conversation (server keeps the history)
 };
 
 export function totalUnread() { let n = 0; state.chats.forEach((c) => (n += c.unreadCount || 0)); return n; }

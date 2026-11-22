@@ -40,7 +40,8 @@ public class AuthService {
     private static final java.util.Set<String> RESERVED_USERNAMES = java.util.Set.of(
             "admin", "administrator", "root", "support", "help", "system", "staff", "moderator", "mod",
             "api", "chat", "login", "logout", "signup", "register", "settings", "terms", "privacy",
-            "about", "contact", "calls", "status", "groups", "u", "me", "null", "undefined", "s-chat", "schat");
+            "about", "contact", "calls", "status", "groups", "u", "me", "null", "undefined", "s-chat", "schat",
+            "stech", "stechai", "stech_ai", "stech.ai", "s_tech", "s.tech", "s_tech_ai", "ai", "assistant", "bot");
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
                         JwtService jwtService, UserService userService, LegalService legalService) {

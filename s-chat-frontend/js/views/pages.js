@@ -7,6 +7,7 @@ import { navigate } from "../router.js";
 import * as chats from "../core/chats.js";
 import * as calls from "../core/calls.js";
 import { mainEl } from "./shell.js";
+import { phoneFieldHtml, readPhone } from "./phone-field.js";
 
 const page = (inner) => mount(mainEl(), html`<div class="page-wrap"><div class="page">${inner}</div></div>`);
 const nameOf = (id) => (id === state.me.id ? "You" : state.chats.get(id)?.user.username || "Unknown user");
@@ -67,7 +68,7 @@ export function renderSettings({ onLogout }) {
       <button class="btn secondary sm" id="pic-btn" style="margin-top:8px">Change photo</button><input type="file" id="pic" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden"></div></div>
       <div id="prof-alert"></div>
       <div class="field"><label for="bio">Bio <span class="muted">(shown on your chat link, max 160)</span></label><textarea class="textarea" id="bio" rows="2" maxlength="160">${me.bio || ""}</textarea></div>
-      <div class="field"><label for="phone">Phone <span class="muted">(optional, never shown publicly)</span></label><input class="input" id="phone" value="${me.phoneNumber || ""}" maxlength="32" type="tel"></div>
+      <div class="field"><label for="phone-num">Phone <span class="muted">(optional, never shown publicly)</span></label>${phoneFieldHtml("phone", me.phoneNumber || "")}<span class="small muted">Used to recover your account by SMS or WhatsApp. For WhatsApp recovery use your WhatsApp number.</span></div>
       <button class="btn" id="save-prof">Save profile</button></div>
 
     <div class="card"><h3>Your chat link</h3><p class="muted small">Anyone with this link can view your public profile and, if signed in, start a chat with you.</p>
@@ -93,7 +94,8 @@ export function renderSettings({ onLogout }) {
   $("#theme").value = theme;
   $("#theme").addEventListener("change", (e) => { const v = e.target.value; try { v === "auto" ? localStorage.removeItem("schat_theme") : localStorage.setItem("schat_theme", v); } catch {} v === "auto" ? document.documentElement.removeAttribute("data-theme") : document.documentElement.setAttribute("data-theme", v); });
   const patch = async (body, okMsg) => { try { state.me = await api("/users/me", { method: "PATCH", body }); if (okMsg) toast(okMsg, "success"); return true; } catch (e) { toast(e.message, "error"); return false; } };
-  $("#save-prof").addEventListener("click", async (e) => { const b = e.currentTarget; b.disabled = true; await patch({ bio: $("#bio").value, phoneNumber: $("#phone").value.trim() || null }, "Profile saved"); b.disabled = false; });
+  $("#save-prof").addEventListener("click", async (e) => { const b = e.currentTarget; b.disabled = true; const ph = readPhone(document, "phone"); if (ph.error) { toast(ph.error, "error"); b.disabled = false; return; }
+    await patch({ bio: $("#bio").value, phoneNumber: ph.value }, "Profile saved"); b.disabled = false; });
   $("#link-on").addEventListener("change", async (e) => { if (!(await patch({ chatLinkEnabled: e.target.checked }, e.target.checked ? "Chat link enabled" : "Chat link disabled"))) e.target.checked = !e.target.checked; });
   $("#approval").addEventListener("change", async (e) => { if (!(await patch({ approvalRequired: e.target.checked }, "Saved"))) e.target.checked = !e.target.checked; });
   $("#byid").addEventListener("change", async (e) => { if (!(await patch({ addByIdOnly: e.target.checked }, "Saved"))) e.target.checked = !e.target.checked; });

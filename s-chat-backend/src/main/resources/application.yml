@@ -43,6 +43,9 @@ spring:
       max-request-size: 50MB
 
 app:
+  name: ${APP_NAME:S-Chat}
+  recovery:
+    code-ttl-minutes: ${RECOVERY_CODE_TTL_MIN:10}
   db:
     pool-size: ${DB_POOL_SIZE:8}
     probe-interval-seconds: ${DB_PROBE_INTERVAL_SECONDS:10}
@@ -83,9 +86,16 @@ app:
     urls: ${TURN_URLS:}
     shared-secret: ${TURN_SHARED_SECRET:}
     ttl-seconds: ${TURN_CREDENTIAL_TTL_SECONDS:3600}
+  twilio:                                       # SMS + WhatsApp recovery (leave blank to disable)
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    sms-from: ${TWILIO_SMS_FROM:}
+    messaging-service-sid: ${TWILIO_MESSAGING_SERVICE_SID:}
+    whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
+    whatsapp-content-sid: ${TWILIO_WHATSAPP_CONTENT_SID:}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
 
 management:
   endpoints:

@@ -1,5 +1,5 @@
 // App shell: nav rail + chat list pane + main pane. Built once per session, then the main pane swaps per route.
-import { html, raw, $, $$, mount, esc, avatar, fmtListTime, debounce, appName, isImage, isVideo, isAudio } from "../core/util.js";
+import { html, raw, $, $$, mount, esc, avatar, fmtListTime, debounce, appName, isImage, isVideo, isAudio, stripMd } from "../core/util.js";
 import { state, bus, totalUnread } from "../core/state.js";
 import { icon, openModal, toast, emptyState } from "../core/ui.js";
 import { navigate } from "../router.js";
@@ -59,9 +59,11 @@ function buildListPane() {
 }
 
 function previewOf(c) {
+  if (c.ai && state.ai.busy) return html`<span class="typing">typing…</span>`;
+  if (c.ai && !c.latestMessage) return html`<span class="muted">Ask me anything ✨</span>`;
   if (state.typing.has(c.user.id)) return html`<span class="typing">typing…</span>`;
   const mine = c.latestSenderId === state.me.id ? "You: " : "";
-  if (c.latestMessage) return html`${mine}${c.latestMessage}`;
+  if (c.latestMessage) return html`${mine}${c.ai ? stripMd(c.latestMessage) : c.latestMessage}`;
   const u = c.latestAttachmentUrl;
   if (u) return html`${mine}${isImage(u) ? "📷 Photo" : isVideo(u) ? "🎥 Video" : isAudio(u) ? "🎤 Voice message" : "📎 Attachment"}`;
   return html`<span class="muted">Say hello 👋</span>`;
@@ -69,8 +71,8 @@ function previewOf(c) {
 function rowHtml(c) {
   const online = state.online.has(c.user.id);
   const sortUnread = c.unreadCount > 0;
-  return html`<button class="row ${state.activeChatId === c.user.id ? "active" : ""} ${sortUnread ? "unread" : ""}" data-id="${c.user.id}" data-username="${c.user.username}">
-    ${avatar(c.user, 46, online)}<div class="meta"><div class="top"><span class="name">${c.user.username}</span><span class="time">${fmtListTime(c.latestMessageAt)}</span></div>
+  return html`<button class="row ${state.activeChatId === c.user.id ? "active" : ""} ${sortUnread ? "unread" : ""}" data-id="${c.user.id}" data-username="${c.user.username}" ${c.ai ? raw('data-href="/app/ai"') : ""}>
+    ${avatar(c.user, 46, online)}<div class="meta"><div class="top"><span class="name">${c.user.username}${c.ai ? raw(' <span class="pill ai-pill">AI</span>') : ""}</span><span class="time">${fmtListTime(c.latestMessageAt)}</span></div>
     <div class="preview"><span class="t">${previewOf(c)}</span>${sortUnread ? html`<span class="badge">${c.unreadCount}</span>` : ""}</div></div></button>`;
 }
 const mark = (text, q) => {
@@ -86,9 +88,10 @@ export function renderList() {
   if (filter === "unread") items = items.filter((c) => c.unreadCount > 0);
   if (q) items = items.filter((c) => c.user.username.toLowerCase().includes(q));
   let out = "";
-  if (!state.chats.size && !q) out = emptyState("chat", "No conversations yet", "Add a friend, or share your personal chat link so people can message you.", html`<button class="btn" id="empty-add">${icon("plus")} Add a friend</button>`).s;
-  else {
+  const friendCount = [...state.chats.values()].filter((c) => !c.ai).length;
+  {
     out = items.map((c) => rowHtml(c).s).join("");
+    if (!friendCount && !q && filter === "all") out += emptyState("users", "No friends yet", "Add a friend, or share your personal chat link so people can message you.", html`<button class="btn" id="empty-add">${icon("plus")} Add a friend</button>`).s;
     if (!items.length && !(q.length >= 2)) out = emptyState("inbox", filter === "unread" ? "All caught up" : "No matches", filter === "unread" ? "You have no unread conversations." : "No chats match your search.").s;
   }
   if (q.length >= 2) {
@@ -98,7 +101,7 @@ export function renderList() {
     else out += (msgResults || []).map((r) => `<button class="row" data-id="${esc(r.otherUser.id)}" data-username="${esc(r.otherUser.username)}"><div class="meta"><div class="top"><span class="name">${esc(r.otherUser.username)}</span><span class="time">${esc(fmtListTime(r.message.sentAt))}</span></div><div class="preview"><span class="t">${mark(r.message.content || "", query.trim())}</span></div></div></button>`).join("");
   }
   const top = box.scrollTop; box.innerHTML = out; box.scrollTop = top;
-  $$(".row[data-username]", box).forEach((r) => r.addEventListener("click", () => navigate(`/app/c/${encodeURIComponent(r.dataset.username)}`)));
+  $$(".row[data-username]", box).forEach((r) => r.addEventListener("click", () => navigate(r.dataset.href || `/app/c/${encodeURIComponent(r.dataset.username)}`)));
   $("#empty-add", box)?.addEventListener("click", openAddFriend);
 }
 

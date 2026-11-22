@@ -26,8 +26,22 @@ export function chatByUsername(username) {
   return null;
 }
 
+export const AI_ID = "ai";
+export const AI_USER = { id: AI_ID, username: "STech AI", publicId: "", profilePictureUrl: null, deleted: false, isAi: true };
+
+/** Puts/refreshes the assistant in the chat list. It sorts by latest message exactly like a friend — never pinned. */
+export function setAiEntry(map, summary) {
+  const mine = summary?.latestRole === "user";
+  map.set(AI_ID, {
+    user: AI_USER, ai: true, unreadCount: 0,
+    latestMessage: summary?.latestContent || null, latestAttachmentUrl: null,
+    latestMessageAt: summary?.latestAt || null, latestSenderId: summary?.latestRole ? (mine ? state.me.id : AI_ID) : null,
+  });
+  if (summary) state.ai.available = summary.available !== false;
+}
+
 export async function loadChats() {
-  const list = await api("/chat/list");
+  const [list, aiSummary] = await Promise.all([api("/chat/list"), api("/ai/summary").catch(() => null)]);
   const next = new Map();
   for (const it of list) {
     next.set(it.otherUser.id, {
@@ -35,6 +49,7 @@ export async function loadChats() {
       latestMessageAt: it.latestMessageAt, latestSenderId: it.latestSenderId, unreadCount: it.unreadCount || 0,
     });
   }
+  setAiEntry(next, aiSummary);
   state.chats = next; emitChats();
 }
 export async function loadRequests() {

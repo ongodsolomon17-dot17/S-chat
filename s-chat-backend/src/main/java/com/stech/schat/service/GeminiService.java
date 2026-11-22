@@ -63,7 +63,7 @@ public class GeminiService {
     public List<AiChatMessage> history(UUID userId) {
         return conversationRepository.findByUserId(userId)
                 .map(c -> messageRepository.findByConversationIdOrderByCreatedAtAscIdAsc(c.getId()).stream()
-                        .map(m -> new AiChatMessage(m.getRole(), m.getContent()))
+                        .map(m -> new AiChatMessage(m.getRole(), m.getContent(), m.getCreatedAt()))
                         .toList())
                 .orElseGet(List::of);
     }
@@ -110,6 +110,20 @@ public class GeminiService {
             try { messageRepository.delete(savedUser); } catch (Exception deleteEx) { log.warn("Could not roll back failed AI user message", deleteEx); }
             throw ex;
         }
+    }
+
+    public boolean isConfigured() {
+        return !apiKey.isBlank();
+    }
+
+    /** Latest message + availability, for showing the assistant in the chat list without loading the whole history. */
+    @Transactional(readOnly = true)
+    public com.stech.schat.dto.AiSummaryDto summary(UUID userId) {
+        return conversationRepository.findByUserId(userId)
+                .flatMap(c -> messageRepository.findTop24ByConversationIdOrderByCreatedAtDescIdDesc(c.getId()).stream().findFirst())
+                .map(m -> new com.stech.schat.dto.AiSummaryDto(isConfigured(), m.getRole(),
+                        m.getContent().length() > 160 ? m.getContent().substring(0, 160) : m.getContent(), m.getCreatedAt()))
+                .orElseGet(() -> new com.stech.schat.dto.AiSummaryDto(isConfigured(), null, null, null));
     }
 
     @Transactional

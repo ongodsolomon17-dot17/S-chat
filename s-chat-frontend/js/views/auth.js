@@ -2,6 +2,7 @@ import { html, raw, $, mount, esc, appName } from "../core/util.js";
 import { api, login, signup, ApiError } from "../core/api.js";
 import { openModal, toast } from "../core/ui.js";
 import { TERMS_SUMMARY, termsHtml } from "./legal-content.js";
+import { phoneFieldHtml, readPhone } from "./phone-field.js";
 
 const cfg = () => window.S_CHAT_CONFIG;
 const hero = () => html`<aside class="auth-hero"><div class="brand" style="color:#fff"><img class="hero-logo" src="/assets/favicon.svg" alt="">${appName()}</div>
@@ -24,6 +25,7 @@ export function renderLogin({ onDone, next }) {
       <div class="field"><label for="l-id">Username or email</label><input class="input" id="l-id" name="id" autocomplete="username" required></div>
       <div class="field"><label for="l-pw">Password</label><input class="input" id="l-pw" name="pw" type="password" autocomplete="current-password" required></div>
       <button class="btn block" type="submit">Sign in</button>
+      <p class="center small" style="margin:12px 0 0"><a href="/forgot" data-link>Forgot your password?</a></p>
     </form>
     <p class="center small" style="margin-top:18px">New here? <a href="/signup" data-link>Create an account</a></p>
     <p class="center small muted"><a href="/terms" data-link>Terms</a> · <a href="/privacy" data-link>Privacy</a></p>
@@ -85,7 +87,7 @@ export function renderSignup({ onDone }) {
     <form id="signup-form" novalidate>
       <div class="field"><label for="s-user">Username</label><input class="input" id="s-user" name="username" autocomplete="username" maxlength="24" required><span class="small muted">3–24 characters: letters, numbers, dots, underscores. This becomes your chat link.</span></div>
       <div class="field"><label for="s-email">Email</label><input class="input" id="s-email" name="email" type="email" autocomplete="email" required></div>
-      <div class="field"><label for="s-phone">Phone <span class="muted">(optional)</span></label><input class="input" id="s-phone" name="phone" type="tel" autocomplete="tel" maxlength="32"></div>
+      <div class="field"><label for="s-phone-num">Phone <span class="muted">(optional)</span></label>${phoneFieldHtml("s-phone")}<span class="small muted">Used only to recover your account by SMS or WhatsApp.</span></div>
       <div class="field"><label for="s-pw">Password</label><input class="input" id="s-pw" name="pw" type="password" autocomplete="new-password" required><span class="small muted">At least 8 characters with upper-case, lower-case and a number.</span></div>
       <div class="field"><label for="s-pw2">Confirm password</label><input class="input" id="s-pw2" name="pw2" type="password" autocomplete="new-password" required></div>
       <button class="btn block" type="submit">Continue</button>
@@ -100,6 +102,10 @@ export function renderSignup({ onDone }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) errs.email = "Enter a valid email address.";
     if (!(v.pw.length >= 8 && /[a-z]/.test(v.pw) && /[A-Z]/.test(v.pw) && /\d/.test(v.pw))) errs.pw = "Needs 8+ characters with upper-case, lower-case and a number.";
     if (v.pw2 !== v.pw) errs.pw2 = "Passwords do not match.";
+    const ph = readPhone(form, "s-phone");
+    const phoneErr = $("#s-phone-num").closest(".field"); phoneErr.querySelector(".err")?.remove();
+    if (ph.error) { errs.phone = ph.error; const s = document.createElement("span"); s.className = "err"; s.textContent = ph.error; phoneErr.appendChild(s); }
+    v.phone = ph.value;
     for (const n of ["username", "email", "pw", "pw2"]) fieldErr(form, n, errs[n]);
     return Object.keys(errs).length ? null : v;
   };
@@ -110,7 +116,7 @@ export function renderSignup({ onDone }) {
     openTermsPopup({
       onAgree: async (termsVersion) => {
         try {
-          await signup({ username: v.username, email: v.email, password: v.pw, phoneNumber: form.phone.value.trim() || null, acceptedTerms: true, termsVersion });
+          await signup({ username: v.username, email: v.email, password: v.pw, phoneNumber: v.phone, acceptedTerms: true, termsVersion });
         } catch (err) { throw err; }
         await onDone();
       },

@@ -10,6 +10,8 @@ import { renderLegal } from "./views/legal.js";
 import { renderChatLink } from "./views/profile-link.js";
 import { renderShell, resetShell } from "./views/shell.js";
 import { renderConversation, leaveConversation } from "./views/conversation.js";
+import { renderAi } from "./views/ai-conversation.js";
+import { renderForgot } from "./views/recovery.js";
 import { renderCalls, renderFriends, renderSettings, renderAdmin } from "./views/pages.js";
 
 document.title = appName();
@@ -76,6 +78,8 @@ route("/privacy", async () => { await ensureSession(); resetIfNeeded(); renderLe
 route("/chat/:username", async (p) => { const authed = await ensureSession(); resetIfNeeded(); renderChatLink(p, authed); });
 route("/app", async () => { if (!(await guard())) return; leaveConversation(); renderShell("chats"); mount($("#main-pane"), html`<div class="no-chat empty"><div class="art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></div><h3>Select a conversation</h3><p>Choose a chat from the list, or share your chat link from Settings.</p></div>`); document.title = appName(); });
 route("/app/c/:username", async (p) => { if (!(await guard())) return; renderShell("chats", { conv: true }); await renderConversation(p.username); });
+route("/app/ai", async () => { if (!(await guard())) return; leaveConversation(); renderShell("chats", { conv: true }); await renderAi(); });
+route("/forgot", async () => { if (await ensureSession()) return navigate("/app", { replace: true }); renderForgot(); });
 route("/app/calls", async () => { if (!(await guard())) return; leaveConversation(); renderShell("calls"); renderCalls(); });
 route("/app/friends", async () => { if (!(await guard())) return; leaveConversation(); renderShell("friends"); renderFriends(); });
 route("/app/settings", async () => { if (!(await guard())) return; leaveConversation(); renderShell("settings"); renderSettings({ onLogout: doLogout }); });

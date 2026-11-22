@@ -24,7 +24,11 @@ public class AiController {
 
     @PostMapping("/chat")
     public ResponseEntity<AiChatResponse> chat(Authentication auth, @RequestBody AiChatRequest request) {
-        return ResponseEntity.ok(geminiService.generate(currentUserId(auth), request));
+        UUID userId = currentUserId(auth);
+        if (!rateLimiter.tryConsume(userId)) {
+            throw new com.stech.schat.exception.RateLimitExceededException("You're sending messages to STech AI too quickly. Please wait a moment.");
+        }
+        return ResponseEntity.ok(geminiService.generate(userId, request));
     }
 
     @DeleteMapping("/history")
