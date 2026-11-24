@@ -11,6 +11,9 @@ import { renderChatLink } from "./views/profile-link.js";
 import { renderShell, resetShell } from "./views/shell.js";
 import { renderConversation, leaveConversation } from "./views/conversation.js";
 import { renderAi } from "./views/ai-conversation.js";
+import { renderStatusPage } from "./views/status.js";
+import { loadStatuses, resetSeenCache } from "./core/status.js";
+import "./core/install.js";
 import { renderForgot } from "./views/recovery.js";
 import { renderCalls, renderFriends, renderSettings, renderAdmin } from "./views/pages.js";
 
@@ -24,7 +27,13 @@ async function ensureSession() {
   startRealtime();
   return true;
 }
-let started = false, statusTimer = null;
+let started = false, statusTimer = null, socialTimer = null, wsSeenOnce = false;
+
+/** Safety net for missed pushes: lists are refreshed on focus, on reconnect and every minute. */
+function refreshSocial() {
+  if (!state.me || document.hidden) return;
+  Promise.allSettled([chats.loadChats(), chats.loadRequests(), loadStatuses()]);
+}
 
 /** Shows a banner while the backend is serving from its read-only backup database. */
 async function checkStatus() {
@@ -41,6 +50,7 @@ async function checkStatus() {
 async function startRealtime() {
   if (started) return; started = true;
   checkStatus(); clearInterval(statusTimer); statusTimer = setInterval(checkStatus, 45000);
+  loadStatuses().catch(() => {}); clearInterval(socialTimer); socialTimer = setInterval(refreshSocial, 60000);
   connect();
   chats.loadChats().catch((e) => toast(e.message, "error"));
   chats.loadRequests().catch(() => {});
@@ -59,7 +69,7 @@ function promptReaccept() {
 }
 
 async function doLogout() {
-  disconnect(); clearInterval(statusTimer); await apiLogout(); started = false; resetShell(); leaveConversation();
+  disconnect(); clearInterval(statusTimer); clearInterval(socialTimer); await apiLogout(); started = false; resetSeenCache(); state.status = { feed: [], mine: [], loaded: false }; resetShell(); leaveConversation();
   state.chats.clear(); state.messages.clear(); state.requests = []; state.online.clear(); state.activeChatId = null;
   navigate("/login", { replace: true });
 }
@@ -80,6 +90,7 @@ route("/app", async () => { if (!(await guard())) return; leaveConversation(); r
 route("/app/c/:username", async (p) => { if (!(await guard())) return; renderShell("chats", { conv: true }); await renderConversation(p.username); });
 route("/app/ai", async () => { if (!(await guard())) return; leaveConversation(); renderShell("chats", { conv: true }); await renderAi(); });
 route("/forgot", async () => { if (await ensureSession()) return navigate("/app", { replace: true }); renderForgot(); });
+route("/app/status", async () => { if (!(await guard())) return; leaveConversation(); renderShell("status"); await renderStatusPage(); });
 route("/app/calls", async () => { if (!(await guard())) return; leaveConversation(); renderShell("calls"); renderCalls(); });
 route("/app/friends", async () => { if (!(await guard())) return; leaveConversation(); renderShell("friends"); renderFriends(); });
 route("/app/settings", async () => { if (!(await guard())) return; leaveConversation(); renderShell("settings"); renderSettings({ onLogout: doLogout }); });
@@ -89,8 +100,15 @@ notFound(async () => { mount($("#app"), html`<div class="splash"><h1>Page not fo
 function resetIfNeeded() { leaveConversation(); resetShell(); }
 
 bus.on("ws:frame", (f) => chats.handleFrame(f));
+bus.on("ws:status", (ok) => { if (ok) { if (wsSeenOnce) refreshSocial(); wsSeenOnce = true; } });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshSocial(); });
 bus.on("auth:expired", () => { if (state.me) doLogout(); });
 window.addEventListener("online", () => state.me && connect());
 
 mount($("#app"), html`<div class="splash"><span class="spinner"></span></div>`);
 resolve();
+
+// Installable app (PWA): the service worker only caches the app's own files; API calls are never intercepted.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch((e) => console.warn("Service worker not registered:", e)));
+}

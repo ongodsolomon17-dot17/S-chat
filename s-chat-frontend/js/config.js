@@ -9,17 +9,17 @@ window.S_CHAT_CONFIG = {
 
   // --- Branding --------------------------------------------------------------
   APP_NAME: "S-Chat",
-  TAGLINE: "Fast messaging app",
+  TAGLINE: "Fast messaging wep app",
   // Public URL of THIS frontend. Leave "" to use whatever origin the app is served from.
-  PUBLIC_BASE_URL: "https://s-chat-zeta.vercel.app/",
+  PUBLIC_BASE_URL: "",
 
   // --- Legal / contact (shown in Terms and Privacy Policy) -------------------
   // Leave a value as "" and the documents show a clearly marked placeholder.
-  COMPANY_NAME: "STECH",          // legal name of the person/company operating the service
+  COMPANY_NAME: "Stech",          // legal name of the person/company operating the service
   SUPPORT_EMAIL: "stechtechnologies9@gmail.com",         // e.g. support@yourdomain.com
-  PRIVACY_EMAIL: "stechtechnologies9@gmail.com",         // e.g. privacy@yourdomain.com (can equal SUPPORT_EMAIL)
-  COMPANY_ADDRESS: "Null",       // postal address, if you want one published
-  GOVERNING_LAW: "Null",         // e.g. "the laws of the Federal Republic of Nigeria"
+  PRIVACY_EMAIL: "null",         // e.g. privacy@yourdomain.com (can equal SUPPORT_EMAIL)
+  COMPANY_ADDRESS: "null",       // postal address, if you want one published
+  GOVERNING_LAW: "null",         // e.g. "the laws of the Federal Republic of Nigeria"
   MINIMUM_AGE: "13",           // e.g. "13" or "16" — confirm what applies where you operate
 
   // --- Behaviour ------------------------------------------------------------

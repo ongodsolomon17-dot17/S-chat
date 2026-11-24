@@ -3,7 +3,6 @@ package com.stech.schat.controller;
 import com.stech.schat.dto.AiChatResponse;
 import com.stech.schat.dto.AiChatRequest;
 import com.stech.schat.service.GeminiService;
-import com.stech.schat.service.RateLimiter; // <-- update to your actual package/class
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +14,8 @@ import java.util.UUID;
 @RequestMapping("/api/ai")
 public class AiController {
     private final GeminiService geminiService;
-    private final RateLimiter rateLimiter;
 
-    public AiController(GeminiService geminiService, RateLimiter rateLimiter) {
-        this.geminiService = geminiService;
-        this.rateLimiter = rateLimiter;
-    }
+    public AiController(GeminiService geminiService) { this.geminiService = geminiService; }
 
     @GetMapping("/history")
     public ResponseEntity<List<com.stech.schat.dto.AiChatMessage>> history(Authentication auth) {

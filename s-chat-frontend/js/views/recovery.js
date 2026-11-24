@@ -8,7 +8,7 @@ const LABEL = { EMAIL: ["Email", "Send a code to the email on your account"], SM
 
 export async function renderForgot() {
   document.title = `Reset password · ${appName()}`;
-  const shell = (inner) => mount($("#app"), html`<div class="auth"><main class="auth-panel" style="grid-column:1/-1"><div class="auth-card"><div class="brand"><img src="/assets/favicon.svg" alt="">${appName()}</div>${inner}</div></main></div>`);
+  const shell = (inner) => mount($("#app"), html`<div class="auth"><main class="auth-panel" style="grid-column:1/-1"><div class="auth-card"><div class="brand"><img src="/assets/logo-128.png" alt="">${appName()}</div>${inner}</div></main></div>`);
   shell(html`<div class="splash" style="height:200px"><span class="spinner"></span></div>`);
   let channels = [];
   try { channels = (await api("/auth/recovery/channels", { auth: false })).channels || []; } catch (e) { return shell(html`<div class="alert error">${e.message}</div><a class="btn secondary block" href="/login" data-link>Back to sign in</a>`); }

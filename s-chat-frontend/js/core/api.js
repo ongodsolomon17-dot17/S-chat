@@ -63,9 +63,10 @@ export async function api(path, { method = "GET", body, auth = true, retryOn401 
 }
 
 /** Multipart upload with progress (fetch cannot report upload progress, XHR can). */
-export function upload(path, file, onProgress, retried = false) {
+export function upload(path, file, onProgress, fields = {}, retried = false) {
   return new Promise((resolve, reject) => {
     const fd = new FormData(); fd.append("file", file);
+    for (const [k, v] of Object.entries(fields)) if (v != null && v !== "") fd.append(k, v);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", base() + path); xhr.withCredentials = true;
     if (Session.token()) xhr.setRequestHeader("Authorization", "Bearer " + Session.token());
@@ -73,7 +74,7 @@ export function upload(path, file, onProgress, retried = false) {
     xhr.onerror = () => reject(new ApiError("Upload failed. Check your connection.", 0));
     xhr.onload = async () => {
       let body = null; try { body = JSON.parse(xhr.responseText); } catch {}
-      if (xhr.status === 401 && !retried && (await refreshSession())) return upload(path, file, onProgress, true).then(resolve, reject);
+      if (xhr.status === 401 && !retried && (await refreshSession())) return upload(path, file, onProgress, fields, true).then(resolve, reject);
       if (xhr.status < 200 || xhr.status >= 300) return reject(new ApiError(errMsg(body, "Upload failed."), xhr.status));
       resolve(body);
     };

@@ -26,6 +26,9 @@ export async function renderConversation(username) {
     state.activeChatId = null;
     mount(main, html`<div class="no-chat">${emptyState("users", "Conversation not found", `You aren't connected with “${username}” yet. Add them as a friend to start chatting.`, html`<button class="btn" id="nf-back">Back to chats</button>`)}</div>`);
     $("#nf-back").addEventListener("click", () => navigate("/app"));
+    // If the request is accepted while this page is open, show the conversation without a manual refresh.
+    const off = bus.on("chats", () => { if (chats.chatByUsername(username)) { off(); renderConversation(username); } });
+    cleanups.push(off);
     return;
   }
   const friend = chat.user, fid = friend.id;
@@ -81,7 +84,14 @@ export async function renderConversation(username) {
     if (isAudio(url)) return `<div class="attach"><audio src="${esc(url)}" controls preload="none"></audio></div>`;
     return `<a class="file-chip" href="${esc(url)}" target="_blank" rel="noopener noreferrer" download>${ICONS.clip}<span>${esc(fileName(url))}</span></a>`;
   };
+  const statusReplyHtml = (m) => {
+    const s = m.replyToStatus; if (!s) return "";
+    const thumb = s.mediaUrl && /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(s.mediaUrl) ? `<img src="${esc(safeUrl(s.mediaUrl))}" alt="">` : `<span class="st-dot" style="background:${esc(s.backgroundColor || "#0aa89a")}"></span>`;
+    const text = s.textContent || s.caption || (s.mediaUrl ? "Status" : "Status no longer available");
+    return `<div class="reply-preview status-reply">${thumb}<div><b>Status${s.authorName ? " · " + esc(s.authorName) : ""}</b>${esc(String(text).slice(0, 100))}</div></div>`;
+  };
   const replyHtml = (m) => {
+    if (m.replyToStatus) return statusReplyHtml(m);
     if (!m.replyTo) return "";
     const r = m.replyTo; const who = r.senderId === state.me.id ? "You" : friend.username;
     const text = r.deleted ? "Message deleted" : r.snippet || (r.attachmentUrl ? "Attachment" : "");

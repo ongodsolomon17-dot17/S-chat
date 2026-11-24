@@ -4,10 +4,12 @@ import { state, bus, totalUnread } from "../core/state.js";
 import { icon, openModal, toast, emptyState } from "../core/ui.js";
 import { navigate } from "../router.js";
 import * as chats from "../core/chats.js";
+import { unseenCount } from "../core/status.js";
+import { phoneFieldHtml, readPhone } from "./phone-field.js";
 
 let built = false, filter = "all", query = "", msgResults = null, searching = false;
 const cleanups = [];
-const SECTIONS = [["chats", "/app", "chat", "Chats"], ["calls", "/app/calls", "phone", "Calls"], ["friends", "/app/friends", "users", "Friends"], ["settings", "/app/settings", "settings", "Settings"]];
+const SECTIONS = [["chats", "/app", "chat", "Chats"], ["status", "/app/status", "status", "Status"], ["calls", "/app/calls", "phone", "Calls"], ["friends", "/app/friends", "users", "Friends"], ["settings", "/app/settings", "settings", "Settings"]];
 
 export function mainEl() { return $("#main-pane"); }
 export function resetShell() { cleanups.splice(0).forEach((f) => f()); built = false; filter = "all"; query = ""; msgResults = null; }
@@ -16,13 +18,13 @@ export function renderShell(section, { conv = false } = {}) {
   if (!built) {
     const items = [...SECTIONS, ...(state.me?.role && state.me.role !== "USER" ? [["admin", "/app/admin", "shield", "Admin"]] : [])];
     mount($("#app"), html`<div class="shell" id="shell">
-      <nav class="rail" aria-label="Main"><img class="logo" src="/assets/favicon.svg" alt="${appName()}">
+      <nav class="rail" aria-label="Main"><img class="logo" src="/assets/logo-128.png" alt="${appName()}">
         ${items.map(([id, href, ic, label]) => html`<a class="nav" data-nav="${id}" href="${href}" data-link aria-label="${label}" title="${label}">${icon(ic)}<span class="badge hidden" data-badge="${id}"></span></a>`)}
         <span class="spacer"></span></nav>
       <aside class="list-pane" id="list-pane" aria-label="Conversations"></aside>
       <section class="main-pane" id="main-pane"></section></div>`);
     built = true;
-    cleanups.push(bus.on("chats", () => { renderList(); renderBadges(); }), bus.on("presence", renderList), bus.on("typing", renderList), bus.on("requests", renderBadges));
+    cleanups.push(bus.on("chats", () => { renderList(); renderBadges(); }), bus.on("presence", renderList), bus.on("typing", renderList), bus.on("requests", renderBadges), bus.on("status", renderBadges));
     cleanups.push(bus.on("ws:status", (ok) => { const b = $("#conn-banner"); if (b) b.classList.toggle("hidden", ok); }));
     buildListPane();
   }
@@ -36,7 +38,7 @@ export function renderShell(section, { conv = false } = {}) {
 
 function renderBadges() {
   const set = (id, n) => { const b = $(`[data-badge="${id}"]`); if (b) { b.textContent = n > 99 ? "99+" : n; b.classList.toggle("hidden", !n); } };
-  set("chats", totalUnread()); set("friends", state.requests.length);
+  set("chats", totalUnread()); set("friends", state.requests.length); set("status", unseenCount());
 }
 
 function buildListPane() {
@@ -108,18 +110,30 @@ export function renderList() {
 export function openAddFriend() {
   const m = openModal({
     title: "Add a friend",
-    body: html`<div id="af-alert"></div><div class="field"><label for="af-mode">Find them by</label><select class="select" id="af-mode"><option value="name">Username, email or phone</option><option value="id">Public ID</option></select></div>
-      <div class="field"><label for="af-id">Who?</label><input class="input" id="af-id" autocomplete="off" placeholder="e.g. alex_k"></div>
+    body: html`<div id="af-alert"></div><div class="field"><label for="af-mode">Find them by</label><select class="select" id="af-mode"><option value="username">Username</option><option value="email">Email address</option><option value="phone">Phone number</option><option value="id">Public ID</option></select></div>
+      <div class="field" id="af-text"><label for="af-id" id="af-label">Username</label><input class="input" id="af-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. alex_k"></div>
+      <div class="field hidden" id="af-phone"><label for="af-phone-num">Phone number</label>${phoneFieldHtml("af-phone")}</div>
       <p class="small muted">Tip: you can also share your personal chat link from <a href="/app/settings" data-link>Settings</a>.</p>`,
     footer: html`<button class="btn secondary" data-close>Cancel</button><button class="btn" id="af-send">Send request</button>`,
   });
+  const mode = () => $("#af-mode", m.el).value;
+  const PH = { username: ["Username", "e.g. alex_k"], email: ["Email address", "name@example.com"], id: ["Public ID", "Their S-Chat public ID"] };
+  $("#af-mode", m.el).addEventListener("change", () => {
+    const md = mode(), phone = md === "phone";
+    $("#af-text", m.el).classList.toggle("hidden", phone); $("#af-phone", m.el).classList.toggle("hidden", !phone);
+    if (!phone) { $("#af-label", m.el).textContent = PH[md][0]; $("#af-id", m.el).placeholder = PH[md][1]; $("#af-id", m.el).value = ""; $("#af-id", m.el).focus(); }
+  });
   $("#af-id", m.el).focus();
   const submit = async () => {
-    const v = $("#af-id", m.el).value.trim(); if (!v) return;
-    const b = $("#af-send", m.el); b.disabled = true;
+    let value, viaId = mode() === "id";
+    if (mode() === "phone") { const ph = readPhone(m.el, "af-phone"); if (ph.error || !ph.value) return ($("#af-alert", m.el).innerHTML = `<div class="alert error">${esc(ph.error || "Enter their phone number.")}</div>`); value = ph.value; }
+    else { value = $("#af-id", m.el).value.trim(); if (!value) return; }
+    const b = $("#af-send", m.el); b.disabled = true; $("#af-alert", m.el).innerHTML = "";
     try {
-      const r = await chats.sendFriendRequest(v, $("#af-mode", m.el).value === "id");
-      toast(r.status === "ACCEPTED" ? "Added — you can chat now" : "Request sent", "success"); m.close();
+      const r = await chats.sendFriendRequest(value, viaId);
+      m.close();
+      if (r.status === "ACCEPTED") { toast(`You're connected with ${r.otherUser.username}`, "success"); navigate(`/app/c/${encodeURIComponent(r.otherUser.username)}`); }
+      else toast(`Request sent to ${r.otherUser.username}. You can chat as soon as they accept.`, "success");
     } catch (e) { $("#af-alert", m.el).innerHTML = `<div class="alert error">${esc(e.message)}</div>`; b.disabled = false; }
   };
   $("#af-send", m.el).addEventListener("click", submit);

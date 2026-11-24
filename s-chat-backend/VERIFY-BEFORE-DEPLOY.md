@@ -22,11 +22,14 @@ curl localhost:8080/actuator/health
 
 9. **Recovery (email first):** set `RESEND_API_KEY` + `RESEND_FROM_ADDRESS`; `GET /api/auth/recovery/channels` → `{"channels":["EMAIL"]}`; `POST /api/auth/recovery/request` with your username/email → an email arrives; `POST /api/auth/recovery/reset` with the code sets a new password and old sessions stop refreshing. Logs show `Account recovery via EMAIL: ENABLED`. Repeat for SMS/WhatsApp once Twilio is configured.
 10. **STech AI:** with `GEMINI_API_KEY` set, `GET /api/ai/summary` → `available:true`; `POST /api/ai/chat` replies; `GET /api/ai/history` rows carry `createdAt`.
-11. **Failover** (only if `NEON_DB_URL` is set): follow the staging test plan at the bottom of `docs/DATABASE_FAILOVER.md`.
+11. **Status (regression check):** `POST /api/status` (text), `GET /api/status/feed` from a friend, `POST /api/status/{id}/reply` — these come from the **original** `StatusController`, which an earlier version of this delivery accidentally overwrote; it is restored now.
+12. **Friend flow:** with two accounts, `POST /api/friends/request {identifier:"<username>",viaId:false}`; the other account's open WebSocket receives `friend_request`; accepting makes the first account's socket receive `friend_accepted` and both receive `presence`.
+13. **Failover** (only if `NEON_DB_URL` is set): follow the staging test plan at the bottom of `docs/DATABASE_FAILOVER.md`.
 
 ## Highest-risk spots (look here first if something fails)
 - `ChatMessageRepository.searchAll/searchInConversation` — JPQL `LIKE ... ESCAPE '!'`.
 - `ChatMessageRepository.markDeliveredByIds` — bulk `UPDATE ... IN :ids`.
+- `service/FriendService` constructor (now also takes `WebSocketSessionRegistry`) and its after-commit push helpers; `resolveTarget` username fallback.
 - `service/RecoveryService` (`@Transactional(noRollbackFor=...)` so wrong-guess counters persist; afterCommit async delivery) and the three senders.
 - `AiChatMessage` record gained a third component (a 2-arg constructor was kept).
 - `config/FailoverDataSource` + `DataSourceConfig` (new DataSource bean replaces Spring Boot's auto-configured one; Flyway uses its own `spring.flyway.url`).

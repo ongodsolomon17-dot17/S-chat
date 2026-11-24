@@ -3,10 +3,10 @@ import { api, login, signup, ApiError } from "../core/api.js";
 import { openModal, toast } from "../core/ui.js";
 import { TERMS_SUMMARY, termsHtml } from "./legal-content.js";
 import { phoneFieldHtml, readPhone } from "./phone-field.js";
+import { installState, showInstallHelp } from "../core/install.js";
 
 const cfg = () => window.S_CHAT_CONFIG;
-const hero = () => html`<aside class="auth-hero"><div class="brand" style="color:#fff"><img class="hero-logo" src="/assets/favicon.svg" alt="">${appName()}</div>
-  <h1>${cfg().TAGLINE}</h1><p>Chat one-to-one in real time, share files, make voice and video calls, and give friends a personal link to start talking to you.</p>
+const hero = () => html`<aside class="auth-hero"><img class="hero-big" src="/assets/logo-128.png" alt="${appName()}"><h1>${cfg().TAGLINE}</h1><p>Chat one-to-one in real time, share files, make voice and video calls, and give friends a personal link to start talking to you.</p>
   <ul><li>Real-time messages with read receipts</li><li>Your own shareable chat link</li><li>Voice &amp; video calls</li><li>Block and report tools you control</li></ul></aside>`;
 
 function fieldErr(form, name, msg) {
@@ -18,7 +18,7 @@ function fieldErr(form, name, msg) {
 
 export function renderLogin({ onDone, next }) {
   mount($("#app"), html`<div class="auth">${hero()}<main class="auth-panel"><div class="auth-card">
-    <div class="brand"><img src="/assets/favicon.svg" alt="">${appName()}</div>
+    <div class="brand"><img src="/assets/logo-128.png" alt="">${appName()}</div>
     <h2>Welcome back</h2><p class="muted">Sign in to continue to your chats.</p>
     <div id="form-alert"></div>
     <form id="login-form" novalidate>
@@ -29,7 +29,10 @@ export function renderLogin({ onDone, next }) {
     </form>
     <p class="center small" style="margin-top:18px">New here? <a href="/signup" data-link>Create an account</a></p>
     <p class="center small muted"><a href="/terms" data-link>Terms</a> · <a href="/privacy" data-link>Privacy</a></p>
+    <p class="center small" id="get-app-row"><button class="link-btn" id="get-app" type="button">📲 Get the S-Chat app</button></p>
   </div></main></div>`);
+  if (installState() === "installed") $("#get-app-row").classList.add("hidden");
+  $("#get-app").addEventListener("click", showInstallHelp);
   const form = $("#login-form");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -81,7 +84,7 @@ function openTermsPopup({ onAgree }) {
 
 export function renderSignup({ onDone }) {
   mount($("#app"), html`<div class="auth">${hero()}<main class="auth-panel"><div class="auth-card">
-    <div class="brand"><img src="/assets/favicon.svg" alt="">${appName()}</div>
+    <div class="brand"><img src="/assets/logo-128.png" alt="">${appName()}</div>
     <h2>Create your account</h2><p class="muted">Takes less than a minute.</p>
     <div id="form-alert"></div>
     <form id="signup-form" novalidate>

@@ -169,7 +169,7 @@ export function handleFrame(f) {
   switch (f.type) {
     case "chat": {
       const friendId = f.senderId;
-      const incoming = { id: f.id, senderId: f.senderId, receiverId: f.receiverId, content: f.content, attachmentUrl: f.attachmentUrl || null, sentAt: f.sentAt, deliveredAt: null, readAt: null, editedAt: null, deleted: false, reactions: [], replyTo: f.replyTo || null };
+      const incoming = { id: f.id, senderId: f.senderId, receiverId: f.receiverId, content: f.content, attachmentUrl: f.attachmentUrl || null, sentAt: f.sentAt, deliveredAt: null, readAt: null, editedAt: null, deleted: false, reactions: [], replyTo: f.replyTo || null, replyToStatus: f.replyToStatus || null };
       if (!state.chats.has(friendId)) { loadChats().then(() => { /* new friend appears */ }); }
       const list = state.messages.get(friendId);
       if (list && !list.some((m) => m.id === incoming.id)) list.push(incoming);
@@ -221,6 +221,8 @@ export function handleFrame(f) {
       } else clearTypingFor(f.from, true);
       bus.emit("typing", f.from); break;
     }
+    case "friend_request": loadRequests().catch(() => {}); toast(`${f.fromName || "Someone"} wants to connect with you`); break;
+    case "friend_accepted": loadChats().catch(() => {}); loadRequests().catch(() => {}); toast(`You're now connected with ${f.username || "a new friend"}`, "success"); break;
     case "presence": f.online ? state.online.add(f.userId) : state.online.delete(f.userId); bus.emit("presence"); break;
     case "presence_snapshot": state.online = new Set(f.online || []); bus.emit("presence"); break;
     case "error": toast(f.message || "Something went wrong", "error"); break;

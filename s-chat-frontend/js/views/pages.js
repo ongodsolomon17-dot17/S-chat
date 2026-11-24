@@ -7,6 +7,7 @@ import { navigate } from "../router.js";
 import * as chats from "../core/chats.js";
 import * as calls from "../core/calls.js";
 import { mainEl } from "./shell.js";
+import { installState, promptInstall, showInstallHelp } from "../core/install.js";
 import { phoneFieldHtml, readPhone } from "./phone-field.js";
 
 const page = (inner) => mount(mainEl(), html`<div class="page-wrap"><div class="page">${inner}</div></div>`);
@@ -36,16 +37,16 @@ export async function renderCalls() {
 
 // ---------------------------------------------------------------- Friends
 export async function renderFriends() {
-  const draw = async () => {
+  const draw = async (fromEvent = false) => {
     if (!$("#fr-root")) return;
     let friends = [], blocked = [];
-    try { [friends, blocked] = await Promise.all([api("/friends"), chats.listBlocked(), chats.loadRequests()]); } catch (e) { $("#fr-root").innerHTML = `<div class="alert error">${esc(e.message)}</div>`; return; }
+    try { [friends, blocked] = await Promise.all([api("/friends"), chats.listBlocked(), fromEvent ? null : chats.loadRequests()]); } catch (e) { $("#fr-root").innerHTML = `<div class="alert error">${esc(e.message)}</div>`; return; }
     if (!$("#fr-root")) return;
     const req = state.requests;
     $("#fr-root").innerHTML = `
       <div class="card"><h3>Friend requests ${req.length ? `<span class="badge">${req.length}</span>` : ""}</h3>
         ${req.length ? req.map((r) => `<div class="row" style="cursor:default;padding-left:0;padding-right:0">${avatar(r.otherUser, 42).s}<div class="meta"><div class="name">${esc(r.otherUser.username)}</div><div class="small muted">wants to connect</div></div>
-          <button class="btn sm" data-acc="${esc(r.id)}">Accept</button><button class="btn sm secondary" data-dec="${esc(r.id)}">Decline</button></div>`).join("") : '<p class="muted small">No pending requests.</p>'}</div>
+          <button class="btn sm" data-acc="${esc(r.requestId)}">Accept</button><button class="btn sm secondary" data-dec="${esc(r.requestId)}">Decline</button></div>`).join("") : '<p class="muted small">No pending requests.</p>'}</div>
       <div class="card"><h3>Your friends (${friends.length})</h3>
         ${friends.length ? friends.map((f) => `<div class="row" data-chat="${esc(f.otherUser.username)}">${avatar(f.otherUser, 42, state.online.has(f.otherUser.id)).s}<div class="meta"><div class="name">${esc(f.otherUser.username)}</div></div></div>`).join("") : '<p class="muted small">You haven\'t added anyone yet. Use the + button in Chats, or share your chat link.</p>'}</div>
       <div class="card"><h3>Blocked users</h3>${blocked.length ? blocked.map((b) => `<div class="row" style="cursor:default;padding-left:0;padding-right:0">${avatar(b, 42).s}<div class="meta"><div class="name">${esc(b.username)}</div></div><button class="btn sm secondary" data-unblock="${esc(b.id)}">Unblock</button></div>`).join("") : '<p class="muted small">You haven\'t blocked anyone.</p>'}</div>`;
@@ -56,6 +57,9 @@ export async function renderFriends() {
     $$("[data-chat]", root).forEach((r) => r.addEventListener("click", () => navigate(`/app/c/${encodeURIComponent(r.dataset.chat)}`)));
   };
   page(html`<h1>Friends</h1><div id="fr-root">${spinnerBlock()}</div>`);
+  // Live updates: a push (new request / acceptance) or a refresh redraws this page without a manual reload.
+  let t = null; const redraw = () => { clearTimeout(t); t = setTimeout(() => { if (!$("#fr-root")) { offReq(); offChats(); return; } draw(true); }, 200); };
+  const offReq = bus.on("requests", redraw), offChats = bus.on("chats", redraw);
   draw();
 }
 
@@ -87,10 +91,18 @@ export function renderSettings({ onLogout }) {
       <div class="field"><label for="pw-new">New password</label><input class="input" id="pw-new" type="password" autocomplete="new-password"></div>
       <button class="btn secondary" id="pw-save">Change password</button><p class="small muted">You'll be signed out on all devices after changing it.</p></div>
 
+    <div class="card" id="app-card"><h3>Get the app</h3><p class="small muted">Install ${appName()} on this device — it opens full-screen with its own icon, like a normal app.</p><div id="app-card-body"></div></div>
+
     <div class="card"><h3>Legal</h3><p class="small muted">You accepted Terms version <b>${me.termsVersion || "—"}</b> and Privacy Policy version <b>${me.privacyVersion || "—"}</b>.</p><a href="/terms" data-link>Terms and Conditions</a> · <a href="/privacy" data-link>Privacy Policy</a></div>
 
     <div class="card"><button class="btn secondary" id="logout">${icon("logout")} Sign out</button></div>
     <div class="card danger-zone"><h3>Delete account</h3><p class="small muted">Your profile is removed and you are signed out everywhere. This cannot be undone.</p><button class="btn danger" id="del">Delete my account</button></div>`);
+  const paintInstall = () => {
+    const b = $("#app-card-body"); if (!b) return; const stt = installState();
+    b.innerHTML = stt === "installed" ? '<div class="alert success" style="margin:0">✅ Installed on this device.</div>' : stt === "available" ? '<button class="btn" id="do-install">Install app</button>' : '<button class="btn secondary" id="how-install">How to install</button>';
+    $("#do-install")?.addEventListener("click", () => promptInstall()); $("#how-install")?.addEventListener("click", showInstallHelp);
+  };
+  paintInstall(); bus.on("install:changed", paintInstall);
   $("#theme").value = theme;
   $("#theme").addEventListener("change", (e) => { const v = e.target.value; try { v === "auto" ? localStorage.removeItem("schat_theme") : localStorage.setItem("schat_theme", v); } catch {} v === "auto" ? document.documentElement.removeAttribute("data-theme") : document.documentElement.setAttribute("data-theme", v); });
   const patch = async (body, okMsg) => { try { state.me = await api("/users/me", { method: "PATCH", body }); if (okMsg) toast(okMsg, "success"); return true; } catch (e) { toast(e.message, "error"); return false; } };

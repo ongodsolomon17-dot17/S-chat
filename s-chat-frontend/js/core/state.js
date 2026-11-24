@@ -16,6 +16,7 @@ export const state = {
   requests: [],             // incoming friend requests
   legal: null,              // { termsVersion, privacyVersion }
   wsConnected: false,
+  status: { feed: [], mine: [], loaded: false },   // friends' statuses + my own
   ai: { available: true, messages: null, busy: false, local: [] },  // STech AI conversation (server keeps the history)
 };
 

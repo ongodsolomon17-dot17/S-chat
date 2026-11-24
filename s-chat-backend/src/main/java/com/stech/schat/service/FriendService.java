@@ -30,10 +30,57 @@ public class FriendService {
     private final UserRepository userRepository;
     private final UserBlockRepository userBlockRepository;
 
-    public FriendService(FriendRequestRepository friendRequestRepository, UserRepository userRepository, UserBlockRepository userBlockRepository) {
+    private final com.stech.schat.websocket.WebSocketSessionRegistry sessionRegistry;
+
+    public FriendService(FriendRequestRepository friendRequestRepository, UserRepository userRepository,
+                         UserBlockRepository userBlockRepository,
+                         com.stech.schat.websocket.WebSocketSessionRegistry sessionRegistry) {
         this.friendRequestRepository = friendRequestRepository;
         this.userRepository = userRepository;
         this.userBlockRepository = userBlockRepository;
+        this.sessionRegistry = sessionRegistry;
+    }
+
+    // ---- real-time friend events (so nobody has to refresh to see a request or an acceptance) ----
+
+    /** Runs after the surrounding transaction commits, so a client that reacts by reloading sees the new data. */
+    private void afterCommit(Runnable action) {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { action.run(); }
+                    });
+        } else {
+            action.run();
+        }
+    }
+
+    private void pushIfOnline(UUID userId, java.util.Map<String, Object> frame) {
+        try {
+            if (sessionRegistry.isOnline(userId)) sessionRegistry.send(userId, frame);
+        } catch (Exception ignored) {
+            // A missed push is harmless: clients also refresh on focus, reconnect and every minute.
+        }
+    }
+
+    private void notifyNewRequest(FriendRequest fr, User requester) {
+        afterCommit(() -> pushIfOnline(fr.getAddresseeId(), java.util.Map.of(
+                "type", "friend_request",
+                "requestId", fr.getId().toString(),
+                "fromId", requester.getId().toString(),
+                "fromName", requester.getUsername())));
+    }
+
+    /** Both people are now friends: tell each side about the other and show each other's online status. */
+    private void notifyConnected(UUID a, UUID b) {
+        afterCommit(() -> {
+            String an = userRepository.findById(a).map(User::getUsername).orElse("");
+            String bn = userRepository.findById(b).map(User::getUsername).orElse("");
+            pushIfOnline(a, java.util.Map.of("type", "friend_accepted", "userId", b.toString(), "username", bn));
+            pushIfOnline(b, java.util.Map.of("type", "friend_accepted", "userId", a.toString(), "username", an));
+            if (sessionRegistry.isOnline(b)) pushIfOnline(a, java.util.Map.of("type", "presence", "userId", b.toString(), "online", true));
+            if (sessionRegistry.isOnline(a)) pushIfOnline(b, java.util.Map.of("type", "presence", "userId", a.toString(), "online", true));
+        });
     }
 
     @Transactional
@@ -65,6 +112,7 @@ public class FriendService {
             r.setStatus(FriendRequestStatus.ACCEPTED);
             r.setRespondedAt(Instant.now());
             friendRequestRepository.save(r);
+            notifyConnected(requesterId, target.getId());
             return toDto(r, requesterId);
         }
 
@@ -83,6 +131,11 @@ public class FriendService {
         }
 
         friendRequestRepository.save(fr);
+        if (fr.getStatus() == FriendRequestStatus.ACCEPTED) {
+            notifyConnected(requesterId, target.getId());
+        } else {
+            notifyNewRequest(fr, requester);
+        }
         return toDto(fr, requesterId);
     }
 
@@ -101,6 +154,7 @@ public class FriendService {
         fr.setStatus(accept ? FriendRequestStatus.ACCEPTED : FriendRequestStatus.DECLINED);
         fr.setRespondedAt(Instant.now());
         friendRequestRepository.save(fr);
+        if (accept) notifyConnected(fr.getRequesterId(), fr.getAddresseeId());
         return toDto(fr, currentUserId);
     }
 
@@ -194,9 +248,14 @@ public class FriendService {
         if (byPhone.isPresent() && !byPhone.get().isDeleted()) {
             return byPhone.get();
         }
-        return userRepository.findByEmailIgnoreCase(identifier.trim())
-                .filter(u -> !u.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("No user found with that contact info"));
+        Optional<User> byEmail = userRepository.findByEmailIgnoreCase(identifier.trim()).filter(u -> !u.isDeleted());
+        if (byEmail.isPresent()) {
+            return byEmail.get();
+        }
+        // Usernames are public (they are the /chat/{username} link), so they are a valid way to find someone.
+        return userRepository.findByUsernameIgnoreCase(identifier.trim())
+                .filter(u -> !u.isDeleted() && u.isAccountEnabled())
+                .orElseThrow(() -> new ResourceNotFoundException("No user found with that username, email or phone"));
     }
 
     private User getActive(UUID id) {
