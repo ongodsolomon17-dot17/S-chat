@@ -34,9 +34,12 @@ public class AdminController {
     private final UserRepository userRepository;
     private final ChatMessageRepository messageRepository;
     private final UserReportRepository reportRepository;
+    private final com.stech.schat.websocket.WebSocketSessionRegistry sessionRegistry;
 
     public AdminController(ReportService reportService, UserRepository userRepository,
-                           ChatMessageRepository messageRepository, UserReportRepository reportRepository) {
+                           ChatMessageRepository messageRepository, UserReportRepository reportRepository,
+                           com.stech.schat.websocket.WebSocketSessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
         this.reportService = reportService;
         this.userRepository = userRepository;
         this.messageRepository = messageRepository;
@@ -77,6 +80,7 @@ public class AdminController {
         u.setAccountEnabled(false);
         u.setRefreshTokenVersion(u.getRefreshTokenVersion() + 1);
         userRepository.save(u);
+        sessionRegistry.disconnect(u.getId(), "Account suspended");
         return ResponseEntity.noContent().build();
     }
 

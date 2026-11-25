@@ -85,6 +85,44 @@ public class GlobalExceptionHandler {
                         ex.getMessage() == null ? "Service temporarily unavailable" : ex.getMessage()));
     }
 
+    @ExceptionHandler({
+            org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.multipart.support.MissingServletRequestPartException.class,
+            jakarta.validation.ConstraintViolationException.class})
+    public ResponseEntity<ApiError> handleMalformedRequest(Exception ex) {
+        return ResponseEntity.badRequest().body(ApiError.of(400, "BAD_REQUEST", "Invalid request"));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleTooLarge(Exception ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiError.of(413, "PAYLOAD_TOO_LARGE", "That file is too large (50 MB maximum)."));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotAllowed(Exception ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(ApiError.of(405, "METHOD_NOT_ALLOWED", "Method not allowed"));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> handleUnsupportedMedia(Exception ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ApiError.of(415, "UNSUPPORTED_MEDIA_TYPE", "Unsupported content type"));
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(Exception ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiError.of(404, "NOT_FOUND", "Not found"));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(Exception ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of(403, "FORBIDDEN", "You don't have access to this."));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
         if (ReadOnlyModeDetector.isReadOnlyViolation(ex)) {

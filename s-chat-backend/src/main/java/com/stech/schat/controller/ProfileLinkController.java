@@ -38,9 +38,12 @@ public class ProfileLinkController {
     private final FriendService friendService;
     private final LegalService legalService;
     private final PublicLookupRateLimiter rateLimiter;
+    private final com.stech.schat.security.ClientIpResolver clientIp;
 
     public ProfileLinkController(UserRepository userRepository, FriendService friendService,
-                                 LegalService legalService, PublicLookupRateLimiter rateLimiter) {
+                                 LegalService legalService, PublicLookupRateLimiter rateLimiter,
+                                 com.stech.schat.security.ClientIpResolver clientIp) {
+        this.clientIp = clientIp;
         this.userRepository = userRepository;
         this.friendService = friendService;
         this.legalService = legalService;
@@ -54,7 +57,7 @@ public class ProfileLinkController {
 
     @GetMapping("/public/users/{username}")
     public ResponseEntity<PublicProfileDto> publicProfile(@PathVariable String username, HttpServletRequest request) {
-        if (!rateLimiter.tryConsume(request.getRemoteAddr())) {
+        if (!rateLimiter.tryConsume(clientIp.resolve(request))) {
             throw new RateLimitExceededException("Too many requests. Please try again in a minute.");
         }
         User user = findAvailable(username);

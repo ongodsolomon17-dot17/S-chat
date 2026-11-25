@@ -25,10 +25,13 @@ public class ChatController {
 
     private final ChatService chatService;
     private final StorageService storageService;
+    private final com.stech.schat.security.UserActionRateLimiter actionLimiter;
 
-    public ChatController(ChatService chatService, StorageService storageService) {
+    public ChatController(ChatService chatService, StorageService storageService,
+                          com.stech.schat.security.UserActionRateLimiter actionLimiter) {
         this.chatService = chatService;
         this.storageService = storageService;
+        this.actionLimiter = actionLimiter;
     }
 
     @GetMapping("/list")
@@ -54,7 +57,10 @@ public class ChatController {
 
     @PostMapping(value = "/attachment", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, String>> uploadAttachment(Authentication auth, @RequestParam("file") MultipartFile file) throws Exception {
-        currentUserId(auth);
+        UUID userId = currentUserId(auth);
+        if (!actionLimiter.tryConsume("upload", userId, 20)) {
+            throw new com.stech.schat.exception.RateLimitExceededException("You're uploading too quickly. Please wait a moment.");
+        }
         String url = storageService.upload("attachments", file);
         return ResponseEntity.ok(Map.of("url", url));
     }

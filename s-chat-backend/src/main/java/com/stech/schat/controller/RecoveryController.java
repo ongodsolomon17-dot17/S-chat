@@ -21,10 +21,13 @@ public class RecoveryController {
 
     private final RecoveryService recoveryService;
     private final AuthRateLimiter rateLimiter;
+    private final com.stech.schat.security.ClientIpResolver clientIp;
 
-    public RecoveryController(RecoveryService recoveryService, AuthRateLimiter rateLimiter) {
+    public RecoveryController(RecoveryService recoveryService, AuthRateLimiter rateLimiter,
+                              com.stech.schat.security.ClientIpResolver clientIp) {
         this.recoveryService = recoveryService;
         this.rateLimiter = rateLimiter;
+        this.clientIp = clientIp;
     }
 
     @GetMapping("/channels")
@@ -49,9 +52,7 @@ public class RecoveryController {
     }
 
     private void enforceRateLimit(HttpServletRequest http) {
-        String forwarded = http.getHeader("X-Forwarded-For");
-        String ip = forwarded != null && !forwarded.isBlank() ? forwarded.split(",")[0].trim() : http.getRemoteAddr();
-        if (!rateLimiter.tryConsume(ip)) {
+        if (!rateLimiter.tryConsume(clientIp.resolve(http))) {
             throw new RateLimitExceededException("Too many attempts. Please wait a minute and try again.");
         }
     }

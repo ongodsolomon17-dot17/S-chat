@@ -79,7 +79,8 @@ export const isVideo = (u) => /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(u);
 export const isAudio = (u) => /\.(mp3|wav|ogg|m4a|aac|weba|opus)(\?|$)/i.test(u);
 export function fileName(u) { try { return decodeURIComponent(new URL(u).pathname.split("/").pop() || "file"); } catch { return "file"; } }
 export function legalValue(key, label) {
-  const v = (window.S_CHAT_CONFIG?.[key] || "").trim();
+  const raw = String(window.S_CHAT_CONFIG?.[key] ?? "").trim();
+  const v = /^(null|undefined)$/i.test(raw) ? "" : raw;
   return v ? esc(v) : `<span class="placeholder" title="Set ${key} in js/config.js">[${esc(label)} — owner to provide]</span>`;
 }
 export const appName = () => window.S_CHAT_CONFIG?.APP_NAME || "S-Chat";

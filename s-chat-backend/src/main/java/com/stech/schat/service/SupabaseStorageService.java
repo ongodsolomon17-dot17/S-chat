@@ -54,7 +54,8 @@ public class SupabaseStorageService implements StorageService {
     private final String supabaseUrl;
     private final String serviceKey;
     private final String bucket;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(java.time.Duration.ofSeconds(10)).build();
 
     public SupabaseStorageService(
             @Value("${app.supabase.url}") String supabaseUrl,
@@ -181,6 +182,7 @@ public class SupabaseStorageService implements StorageService {
                 .header("apikey", serviceKey)
                 .header("Content-Type", contentType)
                 .header("x-upsert", "false")
+                .timeout(java.time.Duration.ofSeconds(90))
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes))
                 .build();
 
@@ -223,6 +225,7 @@ public class SupabaseStorageService implements StorageService {
         if (url == null || url.isBlank()) return false;
         try {
             URI parsed = URI.create(url);
+            if (!"https".equalsIgnoreCase(parsed.getScheme()) || parsed.getUserInfo() != null) return false;
             String expectedHost = URI.create(supabaseUrl).getHost();
             if (expectedHost == null || !expectedHost.equalsIgnoreCase(parsed.getHost())) return false;
             String marker = "/storage/v1/object/public/" + bucket + "/";
@@ -264,6 +267,7 @@ public class SupabaseStorageService implements StorageService {
                                     + objectPath
                     ))
                     .header("apikey", serviceKey)
+                    .timeout(java.time.Duration.ofSeconds(20))
                     .DELETE()
                     .build();
 

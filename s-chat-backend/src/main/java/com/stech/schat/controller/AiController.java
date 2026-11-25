@@ -14,8 +14,18 @@ import java.util.UUID;
 @RequestMapping("/api/ai")
 public class AiController {
     private final GeminiService geminiService;
+    private final com.stech.schat.security.AiRateLimiter rateLimiter;
 
-    public AiController(GeminiService geminiService) { this.geminiService = geminiService; }
+    public AiController(GeminiService geminiService, com.stech.schat.security.AiRateLimiter rateLimiter) {
+        this.geminiService = geminiService;
+        this.rateLimiter = rateLimiter;
+    }
+
+    /** Latest AI message + availability; the chat list calls this on every load. */
+    @GetMapping("/summary")
+    public ResponseEntity<com.stech.schat.dto.AiSummaryDto> summary(Authentication auth) {
+        return ResponseEntity.ok(geminiService.summary(currentUserId(auth)));
+    }
 
     @GetMapping("/history")
     public ResponseEntity<List<com.stech.schat.dto.AiChatMessage>> history(Authentication auth) {
@@ -23,7 +33,7 @@ public class AiController {
     }
 
     @PostMapping("/chat")
-    public ResponseEntity<AiChatResponse> chat(Authentication auth, @RequestBody AiChatRequest request) {
+    public ResponseEntity<AiChatResponse> chat(Authentication auth, @RequestBody @jakarta.validation.Valid AiChatRequest request) {
         UUID userId = currentUserId(auth);
         if (!rateLimiter.tryConsume(userId)) {
             throw new com.stech.schat.exception.RateLimitExceededException("You're sending messages to STech AI too quickly. Please wait a moment.");

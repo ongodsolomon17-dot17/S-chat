@@ -21,26 +21,30 @@ export async function connect() {
     // One-time ticket: the access token never appears in the WebSocket URL.
     const { ticket } = await api("/auth/ws-ticket", { method: "POST", headers: { "X-S-Chat-Client": "web" } });
     if (!ticket || intentionalClose) { connecting = false; return; }
-    socket = new WebSocket(window.S_CHAT_CONFIG.WS_URL + "?ticket=" + encodeURIComponent(ticket));
-    socket.onopen = () => {
+    const ws = new WebSocket(window.S_CHAT_CONFIG.WS_URL + "?ticket=" + encodeURIComponent(ticket));
+    socket = ws;
+    ws.onopen = () => {
+      if (socket !== ws) { try { ws.close(); } catch {} return; }
       connecting = false; retryDelay = 1000; state.wsConnected = true; bus.emit("ws:status", true);
       clearInterval(pingTimer);
       // Keeps the connection from being closed by proxies/hosts that drop idle sockets.
       pingTimer = setInterval(() => { if (socket?.readyState === WebSocket.OPEN) socket.send('{"type":"ping"}'); }, 25000);
     };
-    socket.onmessage = (ev) => {
+    ws.onmessage = (ev) => {
+      if (socket !== ws) return;
       let data; try { data = JSON.parse(ev.data); } catch { return; }
       if (data.type === "pong") return;
       bus.emit("ws:frame", data);
     };
-    socket.onclose = () => {
+    ws.onclose = () => {
+      if (socket !== ws) return; // a stale socket closing must not disturb the current one
       connecting = false; socket = null; clearInterval(pingTimer);
       state.wsConnected = false; state.online.clear(); bus.emit("ws:status", false);
       if (intentionalClose) return;
       clearTimeout(retryTimer); retryTimer = setTimeout(connect, retryDelay);
       retryDelay = Math.min(retryDelay * 2, 15000);
     };
-    socket.onerror = () => { try { socket?.close(); } catch {} };
+    ws.onerror = () => { try { ws.close(); } catch {} };
   } catch {
     connecting = false;
     if (!intentionalClose) { clearTimeout(retryTimer); retryTimer = setTimeout(connect, retryDelay); retryDelay = Math.min(retryDelay * 2, 15000); }

@@ -30,6 +30,8 @@ services:
         generateValue: true
       - key: FRONTEND_ORIGINS
         sync: false
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
       - key: PUBLIC_BASE_URL
         sync: false
       - key: TERMS_VERSION

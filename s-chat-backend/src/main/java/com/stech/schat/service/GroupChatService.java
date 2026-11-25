@@ -133,23 +133,6 @@ public class GroupChatService {
         List<ChatGroupMessage> messages = messageRepository.findByGroupIdOrderBySentAtDesc(
                 groupId, PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "sentAt"))).getContent();
 
-        System.out.println("========== GROUP CHAT HISTORY DEBUG ==========");
-        System.out.println("User ID: " + userId);
-        System.out.println("Group ID: " + groupId);
-        System.out.println("Requested page: " + safePage);
-        System.out.println("Requested size: " + safeSize);
-        System.out.println("Messages returned from repository: " + messages.size());
-
-        for (ChatGroupMessage message : messages) {
-            System.out.println(
-                    "Message ID: " + message.getId()
-                            + " | Group ID: " + message.getGroupId()
-                            + " | Sender ID: " + message.getSenderId()
-                            + " | Content: " + message.getContent()
-                            + " | Sent At: " + message.getSentAt()
-            );
-        }
-
         // Fix: Page.getContent() may return an unmodifiable list, and Collections.reverse()
         // mutates via set() internally -> UnsupportedOperationException. Copy into a mutable
         // ArrayList before reversing.
@@ -157,9 +140,6 @@ public class GroupChatService {
         Collections.reverse(orderedMessages);
 
         List<GroupMessageDto> result = orderedMessages.stream().map(this::toDto).toList();
-
-        System.out.println("DTO messages returned: " + result.size());
-        System.out.println("==============================================");
 
         return result;
     }
@@ -169,7 +149,7 @@ public class GroupChatService {
         requireMember(groupId, senderId);
         String safe = content == null ? "" : content.trim();
         if (safe.length() > 5000) throw new IllegalArgumentException("Message is too long");
-        if (attachmentUrl != null && (attachmentUrl.length() > 2048 || !storageService.isManagedUrl(attachmentUrl))) {
+        if (attachmentUrl != null && (attachmentUrl.length() > 512 || !storageService.isManagedUrl(attachmentUrl))) {
             throw new IllegalArgumentException("Invalid attachment");
         }
         if (safe.isBlank() && attachmentUrl == null) throw new IllegalArgumentException("Message cannot be empty");

@@ -60,7 +60,14 @@ export async function loadHistory(friendId, page = 0) {
   const rows = await api(`/chat/history/${friendId}?page=${page}&size=${PAGE}`);
   const asc = rows.slice().reverse();
   const cur = state.messages.get(friendId) || [];
-  state.messages.set(friendId, page === 0 ? asc : [...asc, ...cur]);
+  if (page === 0) {
+    // Keep messages that are still sending / failed and aren't in the server page yet.
+    const have = new Set(asc.map((m) => m.id));
+    const keep = cur.filter((m) => (m._pending || m._failed) && !have.has(m.id));
+    state.messages.set(friendId, [...asc, ...keep]);
+  } else {
+    state.messages.set(friendId, [...asc, ...cur]);
+  }
   state.hasMore.set(friendId, rows.length === PAGE);
   emitConv(friendId);
   return rows.length;
@@ -184,7 +191,13 @@ export function handleFrame(f) {
       clearTimeout(pendingAcks.get(f.clientMessageId)); pendingAcks.delete(f.clientMessageId);
       for (const [fid, list] of state.messages) {
         const m = list.find((x) => x.clientMessageId && x.clientMessageId === f.clientMessageId);
-        if (m) { m.id = f.id; m._pending = false; m._failed = false; emitConv(fid); break; }
+        if (m) {
+          m.id = f.id; m._pending = false; m._failed = false;
+          // The history reload may already have delivered the server copy of this message: keep just one.
+          const dupe = list.findIndex((x) => x !== m && x.id === f.id);
+          if (dupe >= 0) list.splice(dupe, 1);
+          emitConv(fid); break;
+        }
       }
       break;
     }

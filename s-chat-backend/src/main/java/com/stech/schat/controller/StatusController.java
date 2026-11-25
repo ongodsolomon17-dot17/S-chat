@@ -20,9 +20,11 @@ import static com.stech.schat.controller.UserController.currentUserId;
 public class StatusController {
 
     private final StatusService statusService;
+    private final com.stech.schat.security.UserActionRateLimiter actionLimiter;
 
-    public StatusController(StatusService statusService) {
+    public StatusController(StatusService statusService, com.stech.schat.security.UserActionRateLimiter actionLimiter) {
         this.statusService = statusService;
+        this.actionLimiter = actionLimiter;
     }
 
     @PostMapping(consumes = "multipart/form-data")
@@ -33,7 +35,11 @@ public class StatusController {
             @RequestParam(value = "textContent", required = false) String textContent,
             @RequestParam(value = "backgroundColor", required = false) String backgroundColor
     ) throws Exception {
-        return ResponseEntity.ok(statusService.create(currentUserId(auth), file, caption, textContent, backgroundColor));
+        UUID userId = currentUserId(auth);
+        if (!actionLimiter.tryConsume("status-post", userId, 10)) {
+            throw new com.stech.schat.exception.RateLimitExceededException("You're posting too quickly. Please wait a moment.");
+        }
+        return ResponseEntity.ok(statusService.create(userId, file, caption, textContent, backgroundColor));
     }
 
     @GetMapping("/feed")

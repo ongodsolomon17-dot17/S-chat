@@ -105,7 +105,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) refr
 bus.on("auth:expired", () => { if (state.me) doLogout(); });
 window.addEventListener("online", () => state.me && connect());
 
-mount($("#app"), html`<div class="splash"><span class="spinner"></span></div>`);
+// Start the application without replacing the new boot loader.
 resolve();
 
 // Installable app (PWA): the service worker only caches the app's own files; API calls are never intercepted.

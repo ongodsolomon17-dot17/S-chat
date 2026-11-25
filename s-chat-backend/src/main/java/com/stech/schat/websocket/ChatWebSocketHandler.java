@@ -97,7 +97,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
 
         try {
-            String type = String.valueOf(payload.get("type"));
+            String type = type(payload);
             switch (type) {
                 case "chat" -> handleChat(session, senderId, payload);
                 case "group_chat" -> handleGroupChat(session, senderId, payload);
@@ -111,13 +111,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                         relayCallSignal(senderId, payload, type);
                 default -> sendError(session, "Unknown message type");
             }
+        } catch (com.stech.schat.exception.ForbiddenActionException
+                 | com.stech.schat.exception.ResourceNotFoundException e) {
+            // Deliberate, user-facing messages (e.g. "You can only message users you're friends with").
+            sendError(session, e.getMessage());
         } catch (IllegalArgumentException e) {
             sendError(session, "Invalid request");
         } catch (Exception e) {
             if (com.stech.schat.exception.ReadOnlyModeDetector.isReadOnlyViolation(e)) {
                 sendError(session, com.stech.schat.exception.ReadOnlyModeDetector.USER_MESSAGE);
             } else {
-                sendError(session, e.getMessage() != null ? e.getMessage() : "Could not process request");
+                // Never echo internal exception text (SQL, class names...) to the client.
+                log.warn("WebSocket '{}' failed for user {}: {}", type(payload), senderId, e.toString());
+                sendError(session, "Could not process request");
             }
         }
     }
@@ -130,7 +136,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 ? UUID.fromString(String.valueOf(p.get("replyToMessageId"))) : null;
 
         if (content.length() > 5000) { sendError(session, "Message is too long"); return; }
-        if (attachmentUrl != null && attachmentUrl.length() > 2048) { sendError(session, "Attachment URL is too long"); return; }
+        if (attachmentUrl != null && attachmentUrl.length() > 512) { sendError(session, "Attachment URL is too long"); return; }
         if (content.isBlank() && attachmentUrl == null) { sendError(session, "Message cannot be empty"); return; }
 
         ChatMessageDto saved = chatService.sendMessage(senderId, receiverId, content, attachmentUrl, replyTo, null);
@@ -178,7 +184,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String content = String.valueOf(p.getOrDefault("content", ""));
         String attachmentUrl = p.get("attachmentUrl") == null ? null : String.valueOf(p.get("attachmentUrl"));
         if (content.length() > 5000) { sendError(session, "Message is too long"); return; }
-        if (attachmentUrl != null && attachmentUrl.length() > 2048) { sendError(session, "Attachment URL is too long"); return; }
+        if (attachmentUrl != null && attachmentUrl.length() > 512) { sendError(session, "Attachment URL is too long"); return; }
         if (content.isBlank() && attachmentUrl == null) { sendError(session, "Message cannot be empty"); return; }
 
         GroupMessageDto saved = groupChatService.sendMessage(senderId, groupId, content, attachmentUrl);
@@ -192,6 +198,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private void handleCallInvite(WebSocketSession session, UUID callerId, Map<String, Object> p) throws IOException {
         UUID calleeId = UUID.fromString(String.valueOf(p.get("to")));
+        if (!friendService.areFriends(callerId, calleeId)) {
+            throw new com.stech.schat.exception.ForbiddenActionException("You can only call users you're friends with");
+        }
         if (!sessionRegistry.isOnline(calleeId)) { sendError(session, "That user is currently offline."); return; }
 
         CallRecord.CallType type;
@@ -243,9 +252,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             throw new IllegalArgumentException("Call is not connected yet");
         }
         UUID other = call.callerId().equals(userId) ? call.calleeId() : call.callerId();
-        Map<String, Object> frame = new HashMap<>(p);
+        Map<String, Object> frame = new HashMap<>();
         frame.put("type", type);
+        frame.put("callId", call.id().toString());
         frame.put("from", userId.toString());
+        if (p.get("description") != null) frame.put("description", p.get("description"));
+        if (p.get("candidate") != null) frame.put("candidate", p.get("candidate"));
         sessionRegistry.send(other, frame);
     }
 
@@ -264,8 +276,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         sendJson(session, Map.of("type", "error", "message", message));
     }
 
-    private void sendJson(WebSocketSession session, Object payload) throws IOException {
-        if (session.isOpen()) session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+    private void sendJson(WebSocketSession session, Object payload) {
+        sessionRegistry.sendToSession(session, payload);
+    }
+
+    private static String type(Map<String, Object> payload) {
+        return String.valueOf(payload.get("type"));
+    }
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+        log.debug("WebSocket transport error: {}", exception.toString());
+        try { session.close(CloseStatus.SERVER_ERROR); } catch (Exception ignored) { }
     }
 
     private UUID currentUserId(WebSocketSession session) {

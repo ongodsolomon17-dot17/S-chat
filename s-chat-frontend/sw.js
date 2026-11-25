@@ -2,7 +2,7 @@
  * Strategy: NETWORK-FIRST for the app's own files (so a new deploy is picked up immediately and old/new
  * files are never mixed), with the cache only as an offline fallback. API calls and WebSockets are never
  * touched. Bump VERSION on every release to clear old caches. */
-const VERSION = "2026-11-22.1";
+const VERSION = "2026-11-25.1";
 const CACHE = "schat-shell-" + VERSION;
 const PRECACHE = [
   "/",
@@ -28,6 +28,7 @@ const PRECACHE = [
   "/js/core/ws.js",
   "/js/main.js",
   "/js/router.js",
+  "/js/theme-init.js",
   "/js/views/ai-conversation.js",
   "/js/views/auth.js",
   "/js/views/conversation.js",

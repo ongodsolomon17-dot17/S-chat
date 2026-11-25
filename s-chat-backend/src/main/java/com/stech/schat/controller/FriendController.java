@@ -19,14 +19,20 @@ import static com.stech.schat.controller.UserController.currentUserId;
 public class FriendController {
 
     private final FriendService friendService;
+    private final com.stech.schat.security.UserActionRateLimiter actionLimiter;
 
-    public FriendController(FriendService friendService) {
+    public FriendController(FriendService friendService, com.stech.schat.security.UserActionRateLimiter actionLimiter) {
         this.friendService = friendService;
+        this.actionLimiter = actionLimiter;
     }
 
     @PostMapping("/request")
     public ResponseEntity<FriendRequestDto> sendRequest(Authentication auth, @Valid @RequestBody SendFriendRequestRequest request) {
-        return ResponseEntity.ok(friendService.sendRequest(currentUserId(auth), request));
+        UUID userId = currentUserId(auth);
+        if (!actionLimiter.tryConsume("friend-request", userId, 15)) {
+            throw new com.stech.schat.exception.RateLimitExceededException("You're sending friend requests too quickly. Please wait a moment.");
+        }
+        return ResponseEntity.ok(friendService.sendRequest(userId, request));
     }
 
     @GetMapping("/blocked")

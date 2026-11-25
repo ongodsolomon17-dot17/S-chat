@@ -97,7 +97,7 @@ public class ChatService {
         String safeContent = content == null ? "" : content.trim();
         if (safeContent.length() > 5000) throw new IllegalArgumentException("Message is too long");
         if (attachmentUrl != null) {
-            if (attachmentUrl.length() > 2048 || !storageService.isManagedUrl(attachmentUrl)) {
+            if (attachmentUrl.length() > 512 || !storageService.isManagedUrl(attachmentUrl)) {
                 throw new IllegalArgumentException("Invalid attachment");
             }
         }

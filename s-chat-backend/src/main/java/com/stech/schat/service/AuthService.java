@@ -35,6 +35,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserService userService;
     private final LegalService legalService;
+    private final String dummyHash;
 
     // Names that would collide with routes or impersonate the platform.
     private static final java.util.Set<String> RESERVED_USERNAMES = java.util.Set.of(
@@ -50,6 +51,8 @@ public class AuthService {
         this.jwtService = jwtService;
         this.userService = userService;
         this.legalService = legalService;
+        // Real bcrypt hash of a random value; only used to equalise timing for unknown usernames.
+        this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     @Transactional
@@ -96,11 +99,18 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    @Transactional
+    // noRollbackFor: the failed-attempt counter is saved and THEN we throw. Without this the exception
+    // rolled the counter back, so accounts were never locked after repeated wrong passwords.
+    @Transactional(noRollbackFor = InvalidCredentialsException.class)
     public AuthResponse login(LoginRequest request) {
         User user = userRepository
                 .findByUsernameIgnoreCaseOrEmailIgnoreCase(request.usernameOrEmail(), request.usernameOrEmail())
-                .orElseThrow(() -> new InvalidCredentialsException("Incorrect username/email or password"));
+                .orElse(null);
+        if (user == null) {
+            // Spend the same bcrypt time as a real attempt so response time doesn't reveal which usernames exist.
+            passwordEncoder.matches(request.password(), dummyHash);
+            throw new InvalidCredentialsException("Incorrect username/email or password");
+        }
 
         if (user.isDeleted()) {
             throw new InvalidCredentialsException("Incorrect username/email or password");

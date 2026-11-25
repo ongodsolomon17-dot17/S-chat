@@ -19,17 +19,44 @@
   <meta property="og:description" content="Fast one-to-one messaging with a personal chat link.">
   <meta property="og:image" content="/assets/icon-512.png">
   <link rel="stylesheet" href="/css/app.css">
-  <script>
-    // Apply the saved theme before first paint to avoid a flash.
-    try { var t = localStorage.getItem('schat_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
-  </script>
+  <script src="/js/theme-init.js"></script>
   <script src="/js/config.js"></script>
 </head>
 <body>
-  <div id="app" aria-live="polite"></div>
+  <div id="app">
+
+    <!-- S-Chat Initial Loading Screen -->
+    <div id="boot-loader"
+         class="boot-loader"
+         role="status"
+         aria-label="Loading S-Chat">
+
+        <video
+            id="boot-video"
+            muted
+            autoplay
+            loop
+            playsinline
+            preload="auto"
+            disablepictureinpicture
+            tabindex="-1"
+            aria-hidden="true">
+        </video>
+
+        <!-- Fallback animation if video is unsupported -->
+        <div class="boot-dots" aria-hidden="true">
+            <i></i>
+            <i></i>
+            <i></i>
+        </div>
+
+    </div>
+
+  </div>
   <div id="toasts" class="toast-stack" role="status" aria-live="polite"></div>
   <div id="modal-root"></div>
   <noscript><p style="padding:2rem;font-family:sans-serif">S-Chat needs JavaScript enabled.</p></noscript>
+  <script src="/js/boot-loader.js"></script>
   <script type="module" src="/js/main.js"></script>
 </body>
 </html>

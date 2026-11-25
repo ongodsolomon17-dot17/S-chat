@@ -21,10 +21,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
+    private final com.stech.schat.security.ClientIpResolver clientIp;
 
-    public AuthController(AuthService authService, AuthRateLimiter rateLimiter) {
+    public AuthController(AuthService authService, AuthRateLimiter rateLimiter,
+                          com.stech.schat.security.ClientIpResolver clientIp) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
+        this.clientIp = clientIp;
     }
 
     @PostMapping("/signup")
@@ -90,18 +93,9 @@ public class AuthController {
     }
 
     private void enforceRateLimit(HttpServletRequest http) {
-        String clientIp = extractClientIp(http);
-        if (!rateLimiter.tryConsume(clientIp)) {
+        if (!rateLimiter.tryConsume(clientIp.resolve(http))) {
             throw new RateLimitExceededException("Too many attempts. Please wait a minute and try again.");
         }
     }
 
-    private String extractClientIp(HttpServletRequest request) {
-        // Render sits behind a proxy; X-Forwarded-For carries the real client IP
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

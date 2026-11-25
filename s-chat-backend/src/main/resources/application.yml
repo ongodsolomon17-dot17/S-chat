@@ -66,6 +66,10 @@ app:
   cors:
     # Comma-separated, no trailing slash, e.g. https://chat.example.com,https://my-app.vercel.app
     allowed-origins: ${FRONTEND_ORIGINS:http://localhost:5173}
+  security:
+    # How many reverse proxies sit in front of this app (Render's load balancer = 1). Used to read the real
+    # client IP from X-Forwarded-For for rate limiting. Raise to 2 if a CDN is added; 0 ignores the header.
+    trusted-proxy-hops: ${TRUSTED_PROXY_HOPS:1}
   # Public base URL of the FRONTEND, used when building shareable chat links.
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}
   legal:

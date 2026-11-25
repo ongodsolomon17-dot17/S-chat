@@ -244,9 +244,12 @@ public class FriendService {
                     .orElseThrow(() -> new ResourceNotFoundException("No user found with that ID"));
         }
         // Contact = phone number or email
-        Optional<User> byPhone = userRepository.findByPhoneNumber(identifier.trim());
-        if (byPhone.isPresent() && !byPhone.get().isDeleted()) {
-            return byPhone.get();
+        // Phone numbers are unverified and not unique: only accept the match when it is unambiguous,
+        // otherwise someone could set their number to a victim's and intercept "add by phone" requests.
+        java.util.List<User> byPhone = userRepository.findByPhoneNumber(identifier.trim()).stream()
+                .filter(u -> !u.isDeleted() && u.isAccountEnabled()).toList();
+        if (byPhone.size() == 1) {
+            return byPhone.get(0);
         }
         Optional<User> byEmail = userRepository.findByEmailIgnoreCase(identifier.trim()).filter(u -> !u.isDeleted());
         if (byEmail.isPresent()) {

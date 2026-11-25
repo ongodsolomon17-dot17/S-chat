@@ -22,10 +22,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final StorageService storageService;
+    private final com.stech.schat.websocket.WebSocketSessionRegistry sessionRegistry;
 
-    public UserService(UserRepository userRepository, StorageService storageService) {
+    public UserService(UserRepository userRepository, StorageService storageService,
+                       com.stech.schat.websocket.WebSocketSessionRegistry sessionRegistry) {
         this.userRepository = userRepository;
         this.storageService = storageService;
+        this.sessionRegistry = sessionRegistry;
     }
 
     /** Generates a unique default public ID like "SC-7F3K9QZP", retrying on the rare collision. */
@@ -50,7 +53,7 @@ public class UserService {
         User user = getActiveUserOrThrow(userId);
 
         if (request.publicId() != null && !request.publicId().equalsIgnoreCase(user.getPublicId())) {
-            if (userRepository.existsByPublicId(request.publicId())) {
+            if (userRepository.existsByPublicIdIgnoreCase(request.publicId())) {
                 throw new DuplicateUserException("That S-Chat ID is already taken");
             }
             user.setPublicId(request.publicId());
@@ -101,6 +104,7 @@ public class UserService {
         // Invalidate any outstanding refresh token for the deleted account.
         user.setRefreshTokenVersion(user.getRefreshTokenVersion() + 1);
         userRepository.save(user);
+        sessionRegistry.disconnect(user.getId(), "Account deleted");
     }
 
     private User getActiveUserOrThrow(UUID userId) {

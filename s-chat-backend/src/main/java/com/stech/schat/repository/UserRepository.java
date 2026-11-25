@@ -14,13 +14,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByPublicId(String publicId);
 
-    Optional<User> findByPhoneNumber(String phoneNumber);
+    // A phone number is not unique in the schema (and is not verified), so never assume a single row.
+    java.util.List<User> findByPhoneNumber(String phoneNumber);
 
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByPublicId(String publicId);
+
+    boolean existsByPublicIdIgnoreCase(String publicId);
 
     long countByCreatedAtAfter(java.time.Instant after);
 

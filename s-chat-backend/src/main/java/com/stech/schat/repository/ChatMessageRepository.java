@@ -33,7 +33,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
      */
     @Query(value = """
         SELECT id, sender_id, receiver_id, content, attachment_url, sent_at, delivered_at, read_at,
-               reply_to_message_id, reply_to_status_id, deleted_at, deleted_by
+               reply_to_message_id, reply_to_status_id, edited_at, deleted_at, deleted_by
         FROM (
             SELECT m.*,
                    ROW_NUMBER() OVER (
