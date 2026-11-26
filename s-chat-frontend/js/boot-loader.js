@@ -44,8 +44,8 @@
 
     function updateLoader() {
         const source = isDarkMode()
-            ? "/assets/loader/S-Chat-loading-transparent-dark-dots.webm"
-            : "/assets/loader/S-Chat-loading-transparent-white-dots.webm";
+            ? "/assets/loader/S-Chat-loading-transparent-white-dots.webm"
+            : "/assets/loader/S-Chat-loading-transparent-dark-dots.webm";
 
         if (source === currentSource) return;
 
